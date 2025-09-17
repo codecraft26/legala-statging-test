@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Header from "./components/Header";
 import Following from "./components/Following";
 import SearchParty from "./components/SearchParty";
+import HighCourtPartySearch from "./components/HighCourtPartySearch";
+import DistrictPartySearch from "./components/DistrictPartySearch";
 
 type CourtId = "supreme" | "high" | "district" | "cat" | "nclt" | "consumer";
 
@@ -64,7 +66,13 @@ export default function LegalAiResearch() {
     if (activePage.endsWith("party")) {
       return (
         <div className="p-6">
-          <SearchParty court={court} />
+          {court === "high" ? (
+            <HighCourtPartySearch />
+          ) : court === "district" ? (
+            <DistrictPartySearch />
+          ) : (
+            <SearchParty court={court} />
+          )}
         </div>
       );
     }

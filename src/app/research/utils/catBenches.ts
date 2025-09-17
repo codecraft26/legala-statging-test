@@ -1,0 +1,23 @@
+// Ported from React utils: catBenches.js
+export const catBenches: { id: string; name: string }[] = [
+  { id: "PRINCIPAL_BENCH_DELHI", name: "Principal Bench, Delhi" },
+  { id: "AHMEDABAD", name: "Ahmedabad" },
+  { id: "ALLAHABAD", name: "Allahabad" },
+  { id: "BANGALORE", name: "Bangalore" },
+  { id: "BOMBAY", name: "Bombay" },
+  { id: "CALCUTTA", name: "Calcutta" },
+  { id: "CHANDIGARH", name: "Chandigarh" },
+  { id: "CHENNAI", name: "Chennai" },
+  { id: "CUTTACK", name: "Cuttack" },
+  { id: "ERNAKULAM", name: "Ernakulam" },
+  { id: "GUWAHATI", name: "Guwahati" },
+  { id: "HYDERABAD", name: "Hyderabad" },
+  { id: "JABALPUR", name: "Jabalpur" },
+  { id: "JAIPUR", name: "Jaipur" },
+  { id: "JODHPUR", name: "Jodhpur" },
+  { id: "KOLKATA", name: "Kolkata" },
+  { id: "LUCKNOW", name: "Lucknow" },
+  { id: "MADRAS", name: "Madras" },
+  { id: "MUMBAI", name: "Mumbai" },
+  { id: "PATNA", name: "Patna" },
+];

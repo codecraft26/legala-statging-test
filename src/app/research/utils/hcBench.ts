@@ -1,0 +1,22 @@
+// Ported from React utils: hcBench.js
+export const hcBenches: { id: string; name: string }[] = [
+  { id: "AHMEDABAD", name: "Ahmedabad" },
+  { id: "ALLAHABAD", name: "Allahabad" },
+  { id: "BOMBAY", name: "Bombay" },
+  { id: "CALCUTTA", name: "Calcutta" },
+  { id: "DELHI", name: "Delhi" },
+  { id: "GAUHATI", name: "Gauhati" },
+  { id: "GUJARAT", name: "Gujarat" },
+  { id: "HIMACHAL", name: "Himachal Pradesh" },
+  { id: "JAMMU", name: "Jammu & Kashmir" },
+  { id: "JHARKHAND", name: "Jharkhand" },
+  { id: "KARNATAKA", name: "Karnataka" },
+  { id: "KERALA", name: "Kerala" },
+  { id: "MADRAS", name: "Madras" },
+  { id: "MADHYA", name: "Madhya Pradesh" },
+  { id: "PATNA", name: "Patna" },
+  { id: "PUNJAB", name: "Punjab & Haryana" },
+  { id: "RAJASTHAN", name: "Rajasthan" },
+  { id: "SIKKIM", name: "Sikkim" },
+  { id: "UTTARAKHAND", name: "Uttarakhand" },
+];
