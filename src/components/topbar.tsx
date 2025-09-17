@@ -36,6 +36,7 @@ function RoleBadge({ role }: { role?: string }) {
 export default function Topbar() {
   const { user, token } = useSelector((s: RootState) => s.auth);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -43,6 +44,7 @@ export default function Topbar() {
 
   // Ensure user is loaded when token exists (after refresh)
   useEffect(() => {
+    setMounted(true);
     const lsToken =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!user && lsToken) {
@@ -94,9 +96,11 @@ export default function Topbar() {
             <Bell size={16} />
           </button>
           <ThemeToggle />
-          {user ||
-          token ||
-          (typeof window !== "undefined" && localStorage.getItem("token")) ? (
+          {mounted &&
+          (user ||
+            token ||
+            (typeof window !== "undefined" &&
+              localStorage.getItem("token"))) ? (
             <div className="relative">
               <button
                 onClick={() => setOpen((v) => !v)}
@@ -111,20 +115,20 @@ export default function Topbar() {
                       <p className="text-sm font-medium">
                         {user?.name ||
                           (user?.email as string)?.split("@")?.[0] ||
-                          (typeof window !== "undefined"
+                          (mounted && typeof window !== "undefined"
                             ? JSON.parse(localStorage.getItem("user") || "{}")
                                 .name ||
                               JSON.parse(
                                 localStorage.getItem("user") || "{}"
                               ).email?.split("@")?.[0]
-                            : "User") ||
+                            : undefined) ||
                           "User"}
                       </p>
                       <RoleBadge
                         role={
                           user
                             ? String(user.role || "")
-                            : typeof window !== "undefined"
+                            : mounted && typeof window !== "undefined"
                               ? JSON.parse(localStorage.getItem("user") || "{}")
                                   .role
                               : undefined
@@ -135,7 +139,8 @@ export default function Topbar() {
                       <p className="text-xs text-muted-foreground truncate max-w-32">
                         {user.email as string}
                       </p>
-                    ) : typeof window !== "undefined" &&
+                    ) : mounted &&
+                      typeof window !== "undefined" &&
                       JSON.parse(localStorage.getItem("user") || "{}").email ? (
                       <p className="text-xs text-muted-foreground truncate max-w-32">
                         {JSON.parse(localStorage.getItem("user") || "{}").email}
