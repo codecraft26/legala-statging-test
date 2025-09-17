@@ -236,24 +236,38 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
-      <footer className="mt-8 border-t border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 backdrop-blur supports-[backdrop-filter]:bg-white/50 supports-[backdrop-filter]:dark:bg-zinc-900/50">
-        <div className="max-w-6xl mx-auto px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-          <div>
-            © {new Date().getFullYear()} InfraHive. All rights reserved.
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/privacy" className="hover:text-foreground">
-              Privacy
-            </a>
-            <a href="/terms" className="hover:text-foreground">
-              Terms
-            </a>
-            <a href="/contact" className="hover:text-foreground">
-              Contact
-            </a>
+      <div className="bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 text-white py-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)",
+              backgroundSize: "20px 20px",
+            }}
+          ></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <img
+                src="https://www.infrahive.ai/_next/image?url=%2Fimages%2Flogo%2Flogo.png&w=640&q=75"
+                className="w-[120px] mx-auto filter group-hover:brightness-110 transition-all duration-200"
+                alt="Logo"
+              />
+            </div>
+            <p className="text-slate-900 text-lg mb-4">
+              Empowering legal professionals worldwide with advanced AI
+              technology
+            </p>
+            <p className="text-slate-700 text-sm">
+              © {new Date().getFullYear()} All rights reserved. Built with ❤️
+              for the legal community.
+            </p>
           </div>
         </div>
-      </footer>
+      </div>
     </>
   );
 }
