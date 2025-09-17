@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Api } from "@/lib/api-client";
 import { Eye, EyeOff } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
+import { RootState } from "@/store";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +15,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch();
+  const router = useRouter();
+  const token = useSelector((s: RootState) => s.auth.token);
+
+  // If already logged in, redirect to dashboard
+  useEffect(() => {
+    const storedToken =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (token || storedToken) {
+      router.replace("http://localhost:3000/dashboard");
+    }
+  }, [token, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,9 +48,7 @@ export default function LoginPage() {
           localStorage.setItem("user", JSON.stringify(user));
         }
       } catch {}
-      if (typeof window !== "undefined") {
-        window.location.href = "/dashboard";
-      }
+      router.replace("http://localhost:3000/dashboard");
     } catch (err: any) {
       setError(err?.message ?? "Login failed");
     } finally {
