@@ -8,8 +8,8 @@ import SearchParty from "./components/SearchParty";
 type CourtId = "supreme" | "high" | "district" | "cat" | "nclt" | "consumer";
 
 export default function LegalAiResearch() {
-  const [openDropdown, setOpenDropdown] = useState<CourtId | null>("supreme");
-  const [activePage, setActivePage] = useState<string>("supreme-party");
+  const [openDropdown, setOpenDropdown] = useState<CourtId | null>(null);
+  const [activePage, setActivePage] = useState<string>("following");
   const [dateInput, setDateInput] = useState("");
   const [partyNameInput, setPartyNameInput] = useState("");
   const [filingNumberInput, setFilingNumberInput] = useState("");
