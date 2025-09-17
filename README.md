@@ -1,38 +1,60 @@
-This is a [Next.js](https://nextjs.org) project.
+## Legal AI Frontend (Next.js + Tailwind + shadcn)
 
-## Getting Started
+A Next.js dashboard frontend for Legal AI. Supports dark/light themes, environment-driven backend URLs, and a minimal auth flow ready to integrate with the Bun/Hono backend.
 
-First, run the development server:
+Backend reference:
+
+- Base URL: `http://localhost:4242`
+- API Base Path: `/api`
+- Docs: `http://localhost:4242/docs`
+
+### 1) Install
 
 ```bash
-bun i
-
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2) Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local` in the project root:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:4242
+NEXT_PUBLIC_API_BASE_PATH=/api
+```
 
-## Learn More
+You can override these for other environments. Only public URLs are needed for the browser; tokens are stored in `localStorage` by default in this starter.
 
-To learn more about Next.js, take a look at the following resources:
+### 3) Dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+bun run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open `http://localhost:3000`.
 
-## Deploy on Vercel
+### 4) Theme
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dark/light theme is powered by `next-themes` and shadcn-friendly classnames. Use the header toggle on `/` or `/dashboard`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 5) Auth
+
+- Login: `/login` calls `POST /api/user/login` and stores `token` in `localStorage`.
+- Accept Invite: `/accept-invite?token=<uuid>` calls `POST /api/user/accept-invite`.
+- Simple client guard redirects `/dashboard` to `/login` if no token.
+
+Replace the client guard with a proper middleware/session solution as needed.
+
+### 6) API Client
+
+The API base is composed from env in `src/lib/utils.ts` and consumed via a small fetch wrapper in `src/lib/api-client.ts`.
+
+### 7) Migrate from Vite App
+
+Port components/pages from `legal-ai-ui` into Next.js routes under `src/app/`. Prefer server components, and mark interactive pages with `"use client"`.
+
+### Scripts
+
+- `bun run dev` — start dev server
+- `bun run build` — build
+- `bun run start` — production start
