@@ -236,16 +236,26 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
-      <div className="bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 text-white py-12 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-transparent dark:via-transparent dark:to-transparent dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 py-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
+          {/* Light pattern */}
           <div
-            className="w-full h-full"
+            className="w-full h-full dark:hidden"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)",
               backgroundSize: "20px 20px",
             }}
-          ></div>
+          />
+          {/* Dark pattern */}
+          <div
+            className="hidden dark:block w-full h-full"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0)",
+              backgroundSize: "20px 20px",
+            }}
+          />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -257,11 +267,11 @@ export default function DashboardPage() {
                 alt="Logo"
               />
             </div>
-            <p className="text-slate-900 text-lg mb-4">
+            <p className="text-slate-900 dark:text-zinc-100 text-lg mb-4">
               Empowering legal professionals worldwide with advanced AI
               technology
             </p>
-            <p className="text-slate-700 text-sm">
+            <p className="text-slate-700 dark:text-zinc-400 text-sm">
               © {new Date().getFullYear()} All rights reserved. Built with ❤️
               for the legal community.
             </p>

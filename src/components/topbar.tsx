@@ -63,13 +63,13 @@ export default function Topbar() {
   }, [user, dispatch]);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-zinc-900/60">
       <div className="mx-auto flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="logo" className="h-6 w-6" />
-            <span className="hidden sm:block text-sm font-semibold">
+            <span className="hidden sm:block text-sm font-semibold text-foreground">
               InfraHive
             </span>
           </Link>
