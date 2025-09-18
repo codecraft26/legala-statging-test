@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
@@ -37,6 +37,7 @@ export default function Topbar() {
   const { user, token } = useSelector((s: RootState) => s.auth);
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -101,9 +102,20 @@ export default function Topbar() {
             token ||
             (typeof window !== "undefined" &&
               localStorage.getItem("token"))) ? (
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setOpen((v) => !v)}
+                onBlur={(e) => {
+                  // Close dropdown when focus is lost, but allow a small delay for clicks
+                  setTimeout(() => {
+                    if (
+                      dropdownRef.current &&
+                      !dropdownRef.current.contains(document.activeElement)
+                    ) {
+                      setOpen(false);
+                    }
+                  }, 150);
+                }}
                 className="flex items-center gap-3 rounded-md px-2 py-1 hover:bg-accent"
               >
                 <div className="flex items-center gap-3">
@@ -154,16 +166,21 @@ export default function Topbar() {
                 />
               </button>
               {open ? (
-                <div className="absolute right-0 mt-2 w-56 rounded-md border bg-background p-1 shadow-md">
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-md border bg-background p-1 shadow-md z-40"
+                  onMouseDown={(e) => e.preventDefault()} // Prevent blur when clicking inside dropdown
+                >
                   <Link
                     href="/profile"
                     className="flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
+                    onClick={() => setOpen(false)}
                   >
                     <UserIcon size={14} /> Profile
                   </Link>
                   <Link
                     href="/settings"
                     className="flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
+                    onClick={() => setOpen(false)}
                   >
                     <Settings size={14} /> Workspace
                   </Link>
@@ -171,6 +188,7 @@ export default function Topbar() {
                   <button
                     className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                     onClick={() => {
+                      setOpen(false);
                       if (typeof window !== "undefined") {
                         localStorage.removeItem("token");
                       }

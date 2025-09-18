@@ -6,6 +6,9 @@ import Following from "./components/Following";
 import SearchParty from "./components/SearchParty";
 import HighCourtPartySearch from "./components/HighCourtPartySearch";
 import DistrictPartySearch from "./components/DistrictPartySearch";
+import SupremeCourtSearch from "./components/SupremeCourtSearch";
+import HighCourtAdvancedSearch from "./components/HighCourtAdvancedSearch";
+import DistrictAdvancedSearch from "./components/DistrictAdvancedSearch";
 
 type CourtId = "supreme" | "high" | "district" | "cat" | "nclt" | "consumer";
 
@@ -32,7 +35,7 @@ export default function LegalAiResearch() {
       id: "f2",
       title: "XYZ vs Union",
       court: "High Court",
-      date: new Date(Date.now() - 86400000).toISOString(),
+      date: "2024-01-14T12:00:00.000Z",
     },
   ]);
 
@@ -63,6 +66,27 @@ export default function LegalAiResearch() {
       );
     }
     const court = activePage.split("-")[0] as CourtId;
+    if (activePage === "supreme-advanced") {
+      return (
+        <div className="p-6">
+          <SupremeCourtSearch />
+        </div>
+      );
+    }
+    if (activePage === "high-advanced") {
+      return (
+        <div className="p-6">
+          <HighCourtAdvancedSearch />
+        </div>
+      );
+    }
+    if (activePage === "district-advanced") {
+      return (
+        <div className="p-6">
+          <DistrictAdvancedSearch />
+        </div>
+      );
+    }
     if (activePage.endsWith("party")) {
       return (
         <div className="p-6">
@@ -96,6 +120,15 @@ export default function LegalAiResearch() {
             className={`w-1 h-1 rounded-full ${activePage === `${courtId}-party` ? "bg-blue-600" : "bg-gray-400"}`}
           />
           <span>Search by Party Name</span>
+        </button>
+        <button
+          className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${activePage === `${courtId}-advanced` ? "text-blue-600" : "text-gray-600"}`}
+          onClick={() => setActivePage(`${courtId}-advanced`)}
+        >
+          <div
+            className={`w-1 h-1 rounded-full ${activePage === `${courtId}-advanced` ? "bg-blue-600" : "bg-gray-400"}`}
+          />
+          <span>Advanced Searches</span>
         </button>
       </div>
     );

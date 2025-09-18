@@ -1,20 +1,36 @@
 "use client";
 
 import React from "react";
-import AdvancedEditor from "./components/AdvancedEditor";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
 import { Button } from "@/components/ui/button";
 
 export default function DraftingPage() {
+  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+
   return (
-    <main className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">AutoDraft Pro</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">Import</Button>
-          <Button>Save</Button>
+    <main className="h-screen flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">AutoDraft Pro</h1>
+            {currentWorkspace && (
+              <p className="text-sm text-muted-foreground">
+                Workspace:{" "}
+                <span className="font-medium">{currentWorkspace.name}</span>
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline">Import</Button>
+            <Button>Save</Button>
+          </div>
         </div>
       </div>
-      <AdvancedEditor />
+      <div className="flex-1 overflow-hidden">
+        <TiptapEditor />
+      </div>
     </main>
   );
 }

@@ -27,7 +27,7 @@ export default function SearchParty({ court }: { court: string }) {
       {
         id: "2",
         title: `${court} v Bar (by ${party})`,
-        date: new Date(Date.now() - 86400000).toISOString(),
+        date: "2024-01-14T12:00:00.000Z",
       },
     ]);
   };
