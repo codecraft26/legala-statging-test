@@ -9,14 +9,25 @@ export interface AuthUser {
   [key: string]: unknown;
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
+  workspaces: Workspace[];
+  currentWorkspace: Workspace | null;
 }
 
 const initialState: AuthState = {
   token: null,
   user: null,
+  workspaces: [],
+  currentWorkspace: null,
 };
 
 const authSlice = createSlice({
@@ -36,12 +47,27 @@ const authSlice = createSlice({
     setUser(state, action: PayloadAction<AuthUser | null>) {
       state.user = action.payload;
     },
+    setWorkspaces(state, action: PayloadAction<Workspace[]>) {
+      state.workspaces = action.payload;
+    },
+    setCurrentWorkspace(state, action: PayloadAction<Workspace | null>) {
+      state.currentWorkspace = action.payload;
+    },
     logout(state) {
       state.token = null;
       state.user = null;
+      state.workspaces = [];
+      state.currentWorkspace = null;
     },
   },
 });
 
-export const { setCredentials, setToken, setUser, logout } = authSlice.actions;
+export const {
+  setCredentials,
+  setToken,
+  setUser,
+  setWorkspaces,
+  setCurrentWorkspace,
+  logout,
+} = authSlice.actions;
 export const authReducer = authSlice.reducer;

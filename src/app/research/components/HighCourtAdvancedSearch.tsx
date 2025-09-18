@@ -1,0 +1,220 @@
+"use client";
+
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Api } from "@/lib/api-client";
+
+type Result = unknown;
+
+export default function HighCourtAdvancedSearch() {
+  const [tab, setTab] = useState<"advocate" | "filing" | "detail">("advocate");
+
+  const [courtCode, setCourtCode] = useState<string>("");
+  const [stateCode, setStateCode] = useState<string>("");
+  const [courtComplexCode, setCourtComplexCode] = useState<string>("");
+  const [advocateName, setAdvocateName] = useState<string>("");
+  const [f, setF] = useState<string>("Both");
+
+  const [caseNo, setCaseNo] = useState<string>("");
+  const [rgYear, setRgYear] = useState<string>("");
+
+  const [detailCino, setDetailCino] = useState<string>("");
+  const [detailNatCourtCode, setDetailNatCourtCode] = useState<string>("");
+  const [detailDistCd, setDetailDistCd] = useState<string>("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<Result | null>(null);
+
+  const callApi = async (path: string, body: any) => {
+    setLoading(true);
+    setError(null);
+    setData(null);
+    try {
+      const res = await Api.post<Result, any>(path, body);
+      setData(res);
+    } catch (err: any) {
+      setError(err?.message ?? "Request failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmitAdvocate = (e: React.FormEvent) => {
+    e.preventDefault();
+    callApi("/research/high-court/search-advocate", {
+      court_code: Number(courtCode) || undefined,
+      state_code: Number(stateCode) || undefined,
+      court_complex_code: Number(courtComplexCode) || undefined,
+      advocate_name: advocateName,
+      f,
+    });
+  };
+
+  const onSubmitFiling = (e: React.FormEvent) => {
+    e.preventDefault();
+    callApi("/research/high-court/search-filing-number", {
+      court_code: Number(courtCode) || undefined,
+      state_code: Number(stateCode) || undefined,
+      court_complex_code: Number(courtComplexCode) || undefined,
+      case_no: Number(caseNo) || undefined,
+      rgyear: Number(rgYear) || undefined,
+    });
+  };
+
+  const onSubmitDetail = (e: React.FormEvent) => {
+    e.preventDefault();
+    callApi("/research/high-court/case-detail", {
+      case_no: Number(caseNo) || undefined,
+      state_code: Number(stateCode) || undefined,
+      cino: detailCino,
+      court_code: Number(courtCode) || undefined,
+      national_court_code: detailNatCourtCode,
+      dist_cd: Number(detailDistCd) || undefined,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <Button
+          variant={tab === "advocate" ? "default" : "outline"}
+          onClick={() => setTab("advocate")}
+        >
+          Advocate
+        </Button>
+        <Button
+          variant={tab === "filing" ? "default" : "outline"}
+          onClick={() => setTab("filing")}
+        >
+          Filing Number
+        </Button>
+        <Button
+          variant={tab === "detail" ? "default" : "outline"}
+          onClick={() => setTab("detail")}
+        >
+          Case Detail
+        </Button>
+      </div>
+
+      {(tab === "advocate" || tab === "filing" || tab === "detail") && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <input
+            className="rounded-md border px-3 py-2 text-sm"
+            placeholder="Court code"
+            inputMode="numeric"
+            value={courtCode}
+            onChange={(e) => setCourtCode(e.target.value)}
+          />
+          <input
+            className="rounded-md border px-3 py-2 text-sm"
+            placeholder="State code"
+            inputMode="numeric"
+            value={stateCode}
+            onChange={(e) => setStateCode(e.target.value)}
+          />
+          <input
+            className="rounded-md border px-3 py-2 text-sm"
+            placeholder="Court complex code"
+            inputMode="numeric"
+            value={courtComplexCode}
+            onChange={(e) => setCourtComplexCode(e.target.value)}
+          />
+          {tab === "advocate" ? (
+            <input
+              className="rounded-md border px-3 py-2 text-sm"
+              placeholder="Advocate name"
+              value={advocateName}
+              onChange={(e) => setAdvocateName(e.target.value)}
+            />
+          ) : tab === "filing" ? (
+            <>
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="Case no"
+                inputMode="numeric"
+                value={caseNo}
+                onChange={(e) => setCaseNo(e.target.value)}
+              />
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="RG year"
+                inputMode="numeric"
+                value={rgYear}
+                onChange={(e) => setRgYear(e.target.value)}
+              />
+            </>
+          ) : (
+            <>
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="Case no"
+                inputMode="numeric"
+                value={caseNo}
+                onChange={(e) => setCaseNo(e.target.value)}
+              />
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="CINO"
+                value={detailCino}
+                onChange={(e) => setDetailCino(e.target.value)}
+              />
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="National court code"
+                value={detailNatCourtCode}
+                onChange={(e) => setDetailNatCourtCode(e.target.value)}
+              />
+              <input
+                className="rounded-md border px-3 py-2 text-sm"
+                placeholder="District code"
+                inputMode="numeric"
+                value={detailDistCd}
+                onChange={(e) => setDetailDistCd(e.target.value)}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === "advocate" && (
+        <form onSubmit={onSubmitAdvocate} className="space-y-2">
+          <select
+            className="rounded-md border px-3 py-2 text-sm"
+            value={f}
+            onChange={(e) => setF(e.target.value)}
+          >
+            <option value="P">P</option>
+            <option value="R">R</option>
+            <option value="Both">Both</option>
+          </select>
+          <div>
+            <Button type="submit">Search</Button>
+          </div>
+        </form>
+      )}
+
+      {tab === "filing" && (
+        <form onSubmit={onSubmitFiling} className="space-y-2">
+          <Button type="submit">Search</Button>
+        </form>
+      )}
+
+      {tab === "detail" && (
+        <form onSubmit={onSubmitDetail} className="space-y-2">
+          <Button type="submit">Get Detail</Button>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="text-sm text-muted-foreground">Loading…</div>
+      ) : null}
+      {error ? <div className="text-sm text-red-600">{error}</div> : null}
+      {data ? (
+        <pre className="rounded-md border p-3 text-xs overflow-auto bg-card">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      ) : null}
+    </div>
+  );
+}

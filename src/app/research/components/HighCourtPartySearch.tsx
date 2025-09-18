@@ -32,7 +32,7 @@ export default function HighCourtPartySearch() {
       {
         id: "h2",
         title: `${party} vs XYZ (${bench})`,
-        date: new Date(Date.now() - 86400000).toISOString(),
+        date: "2024-01-14T12:00:00.000Z",
       },
     ]);
   };

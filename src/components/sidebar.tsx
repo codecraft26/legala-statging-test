@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,7 +16,8 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "@/store";
 import { logout } from "@/store/slices/authSlice";
 
 const NavItem = ({
@@ -53,6 +54,45 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const dispatch = useDispatch();
   const router = useRouter();
+  const user = useSelector((s: RootState) => s.auth.user);
+  const [mounted, setMounted] = useState(false);
+  const [lsRole, setLsRole] = useState<string | undefined>(undefined);
+  const [tokenRole, setTokenRole] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setMounted(true);
+    try {
+      if (typeof window !== "undefined") {
+        const u = JSON.parse(localStorage.getItem("user") || "{}");
+        if (u?.role) setLsRole(String(u.role));
+        const token = localStorage.getItem("token");
+        if (token) {
+          const parts = token.split(".");
+          if (parts.length === 3) {
+            try {
+              const payload = JSON.parse(
+                atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+              );
+              if (payload?.role) setTokenRole(String(payload.role));
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Debug logging
+  useEffect(() => {
+    // console.log("Sidebar role debug:", {
+    //   userRole: user?.role,
+    //   lsRole,
+    //   tokenRole,
+    //   mounted,
+    //   finalRole: user?.role || (mounted ? lsRole : undefined) || tokenRole,
+    //   isOwner:
+    //     (user?.role || (mounted ? lsRole : undefined) || tokenRole) === "Owner",
+    // });
+  }, [user?.role, lsRole, tokenRole, mounted]);
 
   return (
     <aside
@@ -106,27 +146,34 @@ export default function Sidebar() {
           icon={<PenTool size={16} />}
           label="AutoDraft"
         />
-        <NavItem
+        {/* <NavItem
           collapsed={collapsed}
           href="/news"
           icon={<Newspaper size={16} />}
           label="Legal News"
-        />
-        <div className="pt-2 text-[11px] uppercase text-muted-foreground/80 pl-1">
-          Team
-        </div>
-        <NavItem
-          collapsed={collapsed}
-          href="/user/members"
-          icon={<Users size={16} />}
-          label="Members"
-        />
-        <NavItem
-          collapsed={collapsed}
-          href="/user/invites"
-          icon={<Mail size={16} />}
-          label="Invites"
-        />
+        /> */}
+        {(() => {
+          const currentRole = user?.role || lsRole || tokenRole;
+          return currentRole === "Owner";
+        })() ? (
+          <>
+            <div className="pt-2 text-[11px] uppercase text-muted-foreground/80 pl-1">
+              Team
+            </div>
+            <NavItem
+              collapsed={collapsed}
+              href="/user/members"
+              icon={<Users size={16} />}
+              label="Members"
+            />
+            <NavItem
+              collapsed={collapsed}
+              href="/user/invites"
+              icon={<Mail size={16} />}
+              label="Invites"
+            />
+          </>
+        ) : null}
         <div className="pt-2 text-[11px] uppercase text-muted-foreground/80 pl-1">
           Storage
         </div>

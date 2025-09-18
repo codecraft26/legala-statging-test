@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { Api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import {
   FileText,
@@ -14,6 +17,11 @@ import ProgressBar from "./components/ProgressBar";
 import FileUpload from "./components/FileUpload";
 import TagInput from "./components/TagInput";
 import DataView from "./components/DataView";
+import {
+  useExtractions,
+  useCreateExtractionFiles,
+  useExtractionPolling,
+} from "@/hooks/use-extraction";
 
 type Extraction = {
   id: string;
@@ -29,14 +37,14 @@ const DUMMY: Extraction[] = [
     id: "1",
     name: "NDA_JohnsonLtd_v2",
     tags: ["NDA", "Confidentiality"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    createdAt: "2024-01-15T10:30:00.000Z",
     status: "completed",
   },
   {
     id: "2",
     name: "Franchise_Agreement_Q3",
     tags: ["Franchise", "Agreement"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    createdAt: "2024-01-15T09:00:00.000Z",
     status: "processing",
     progress: 62,
   },
@@ -44,25 +52,75 @@ const DUMMY: Extraction[] = [
     id: "3",
     name: "Master_Service_Contract",
     tags: ["Service", "MSA"],
-    createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    createdAt: "2024-01-15T11:15:00.000Z",
     status: "queued",
   },
 ];
 
 export default function ExtractPage() {
-  const [items, setItems] = useState<Extraction[]>([]);
+  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<{ file: File }[]>([]);
   const [extractedData, setExtractedData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showWizard, setShowWizard] = useState(false);
+  const [currentExtractionId, setCurrentExtractionId] = useState<string | null>(
+    null
+  );
 
+  // Use TanStack Query hooks
+  const {
+    data: extractionsData,
+    isLoading: extractionsLoading,
+    error: extractionsError,
+  } = useExtractions(currentWorkspace?.id);
+
+  const { mutate: createExtraction, isPending: isExtracting } =
+    useCreateExtractionFiles();
+
+  const { data: pollingData } = useExtractionPolling(
+    currentExtractionId || undefined,
+    !!currentExtractionId
+  );
+
+  // Convert API data to display format
+  const items =
+    extractionsData?.map((extraction) => ({
+      id: extraction.id,
+      name: extraction.name,
+      tags: extraction.tags || [],
+      createdAt: extraction.createdAt,
+      status: extraction.status.toLowerCase() as Extraction["status"],
+      progress: extraction.status === "PROCESSING" ? 50 : undefined,
+    })) || [];
+
+  // Handle polling updates
   useEffect(() => {
-    // mimic fetching
-    const t = setTimeout(() => setItems(DUMMY), 300);
-    return () => clearTimeout(t);
-  }, []);
+    if (pollingData) {
+      if (pollingData.status === "COMPLETED") {
+        // Extraction completed, show results
+        setCurrentStep(3);
+        setIsLoading(false);
+        setCurrentExtractionId(null);
+
+        // Transform the extraction results into the expected format
+        const results =
+          pollingData.extraction_result?.map((result) => ({
+            fileName: result.file,
+            extractedData: result.data,
+            usage: pollingData.usage,
+          })) || [];
+
+        setExtractedData(results);
+      } else if (pollingData.status === "FAILED") {
+        // Extraction failed
+        setIsLoading(false);
+        setCurrentExtractionId(null);
+        console.error("Extraction failed");
+      }
+    }
+  }, [pollingData]);
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
@@ -87,15 +145,22 @@ export default function ExtractPage() {
                     : "Review Results"
                 : "Recent Extractions"}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {showWizard
-                ? currentStep === 1
-                  ? "Select your files for processing"
-                  : currentStep === 2
-                    ? "Define keywords and parameters"
-                    : "Analyze extracted data"
-                : "Browse your latest extraction jobs"}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {showWizard
+                  ? currentStep === 1
+                    ? "Select your files for processing"
+                    : currentStep === 2
+                      ? "Define keywords and parameters"
+                      : "Analyze extracted data"
+                  : "Browse your latest extraction jobs"}
+              </p>
+              {currentWorkspace && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  {currentWorkspace.name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -124,7 +189,7 @@ export default function ExtractPage() {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-4">
-              {isLoading ? (
+              {isLoading || isExtracting ? (
                 <div className="flex flex-col items-center justify-center py-16">
                   <div className="relative mb-8">
                     <div className="w-16 h-16 border-4 border-gray-200 rounded-full"></div>
@@ -161,28 +226,50 @@ export default function ExtractPage() {
                   )}
                   {currentStep === 2 && (
                     <TagInput
+                      initialName={
+                        files.length > 0
+                          ? files.length === 1
+                            ? files[0].file.name.replace(/\.[^/.]+$/, "")
+                            : `${files[0].file.name.replace(/\.[^/.]+$/, "")} + ${files.length - 1} more`
+                          : ""
+                      }
                       onBack={() => setCurrentStep(1)}
-                      onNext={async ({ tags, instructions, agent }) => {
+                      onNext={async ({ tags, instructions, agent, name }) => {
+                        if (!currentWorkspace?.id) {
+                          console.error("No workspace selected");
+                          return;
+                        }
+
                         setIsLoading(true);
                         setProgress(10);
-                        // simulate work
-                        setTimeout(() => setProgress(65), 600);
-                        setTimeout(() => setProgress(100), 1200);
-                        setTimeout(() => {
-                          setExtractedData(
-                            files.map((f) => ({
-                              fileName: f.file.name,
-                              extractedData: {
-                                tags,
-                                instructions,
-                                agent,
-                                summary: "Dummy extracted content",
+
+                        try {
+                          createExtraction(
+                            {
+                              files: files.map((f) => f.file),
+                              name,
+                              tags: tags,
+                              instruction: instructions,
+                              workspaceId: currentWorkspace.id,
+                            },
+                            {
+                              onSuccess: (data) => {
+                                setCurrentExtractionId(data.data.id);
+                                setProgress(30);
+                                // Polling will handle the rest
                               },
-                            }))
+                              onError: (error) => {
+                                console.error("Extraction failed:", error);
+                                setIsLoading(false);
+                                setProgress(0);
+                              },
+                            }
                           );
+                        } catch (error) {
+                          console.error("Error starting extraction:", error);
                           setIsLoading(false);
-                          setCurrentStep(3);
-                        }, 1400);
+                          setProgress(0);
+                        }
                       }}
                     />
                   )}
@@ -218,14 +305,20 @@ export default function ExtractPage() {
                         {new Date(x.createdAt).toLocaleString()}
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {x.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground"
-                          >
-                            <Tag size={10} /> {t}
+                        {x.tags.length > 0 ? (
+                          x.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground"
+                            >
+                              <Tag size={10} /> {t}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            No tags
                           </span>
-                        ))}
+                        )}
                       </div>
                     </div>
                   ))}
@@ -254,14 +347,18 @@ export default function ExtractPage() {
                 <StatusBadge status={x.status} />
               </div>
               <div className="flex flex-wrap gap-2">
-                {x.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground"
-                  >
-                    <Tag size={12} /> {t}
-                  </span>
-                ))}
+                {x.tags.length > 0 ? (
+                  x.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground"
+                    >
+                      <Tag size={12} /> {t}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">No tags</span>
+                )}
               </div>
               {x.status === "processing" ? (
                 <div className="flex items-center gap-2 text-xs">

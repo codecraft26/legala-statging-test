@@ -7,6 +7,8 @@ interface Invite {
   id: string;
   email: string;
   status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export default function InvitesPage() {
@@ -15,11 +17,17 @@ export default function InvitesPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const fetchInvites = async () => {
     try {
-      const data = await Api.get<Invite[]>("/user/owner/invites", "no-store");
-      setInvites(Array.isArray(data) ? data : []);
+      const res = await Api.get<any>("/user/owner/invites", "no-store");
+      const list: Invite[] = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : [];
+      setInvites(list);
     } catch (err: any) {
       setError(err?.message ?? "Failed to load invites");
     } finally {
@@ -52,6 +60,19 @@ export default function InvitesPage() {
     }
   };
 
+  const resendInvite = async (token: string) => {
+    setResendingId(token);
+    setError(null);
+    try {
+      await Api.post(`/user/resend-invite?token=${encodeURIComponent(token)}`);
+      await fetchInvites();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to resend invite");
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   return (
     <main className="max-w-5xl mx-auto p-8 space-y-6">
       <h1 className="text-2xl font-semibold">Invitations</h1>
@@ -81,6 +102,7 @@ export default function InvitesPage() {
               <tr>
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -88,11 +110,33 @@ export default function InvitesPage() {
                 <tr key={i.id} className="border-t">
                   <td className="px-4 py-3">{i.email}</td>
                   <td className="px-4 py-3">{i.status ?? "pending"}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      className="rounded-md border px-3 py-1 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-900 disabled:opacity-50"
+                      onClick={() => resendInvite(i.id)}
+                      disabled={
+                        resendingId === i.id ||
+                        String(i.status || "").toUpperCase() === "ACCEPTED"
+                      }
+                      title={
+                        String(i.status || "").toUpperCase() === "ACCEPTED"
+                          ? "Already accepted"
+                          : "Resend invitation"
+                      }
+                    >
+                      {String(i.status || "").toUpperCase() === "ACCEPTED"
+                        ? "Accepted"
+                        : resendingId === i.id
+                          ? "Resending..."
+                          : "Resend"}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {invites.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6" colSpan={2}>
+                  <td className="px-4 py-6" colSpan={3}>
                     <p className="text-muted-foreground">No invites yet.</p>
                   </td>
                 </tr>
