@@ -14,6 +14,8 @@ Backend reference:
 bun install
 ```
 
+
+
 ### 2) Environment
 
 Create `.env.local` in the project root:
