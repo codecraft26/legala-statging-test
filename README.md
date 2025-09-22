@@ -1,4 +1,4 @@
-## Legal AI Frontend (Next.js + Tailwind + shadcn)
+## Legal AI Frontend (Next.js + Tailwind + shadcn) 
 
 A Next.js dashboard frontend for Legal AI. Supports dark/light themes, environment-driven backend URLs, and a minimal auth flow ready to integrate with the Bun/Hono backend.
 
