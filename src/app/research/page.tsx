@@ -1,179 +1,302 @@
 "use client";
 
 import React, { useState } from "react";
-import Header from "./components/Header";
-import Following from "./components/Following";
-import SearchParty from "./components/SearchParty";
-import HighCourtPartySearch from "./components/HighCourtPartySearch";
-import DistrictPartySearch from "./components/DistrictPartySearch";
+import { Scale, Gavel, Building2, Bookmark, BookOpen } from "lucide-react";
 import SupremeCourtSearch from "./components/SupremeCourtSearch";
-import HighCourtAdvancedSearch from "./components/HighCourtAdvancedSearch";
-import DistrictAdvancedSearch from "./components/DistrictAdvancedSearch";
+import HighCourtSearch from "./components/HighCourtSearch";
+import HighCourtPartySearch from "./components/HighCourtPartySearch";
+import DistrictCourtSearch from "./components/DistrictCourtSearch";
+import KnowledgeSearch from "./components/KnowledgeSearch";
 
-type CourtId = "supreme" | "high" | "district" | "cat" | "nclt" | "consumer";
+type CourtType =
+  | "supreme"
+  | "high"
+  | "high-party"
+  | "district"
+  | "following"
+  | "knowledge";
 
-export default function LegalAiResearch() {
-  const [openDropdown, setOpenDropdown] = useState<CourtId | null>(null);
-  const [activePage, setActivePage] = useState<string>("following");
-  const [dateInput, setDateInput] = useState("");
-  const [partyNameInput, setPartyNameInput] = useState("");
-  const [filingNumberInput, setFilingNumberInput] = useState("");
-  const [advocateNameInput, setAdvocateNameInput] = useState("");
-  const [advocateNumberInput, setAdvocateNumberInput] = useState("");
-  const [caseDetailsInput, setCaseDetailsInput] = useState("");
-  const [cartItems, setCartItems] = useState<Record<string, unknown>>({});
-  const [following, setFollowing] = useState<
-    Array<{ id: string; title: string; court: string; date: string }>
-  >([
-    {
-      id: "f1",
-      title: "ABC vs State",
-      court: "Supreme Court",
-      date: new Date().toISOString(),
-    },
-    {
-      id: "f2",
-      title: "XYZ vs Union",
-      court: "High Court",
-      date: "2024-01-14T12:00:00.000Z",
-    },
-  ]);
+const courts = [
+  { id: "supreme", name: "Supreme Court", icon: Gavel, color: "text-red-500" },
+  { id: "high", name: "High Court", icon: Scale, color: "text-purple-500" },
+  {
+    id: "district",
+    name: "District Court",
+    icon: Building2,
+    color: "text-green-500",
+  },
+];
 
-  const courts = [
-    { id: "supreme", name: "Supreme Court" },
-    { id: "high", name: "High Court" },
-    { id: "district", name: "District Court" },
-  ] as const;
+export default function ResearchPage() {
+  const [activeCourt, setActiveCourt] = useState<CourtType>("following");
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
-  const toggleDropdown = (court: CourtId) => {
-    setOpenDropdown(openDropdown === court ? null : court);
+  const toggleDropdown = (courtId: string) => {
+    setOpenDropdown(openDropdown === courtId ? null : courtId);
   };
-
-  const handleShowFollowingPage = () => setActivePage("following");
 
   const renderContent = () => {
-    if (activePage === "following") {
-      return (
-        <div className="p-6">
-          <Following
-            items={following}
-            onView={(id) => console.warn("view", id)}
-            onUnfollow={(id) =>
-              setFollowing((f) => f.filter((x) => x.id !== id))
-            }
-          />
-        </div>
-      );
+    switch (activeCourt) {
+      case "supreme":
+        return <SupremeCourtSearch />;
+      case "high":
+        return <HighCourtSearch />;
+      case "high-party":
+        return <HighCourtPartySearch />;
+      case "district":
+        return <DistrictCourtSearch />;
+      case "knowledge":
+        return <KnowledgeSearch />;
+      case "following":
+        return (
+          <div className="p-6">
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Bookmark className="h-12 w-12 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Followed Cases
+              </h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Your followed cases will appear here. Start by searching for
+                cases in different courts and follow them to track updates.
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <div className="p-6">
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Scale className="h-12 w-12 text-gray-600" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Legal Research Platform
+              </h3>
+              <p className="text-gray-600 max-w-md mx-auto">
+                Search and track cases across Supreme Court, High Courts, and
+                District Courts. Select a court from the sidebar to begin your
+                research.
+              </p>
+            </div>
+          </div>
+        );
     }
-    const court = activePage.split("-")[0] as CourtId;
-    if (activePage === "supreme-advanced") {
-      return (
-        <div className="p-6">
-          <SupremeCourtSearch />
-        </div>
-      );
-    }
-    if (activePage === "high-advanced") {
-      return (
-        <div className="p-6">
-          <HighCourtAdvancedSearch />
-        </div>
-      );
-    }
-    if (activePage === "district-advanced") {
-      return (
-        <div className="p-6">
-          <DistrictAdvancedSearch />
-        </div>
-      );
-    }
-    if (activePage.endsWith("party")) {
-      return (
-        <div className="p-6">
-          {court === "high" ? (
-            <HighCourtPartySearch />
-          ) : court === "district" ? (
-            <DistrictPartySearch />
-          ) : (
-            <SearchParty court={court} />
-          )}
-        </div>
-      );
-    }
-    return (
-      <div className="p-6">
-        <div className="rounded-lg border p-6 text-sm text-muted-foreground">
-          Search page: {activePage}
-        </div>
-      </div>
-    );
   };
 
-  const renderCourtDropdownItems = (courtId: CourtId) => {
-    return (
-      <div className="bg-gray-50 overflow-hidden ml-2">
-        <button
-          className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${activePage === `${courtId}-party` ? "text-blue-600" : "text-gray-600"}`}
-          onClick={() => setActivePage(`${courtId}-party`)}
-        >
-          <div
-            className={`w-1 h-1 rounded-full ${activePage === `${courtId}-party` ? "bg-blue-600" : "bg-gray-400"}`}
-          />
-          <span>Search by Party Name</span>
-        </button>
-        <button
-          className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${activePage === `${courtId}-advanced` ? "text-blue-600" : "text-gray-600"}`}
-          onClick={() => setActivePage(`${courtId}-advanced`)}
-        >
-          <div
-            className={`w-1 h-1 rounded-full ${activePage === `${courtId}-advanced` ? "bg-blue-600" : "bg-gray-400"}`}
-          />
-          <span>Advanced Searches</span>
-        </button>
-      </div>
-    );
+  const renderCourtDropdownItems = (courtId: string) => {
+    if (courtId === "supreme") {
+      return (
+        <div className="bg-gray-50 overflow-hidden ml-2">
+          <button
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "supreme" ? "text-blue-600" : "text-gray-600"
+            }`}
+            onClick={() => setActiveCourt("supreme")}
+          >
+            <div
+              className={`w-1 h-1 rounded-full ${
+                activeCourt === "supreme" ? "bg-blue-600" : "bg-gray-400"
+              }`}
+            ></div>
+            <span>Search by Party Name</span>
+          </button>
+        </div>
+      );
+    }
+
+    if (courtId === "high") {
+      return (
+        <div className="bg-gray-50 overflow-hidden ml-2">
+          <button
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "high" ? "text-blue-600" : "text-gray-600"
+            }`}
+            onClick={() => setActiveCourt("high")}
+          >
+            <div
+              className={`w-1 h-1 rounded-full ${
+                activeCourt === "high" ? "bg-blue-600" : "bg-gray-400"
+              }`}
+            ></div>
+            <span>Search by Advocate/Filing</span>
+          </button>
+          <button
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "high-party" ? "text-blue-600" : "text-gray-600"
+            }`}
+            onClick={() => setActiveCourt("high-party")}
+          >
+            <div
+              className={`w-1 h-1 rounded-full ${
+                activeCourt === "high-party" ? "bg-blue-600" : "bg-gray-400"
+              }`}
+            ></div>
+            <span>Search by Party Name</span>
+          </button>
+        </div>
+      );
+    }
+
+    if (courtId === "district") {
+      return (
+        <div className="bg-gray-50 overflow-hidden ml-2">
+          <button
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "district" ? "text-blue-600" : "text-gray-600"
+            }`}
+            onClick={() => setActiveCourt("district")}
+          >
+            <div
+              className={`w-1 h-1 rounded-full ${
+                activeCourt === "district" ? "bg-blue-600" : "bg-gray-400"
+              }`}
+            ></div>
+            <span>Search by Party Name</span>
+          </button>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
-    <div className="flex h-[calc(100svh-56px)] bg-background">
-      <div className="w-52 bg-card flex flex-col border-r">
-        <div className="p-6 border-b border-border"></div>
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-52 bg-white flex flex-col shadow-md">
+        {/* App title */}
+        <div className="bg-white-600 p-9 flex items-center justify-center border-b">
+          <h1 className="font-bold text-lg text-gray-800">Legal Research</h1>
+        </div>
+
+        {/* Following button */}
         <button
-          className={`flex items-center space-x-3 px-6 py-4 transition-colors duration-200 hover:bg-accent ${activePage === "following" ? "text-foreground bg-accent" : "text-foreground"}`}
-          onClick={handleShowFollowingPage}
+          className={`flex items-center space-x-3 px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ${
+            activeCourt === "following"
+              ? "text-blue-600 bg-gray-50"
+              : "text-gray-700"
+          }`}
+          onClick={() => setActiveCourt("following")}
         >
+          <Bookmark className="h-5 w-5" />
           <span className="font-medium">Following</span>
         </button>
-        <div className="mx-4 my-2 border-b border-border" />
+
+        {/* Knowledge Search label */}
+        <div className="flex items-center space-x-3 px-6 py-4 text-gray-500 cursor-default">
+          <BookOpen className="h-5 w-5" />
+          <span className="font-medium">Knowledge Research</span>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-4 my-2 border-b border-gray-100"></div>
+
+        {/* Court navigation */}
         <div className="flex-1 overflow-y-auto px-2">
-          {courts.map((court) => (
-            <div key={court.id} className="mb-1 overflow-hidden">
-              <button
-                className={`flex items-center justify-between w-full px-4 py-3 text-left transition-colors duration-200 hover:bg-accent ${openDropdown === court.id ? "bg-accent text-foreground" : "text-foreground"}`}
-                onClick={() => toggleDropdown(court.id)}
-              >
-                <span className={`font-medium`}>{court.name}</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-muted-foreground"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+          {courts.map((court) => {
+            const IconComponent = court.icon;
+            return (
+              <div key={court.id} className="mb-1 overflow-hidden">
+                <button
+                  className={`flex items-center justify-between w-full px-4 py-3 hover:bg-gray-50 text-left transition-colors duration-200 ${
+                    openDropdown === court.id
+                      ? "bg-gray-50 text-blue-600"
+                      : "text-gray-700"
+                  }`}
+                  onClick={() => toggleDropdown(court.id)}
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-              {openDropdown === court.id && renderCourtDropdownItems(court.id)}
-            </div>
-          ))}
+                  <div className="flex items-center space-x-3">
+                    <IconComponent className={`h-5 w-5 ${court.color}`} />
+                    <span
+                      className={`font-medium ${
+                        openDropdown === court.id ? "text-blue-600" : ""
+                      }`}
+                    >
+                      {court.name}
+                    </span>
+                  </div>
+                  {openDropdown === court.id ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 text-blue-600"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 text-gray-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Dynamic dropdown menu based on court */}
+                {openDropdown === court.id &&
+                  renderCourtDropdownItems(court.id)}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto bg-background">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">
+                {activeCourt === "following"
+                  ? "Followed Cases"
+                  : activeCourt === "supreme"
+                    ? "Supreme Court Research"
+                    : activeCourt === "high"
+                      ? "High Court Research"
+                      : activeCourt === "high-party"
+                        ? "High Court Research"
+                        : activeCourt === "district"
+                          ? "District Court Research"
+                          : activeCourt === "knowledge"
+                            ? "Legal Knowledge Search"
+                            : "Legal Research"}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {activeCourt === "following"
+                  ? "Track and manage your followed legal cases"
+                  : activeCourt === "supreme"
+                    ? "Search Supreme Court cases by party name"
+                    : activeCourt === "high"
+                      ? "Search High Court cases by advocate or filing number"
+                      : activeCourt === "high-party"
+                        ? "Search High Court cases by party name"
+                        : activeCourt === "district"
+                          ? "Search District Court cases by party name"
+                          : activeCourt === "knowledge"
+                            ? "Search legal judgments, statutes, and precedents using AI"
+                            : "Search and analyze legal cases across different courts"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           {renderContent()}
         </main>
       </div>

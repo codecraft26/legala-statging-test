@@ -1,190 +1,547 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Api } from "@/lib/api-client";
+import React, { useState, useEffect } from "react";
+import { Search, Star, Eye, Loader2, X } from "lucide-react";
+import { useResearchAPI } from "@/hooks/use-research";
 
-type Result = unknown;
+interface CaseResult {
+  serial_number: string;
+  diary_number: string;
+  case_number: string;
+  petitioner_name: string;
+  respondent_name: string;
+  status: string;
+}
+
+interface CaseDetails {
+  // Define based on actual API response structure
+  [key: string]: any;
+}
+
+// Status Badge Component
+const StatusBadge = ({ status }: { status: string }) => {
+  const bgColor =
+    status === "COMPLETED" || status === "DISPOSED"
+      ? "bg-green-100 text-green-800"
+      : "bg-yellow-100 text-yellow-800";
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
+      {status}
+    </span>
+  );
+};
+
+// Case Details Modal
+const CaseDetailsModal = ({
+  caseData,
+  onClose,
+}: {
+  caseData: CaseDetails | null;
+  onClose: () => void;
+}) => {
+  if (!caseData) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+        <div className="flex justify-between items-center border-b p-4 sticky top-0 bg-white z-10">
+          <h3 className="text-lg font-semibold">Case Details</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6">
+          <pre className="whitespace-pre-wrap text-sm">
+            {JSON.stringify(caseData, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function SupremeCourtSearch() {
-  const [tab, setTab] = useState<"party" | "diary" | "detail">("party");
+  const [partyName, setPartyName] = useState("");
+  const [partyType, setPartyType] = useState("any");
+  const [year, setYear] = useState(new Date().getFullYear().toString());
+  const [partyStatus, setPartyStatus] = useState("P");
+  const [searchResults, setSearchResults] = useState<CaseResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [showCaseDetails, setShowCaseDetails] = useState(false);
+  const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
+  const [followLoading, setFollowLoading] = useState<string | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const [partyType, setPartyType] = useState<string>("any");
-  const [partyName, setPartyName] = useState<string>("");
-  const [partyYear, setPartyYear] = useState<string>("");
-  const [partyStatus, setPartyStatus] = useState<string>("P");
+  const {
+    loading,
+    error,
+    searchSupremeCourtByParty,
+    getSupremeCourtCaseDetail,
+    followResearch,
+    unfollowResearch,
+  } = useResearchAPI();
 
-  const [diaryNo, setDiaryNo] = useState<string>("");
-  const [diaryYear, setDiaryYear] = useState<string>("");
+  // Generate years for dropdown (last 30 years)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 30 }, (_, i) =>
+    (currentYear - i).toString()
+  );
 
-  const [detailDiaryNo, setDetailDiaryNo] = useState<string>("");
-  const [detailDiaryYear, setDetailDiaryYear] = useState<string>("");
+  // Filter search results based on searchQuery
+  const filteredResults = searchResults.filter((result) =>
+    Object.values(result).some((value) =>
+      String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Result | null>(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const callApi = async (path: string, body: any) => {
-    setLoading(true);
-    setError(null);
-    setData(null);
     try {
-      const res = await Api.post<Result, any>(path, body);
-      setData(res);
-    } catch (err: any) {
-      setError(err?.message ?? "Request failed");
-    } finally {
-      setLoading(false);
+      console.warn("Searching Supreme Court with params:", {
+        party_type: partyType,
+        party_name: partyName,
+        year: parseInt(year),
+        party_status: partyStatus,
+      });
+
+      const data = await searchSupremeCourtByParty({
+        party_type: partyType,
+        party_name: partyName,
+        year: parseInt(year),
+        party_status: partyStatus,
+      });
+
+      console.warn("API Response:", data);
+
+      // Handle different possible response structures
+      let results = [];
+      if (data) {
+        if (Array.isArray(data)) {
+          results = data;
+        } else if (data.results && Array.isArray(data.results)) {
+          results = data.results;
+        } else if (data.data && Array.isArray(data.data)) {
+          results = data.data;
+        } else if (data.cases && Array.isArray(data.cases)) {
+          results = data.cases;
+        } else {
+          console.warn("Unexpected API response structure:", data);
+          results = [];
+        }
+      }
+
+      setSearchResults(results);
+      console.warn("Processed results:", results);
+    } catch (err) {
+      console.error("Search failed:", err);
+      setSearchResults([]);
     }
   };
 
-  const onSubmitParty = (e: React.FormEvent) => {
-    e.preventDefault();
-    const yr = Number(partyYear) || undefined;
-    callApi("/research/supreme-court/search-party", {
-      party_type: partyType,
-      party_name: partyName,
-      year: yr,
-      party_status: partyStatus,
-    });
+  const handleViewDetails = async (result: CaseResult) => {
+    const [diaryNumber, diaryYear] = result.diary_number.split("/");
+    setDetailsLoading(result.diary_number);
+
+    try {
+      const details = await getSupremeCourtCaseDetail({
+        diary_no: parseInt(diaryNumber),
+        diary_year: parseInt(diaryYear),
+      });
+
+      setSelectedCase(details);
+      setShowCaseDetails(true);
+    } catch (err) {
+      console.error("Failed to fetch case details:", err);
+    } finally {
+      setDetailsLoading(null);
+    }
   };
 
-  const onSubmitDiary = (e: React.FormEvent) => {
-    e.preventDefault();
-    callApi("/research/supreme-court/search-diary", {
-      diary_no: Number(diaryNo) || undefined,
-      year: Number(diaryYear) || undefined,
-    });
-  };
+  const handleFollowCase = async (caseData: CaseResult) => {
+    const caseId = caseData.diary_number;
+    setFollowLoading(caseId);
 
-  const onSubmitDetail = (e: React.FormEvent) => {
-    e.preventDefault();
-    callApi("/research/supreme-court/case-detail", {
-      diary_no: Number(detailDiaryNo) || undefined,
-      diary_year: Number(detailDiaryYear) || undefined,
-    });
+    try {
+      if (followedCases.has(caseId)) {
+        await unfollowResearch(caseId);
+        setFollowedCases((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(caseId);
+          return newSet;
+        });
+      } else {
+        await followResearch({
+          court: "Supreme_Court",
+          followed: caseData,
+          workspaceId: "current-workspace", // Replace with actual workspace ID
+        });
+        setFollowedCases((prev) => new Set(prev).add(caseId));
+      }
+    } catch (err) {
+      console.error("Follow/unfollow failed:", err);
+    } finally {
+      setFollowLoading(null);
+    }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          variant={tab === "party" ? "default" : "outline"}
-          onClick={() => setTab("party")}
-        >
-          Search Party
-        </Button>
-        <Button
-          variant={tab === "diary" ? "default" : "outline"}
-          onClick={() => setTab("diary")}
-        >
-          Search Diary
-        </Button>
-        <Button
-          variant={tab === "detail" ? "default" : "outline"}
-          onClick={() => setTab("detail")}
-        >
-          Case Detail
-        </Button>
-      </div>
+    <div className="p-6">
+      <h2 className="text-xl font-semibold mb-4">
+        Supreme Court Cases by Party Name
+      </h2>
 
-      {tab === "party" && (
-        <form
-          onSubmit={onSubmitParty}
-          className="grid grid-cols-1 md:grid-cols-4 gap-2"
-        >
-          <select
-            className="rounded-md border px-3 py-2 text-sm"
-            value={partyType}
-            onChange={(e) => setPartyType(e.target.value)}
-          >
-            <option value="any">Any</option>
-            <option value="petitioner">Petitioner</option>
-            <option value="respondent">Respondent</option>
-          </select>
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Party name"
-            value={partyName}
-            onChange={(e) => setPartyName(e.target.value)}
-          />
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Year (optional)"
-            inputMode="numeric"
-            value={partyYear}
-            onChange={(e) => setPartyYear(e.target.value)}
-          />
-          <select
-            className="rounded-md border px-3 py-2 text-sm"
-            value={partyStatus}
-            onChange={(e) => setPartyStatus(e.target.value)}
-          >
-            <option value="P">Petitioner</option>
-            <option value="R">Respondent</option>
-            <option value="Both">Both</option>
-          </select>
-          <div className="md:col-span-4">
-            <Button type="submit">Search</Button>
+      <div className="bg-white p-6 rounded-md border border-gray-200 max-w-xl">
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="col-span-2">
+              <label
+                htmlFor="party-input"
+                className="block text-sm font-medium mb-1 text-gray-700"
+              >
+                Party Name *
+              </label>
+              <input
+                type="text"
+                id="party-input"
+                value={partyName}
+                onChange={(e) => setPartyName(e.target.value)}
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                placeholder="Enter party name"
+                required
+              />
+              <div className="text-sm text-gray-500 mt-1">Example: Tanishk</div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="stage-select"
+                className="block text-sm font-medium mb-1 text-gray-700"
+              >
+                Stage
+              </label>
+              <select
+                id="stage-select"
+                value={partyStatus}
+                onChange={(e) => setPartyStatus(e.target.value)}
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              >
+                <option value="P">P</option>
+                <option value="C">D</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="type-select"
+                className="block text-sm font-medium mb-1 text-gray-700"
+              >
+                Type
+              </label>
+              <select
+                id="type-select"
+                value={partyType}
+                onChange={(e) => setPartyType(e.target.value)}
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              >
+                <option value="any">any</option>
+                <option value="petitioner">petitioner</option>
+                <option value="respondent">respondent</option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="year-select"
+                className="block text-sm font-medium mb-1 text-gray-700"
+              >
+                Year
+              </label>
+              <select
+                id="year-select"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-start-2 md:flex md:justify-end items-end">
+              <button
+                type="submit"
+                className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Searching...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Search size={16} />
+                    <span>Search</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+            <div>
+              <p className="text-red-700 font-medium">Search Error</p>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+              <p className="text-red-500 text-xs mt-2">
+                Please check your internet connection and try again. If the
+                problem persists, contact support.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
-      {tab === "diary" && (
-        <form
-          onSubmit={onSubmitDiary}
-          className="grid grid-cols-1 md:grid-cols-3 gap-2"
-        >
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Diary no"
-            inputMode="numeric"
-            value={diaryNo}
-            onChange={(e) => setDiaryNo(e.target.value)}
-          />
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Year"
-            inputMode="numeric"
-            value={diaryYear}
-            onChange={(e) => setDiaryYear(e.target.value)}
-          />
-          <Button type="submit">Search</Button>
-        </form>
+      {/* Success Message */}
+      {!loading && searchResults.length > 0 && (
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+            <p className="text-green-700">
+              Found {searchResults.length} case
+              {searchResults.length !== 1 ? "s" : ""} matching your search
+              criteria.
+            </p>
+          </div>
+        </div>
       )}
 
-      {tab === "detail" && (
-        <form
-          onSubmit={onSubmitDetail}
-          className="grid grid-cols-1 md:grid-cols-3 gap-2"
-        >
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Diary no"
-            inputMode="numeric"
-            value={detailDiaryNo}
-            onChange={(e) => setDetailDiaryNo(e.target.value)}
-          />
-          <input
-            className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Diary year"
-            inputMode="numeric"
-            value={detailDiaryYear}
-            onChange={(e) => setDetailDiaryYear(e.target.value)}
-          />
-          <Button type="submit">Get Detail</Button>
-        </form>
+      {/* Results Section */}
+      {!loading && searchResults.length > 0 && (
+        <div className="mt-6">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-medium">Search Results</h3>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search Data..."
+                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-gray-900" />
+              </div>
+            </div>
+          </div>
+
+          {filteredResults.length === 0 ? (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                <div>
+                  <p className="text-yellow-700 font-medium">
+                    No results found
+                  </p>
+                  <p className="text-yellow-600 text-sm mt-1">
+                    {searchQuery
+                      ? "No cases match your search filter."
+                      : "No cases found for your search criteria."}
+                  </p>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
+                    >
+                      Clear search filter
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full overflow-x-auto">
+              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
+                <table className="min-w-full border-collapse table-fixed">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "80px" }}
+                      >
+                        INDEX NO.
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        DIARY NUMBER
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        CASE NUMBER
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "150px" }}
+                      >
+                        PETITIONER
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "150px" }}
+                      >
+                        RESPONDENT
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "100px" }}
+                      >
+                        STATUS
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        FOLLOW
+                      </th>
+                      <th
+                        className="px-6 py-4 text-sm font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        ACTIONS
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="border-y-4 border-white">
+                    {filteredResults.map((result, index) => (
+                      <tr
+                        key={result.serial_number}
+                        className={`transition-colors hover:bg-blue-50 ${
+                          index % 2 === 0 ? "bg-white" : "bg-blue-50"
+                        } border-b-4 border-white last:border-b-0`}
+                      >
+                        <td className="px-6 py-4 text-sm text-gray-800 font-medium">
+                          {result.serial_number}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {result.diary_number}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {result.case_number}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {result.petitioner_name}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {result.respondent_name}
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge status={result.status} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            className={`flex items-center justify-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
+                              followedCases.has(result.diary_number)
+                                ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                            }`}
+                            onClick={() => handleFollowCase(result)}
+                            disabled={followLoading === result.diary_number}
+                          >
+                            {followLoading === result.diary_number ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Star
+                                  size={16}
+                                  className={
+                                    followedCases.has(result.diary_number)
+                                      ? "text-yellow-600 fill-yellow-500"
+                                      : ""
+                                  }
+                                />
+                                <span>
+                                  {followedCases.has(result.diary_number)
+                                    ? "Following"
+                                    : "Follow"}
+                                </span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            className="flex items-center justify-center w-32 space-x-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            onClick={() => handleViewDetails(result)}
+                            disabled={detailsLoading === result.diary_number}
+                          >
+                            {detailsLoading === result.diary_number ? (
+                              <div className="flex items-center space-x-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Loading...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Eye className="w-4 h-4" />
+                                <span>Details</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
-      {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : null}
-      {error ? <div className="text-sm text-red-600">{error}</div> : null}
-      {data ? (
-        <pre className="rounded-md border p-3 text-xs overflow-auto bg-card">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      ) : null}
+      {/* No Search Performed State */}
+      {!loading && searchResults.length === 0 && !error && (
+        <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+          <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <Search className="h-8 w-8 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Search Supreme Court Cases
+          </h3>
+          <p className="text-gray-600 max-w-md mx-auto">
+            Enter a party name and select your search criteria to find Supreme
+            Court cases. Use the example &quot;Tanishk&quot; to test the search
+            functionality.
+          </p>
+        </div>
+      )}
+
+      {/* Case Details Modal */}
+      {showCaseDetails && (
+        <CaseDetailsModal
+          caseData={selectedCase}
+          onClose={() => {
+            setShowCaseDetails(false);
+            setSelectedCase(null);
+          }}
+        />
+      )}
     </div>
   );
 }

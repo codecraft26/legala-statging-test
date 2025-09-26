@@ -3,6 +3,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Api } from "@/lib/api-client";
+import {
+  stateCodeMapping,
+  courtComplexMapping,
+  courtCodeMapping,
+} from "../utils/courtMappings";
 
 type Result = unknown;
 
@@ -99,27 +104,42 @@ export default function HighCourtAdvancedSearch() {
 
       {(tab === "advocate" || tab === "filing" || tab === "detail") && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-          <input
+          <select
             className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Court code"
-            inputMode="numeric"
             value={courtCode}
             onChange={(e) => setCourtCode(e.target.value)}
-          />
-          <input
+          >
+            <option value="">Select Court Type</option>
+            {courtCodeMapping.map((court) => (
+              <option key={court.code} value={court.code}>
+                {court.name}
+              </option>
+            ))}
+          </select>
+          <select
             className="rounded-md border px-3 py-2 text-sm"
-            placeholder="State code"
-            inputMode="numeric"
             value={stateCode}
             onChange={(e) => setStateCode(e.target.value)}
-          />
-          <input
+          >
+            <option value="">Select State</option>
+            {stateCodeMapping.map((state) => (
+              <option key={state.code} value={state.code}>
+                {state.name}
+              </option>
+            ))}
+          </select>
+          <select
             className="rounded-md border px-3 py-2 text-sm"
-            placeholder="Court complex code"
-            inputMode="numeric"
             value={courtComplexCode}
             onChange={(e) => setCourtComplexCode(e.target.value)}
-          />
+          >
+            <option value="">Select Court Complex</option>
+            {courtComplexMapping.map((complex) => (
+              <option key={complex.code} value={complex.code}>
+                {complex.name}
+              </option>
+            ))}
+          </select>
           {tab === "advocate" ? (
             <input
               className="rounded-md border px-3 py-2 text-sm"

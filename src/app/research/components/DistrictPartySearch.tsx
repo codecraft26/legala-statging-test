@@ -66,8 +66,8 @@ export default function DistrictPartySearch() {
           onChange={(e) => setDistrict(e.target.value)}
         >
           {districts.map((d) => (
-            <option key={d} value={d}>
-              {d}
+            <option key={d.id} value={d.name}>
+              {d.name}
             </option>
           ))}
         </select>
