@@ -13,6 +13,19 @@ type AutoDraftItem = {
 
 export default function AutoDraft() {
   const [drafting, setDrafting] = React.useState<AutoDraftItem[]>([]);
+
+  const getDisplayRole = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case "owner":
+        return "Owner";
+      case "admin":
+        return "Admin";
+      case "member":
+        return "Member";
+      default:
+        return role || "Member";
+    }
+  };
   const [template, setTemplate] = React.useState<AutoDraftItem[]>([]);
   const [invalidated, setInvalidated] = React.useState(false);
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
@@ -141,7 +154,7 @@ export default function AutoDraft() {
                             <span
                               className={`text-xs px-2 py-0.5 rounded-full ${file.user_role === "Owner" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
                             >
-                              {file.user_role}
+                              {getDisplayRole(file.user_role)}
                             </span>
                           </div>
                           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">

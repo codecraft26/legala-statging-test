@@ -28,8 +28,6 @@ import EditorHeader from "./components/EditorHeader";
 import EditorToolbar from "./components/EditorToolbar";
 import SelectionToolbar from "./components/SelectionToolbar";
 import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
-import TemplateSelector from "./components/TemplateSelector";
-import DraftsSelector from "./components/DraftsSelector";
 import DataHubSelector from "./components/DataHubSelector";
 import DocumentBrowser from "./components/DocumentBrowser";
 import { Api } from "@/lib/api-client";
@@ -779,8 +777,13 @@ export default function TiptapEditor() {
               <EditorContent editor={editor} key={contentUpdateTrigger} />
               <SelectionToolbar
                 editor={editor}
-                onSummarize={() => {}}
-                onImprove={() => {}}
+                onRefine={(originalText, refinedText, instruction) => {
+                  console.log("Text refined:", {
+                    originalText,
+                    refinedText,
+                    instruction,
+                  });
+                }}
               />
             </div>
           </div>
@@ -864,159 +867,6 @@ export default function TiptapEditor() {
                 console.error("Error details:", e);
                 alert(`Failed to import document: ${e?.message || e}`);
               }
-            }}
-          />
-          <TemplateSelector
-            onApply={async (html, vars, docxPath) => {
-              // console.log("Template onApply called with:", { html, vars });
-              if (!editor) {
-                // console.log("Editor not available");
-                return;
-              }
-
-              // Clear all existing variables and content first
-              setVariables([]);
-              setVariableValues({});
-              setPlaceholderStatus({});
-
-              // console.log("Setting document title and content");
-              setDocumentTitle(
-                vars.length ? `${vars[0].label} Template` : "Template"
-              );
-
-              // Try to load DOCX if provided
-              let appliedHtml = html;
-              if (docxPath) {
-                try {
-                  // console.log("=== DOCX LOADING START ===");
-                  // console.log("Attempting to load DOCX from:", docxPath);
-                  const res = await fetch(docxPath);
-                  // console.log("Fetch response status:", res.status, res.statusText);
-                  if (!res.ok)
-                    throw new Error(`${res.status} ${res.statusText}`);
-                  const arr = await res.arrayBuffer();
-                  // console.log("ArrayBuffer size:", arr.byteLength);
-                  const mammoth = (await import("mammoth")) as any;
-                  // console.log("Mammoth imported successfully");
-                  const result = await mammoth.convertToHtml({
-                    arrayBuffer: arr,
-                  });
-                  // console.log("Mammoth conversion result:", result);
-                  appliedHtml = result.value || html;
-                  // console.log("DOCX converted to HTML successfully. Content length:", appliedHtml.length);
-                  // console.log("First 500 chars of HTML:", appliedHtml.substring(0, 500));
-
-                  // Process the HTML to ensure proper variable placeholders
-                  // console.log("Processing HTML content with variables...");
-                  appliedHtml = preprocessHtmlContent(appliedHtml, vars);
-                  // console.log("Processed HTML length:", appliedHtml.length);
-                  // console.log("=== DOCX LOADING END ===");
-                } catch (e) {
-                  console.error("=== DOCX LOADING FAILED ===");
-                  console.error("Error:", e);
-                  console.warn(
-                    "Failed to fetch/convert DOCX, falling back to inline HTML:",
-                    e
-                  );
-                  appliedHtml = html;
-                }
-              } else {
-                // console.log("No DOCX path provided, using inline HTML");
-              }
-
-              // Set the content state first
-              setContent(appliedHtml);
-
-              // Ensure editor updates
-              setTimeout(() => {
-                if (editor) {
-                  editor
-                    .chain()
-                    .focus()
-                    .clearContent()
-                    .setContent(appliedHtml, false)
-                    .run();
-                  // console.log("Editor content set, current HTML:", editor.getHTML());
-                }
-              }, 50);
-
-              // Set new variables
-              // console.log("=== SETTING VARIABLES ===");
-              // console.log("Variables to set:", vars);
-              setVariables(vars);
-              const vals: Record<string, string> = {};
-              const status: Record<string, string> = {};
-              vars.forEach((v) => {
-                vals[v.unique_id] = "";
-                status[v.unique_id] = appliedHtml.includes(`{{${v.unique_id}}}`)
-                  ? "Found"
-                  : "Missing";
-              });
-              // console.log("Variable values:", vals);
-              // console.log("Variable status:", status);
-              setVariableValues(vals);
-              setPlaceholderStatus(status);
-
-              // Force editor re-render
-              setContentUpdateTrigger((prev) => prev + 1);
-
-              // console.log("Template applied successfully");
-            }}
-          />
-
-          <DraftsSelector
-            onApply={async (html, vars, title) => {
-              // console.log("Draft onApply called with:", { html, vars, title });
-              if (!editor) {
-                // console.log("Editor not available");
-                return;
-              }
-
-              // Clear all existing variables and content first
-              setVariables([]);
-              setVariableValues({});
-              setPlaceholderStatus({});
-
-              // console.log("Setting document title and content");
-              setDocumentTitle(title);
-
-              // Set the content state first
-              setContent(html);
-
-              // Ensure editor updates
-              setTimeout(() => {
-                if (editor) {
-                  editor
-                    .chain()
-                    .focus()
-                    .clearContent()
-                    .setContent(html, false)
-                    .run();
-                  // console.log("Editor content set, current HTML:", editor.getHTML());
-                }
-              }, 50);
-
-              // Set new variables
-              // console.log("=== SETTING VARIABLES ===");
-              // console.log("Variables to set:", vars);
-              setVariables(vars);
-              const vals: Record<string, string> = {};
-              const status: Record<string, string> = {};
-              vars.forEach((v) => {
-                vals[v.unique_id] = "";
-                status[v.unique_id] = html.includes(`{{${v.unique_id}}}`)
-                  ? "Found"
-                  : "Missing";
-              });
-              // console.log("Variable values:", vals);
-              // console.log("Variable status:", status);
-              setVariableValues(vals);
-              setPlaceholderStatus(status);
-
-              // Force editor re-render
-              setContentUpdateTrigger((prev) => prev + 1);
-
-              // console.log("Draft applied successfully");
             }}
           />
 

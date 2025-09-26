@@ -64,7 +64,18 @@ export default function Sidebar() {
     try {
       if (typeof window !== "undefined") {
         const u = JSON.parse(localStorage.getItem("user") || "{}");
-        if (u?.role) setLsRole(String(u.role));
+        if (u?.role) {
+          // Normalize role from localStorage
+          const normalizedRole =
+            u.role?.toLowerCase() === "owner"
+              ? "Owner"
+              : u.role?.toLowerCase() === "admin"
+                ? "Admin"
+                : u.role?.toLowerCase() === "member"
+                  ? "Member"
+                  : u.role || "Member";
+          setLsRole(normalizedRole);
+        }
         const token = localStorage.getItem("token");
         if (token) {
           const parts = token.split(".");

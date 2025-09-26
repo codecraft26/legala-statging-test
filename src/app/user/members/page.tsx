@@ -19,6 +19,19 @@ export default function MembersPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const user = useSelector((s: RootState) => s.auth.user);
 
+  const getDisplayRole = (role?: string) => {
+    switch (role?.toLowerCase()) {
+      case "owner":
+        return "Owner";
+      case "admin":
+        return "Admin";
+      case "member":
+        return "Member";
+      default:
+        return role || "Member";
+    }
+  };
+
   useEffect(() => {
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -82,7 +95,7 @@ export default function MembersPage() {
                 <tr key={m.id} className="border-t">
                   <td className="px-4 py-3">{m.name ?? "—"}</td>
                   <td className="px-4 py-3">{m.email ?? "—"}</td>
-                  <td className="px-4 py-3">{m.role ?? "member"}</td>
+                  <td className="px-4 py-3">{getDisplayRole(m.role)}</td>
                   {user?.role === "Owner" ? (
                     <td className="px-4 py-3">
                       <button

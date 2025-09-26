@@ -41,11 +41,24 @@ export default function LoginPage() {
         localStorage.setItem("token", token);
       }
       // Fetch user detail
-      const user = await Api.get("/user/detail");
-      dispatch(setCredentials({ token, user } as any));
+      const userResponse = await Api.get("/user/detail");
+      const user = userResponse.data || userResponse;
+      // Normalize role before storing
+      const normalizedUser = {
+        ...user,
+        role:
+          user.role?.toLowerCase() === "owner"
+            ? "Owner"
+            : user.role?.toLowerCase() === "admin"
+              ? "Admin"
+              : user.role?.toLowerCase() === "member"
+                ? "Member"
+                : user.role || "Member",
+      };
+      dispatch(setCredentials({ token, user: normalizedUser } as any));
       try {
         if (typeof window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("user", JSON.stringify(normalizedUser));
         }
       } catch {}
       router.replace("http://localhost:3000/dashboard");
@@ -109,7 +122,10 @@ export default function LoginPage() {
             <input type="checkbox" className="h-4 w-4" />
             Remember me
           </label> */}
-            <a href="#" className="text-sm underline">
+            <a
+              href="/forgot-password"
+              className="text-sm underline hover:text-blue-600 dark:hover:text-blue-400"
+            >
               Forgot password?
             </a>
           </div>
