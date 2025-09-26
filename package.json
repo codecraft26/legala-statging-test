@@ -11,7 +11,7 @@
     "check-format": "bunx prettier --check .",
     "format": "bunx prettier --write .",
     "test-all": "bun run check-format && bun run lint && bun run check-types && bun run build",
-    "prepare": "husky"
+    "prepare": "echo 'Husky disabled'"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
