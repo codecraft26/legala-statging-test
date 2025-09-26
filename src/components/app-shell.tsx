@@ -17,7 +17,7 @@ const AUTH_PATHS = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuth = AUTH_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}?`)
+    (p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`)
   );
 
   if (isAuth) {
