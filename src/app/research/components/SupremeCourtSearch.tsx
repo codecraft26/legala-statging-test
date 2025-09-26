@@ -3,6 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Search, Star, Eye, Loader2, X } from "lucide-react";
 import { useResearchAPI } from "@/hooks/use-research";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 interface CaseResult {
   serial_number: string;
@@ -20,13 +29,16 @@ interface CaseDetails {
 
 // Status Badge Component
 const StatusBadge = ({ status }: { status: string }) => {
-  const bgColor =
-    status === "COMPLETED" || status === "DISPOSED"
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
+  const isCompleted = status === "COMPLETED" || status === "DISPOSED";
 
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        isCompleted
+          ? "bg-green-100 text-green-800"
+          : "bg-yellow-100 text-yellow-800"
+      }`}
+    >
       {status}
     </span>
   );
@@ -374,142 +386,89 @@ export default function SupremeCourtSearch() {
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
-                <table className="min-w-full border-collapse table-fixed">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "80px" }}
-                      >
-                        INDEX NO.
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        DIARY NUMBER
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        CASE NUMBER
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "150px" }}
-                      >
-                        PETITIONER
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "150px" }}
-                      >
-                        RESPONDENT
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "100px" }}
-                      >
-                        STATUS
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        FOLLOW
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        ACTIONS
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="border-y-4 border-white">
-                    {filteredResults.map((result, index) => (
-                      <tr
-                        key={result.serial_number}
-                        className={`transition-colors hover:bg-blue-50 ${
-                          index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                        } border-b-4 border-white last:border-b-0`}
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                          {result.serial_number}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.diary_number}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.case_number}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.petitioner_name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.respondent_name}
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={result.status} />
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            className={`flex items-center justify-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                              followedCases.has(result.diary_number)
-                                ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                            }`}
-                            onClick={() => handleFollowCase(result)}
-                            disabled={followLoading === result.diary_number}
-                          >
-                            {followLoading === result.diary_number ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Star
-                                  size={16}
-                                  className={
-                                    followedCases.has(result.diary_number)
-                                      ? "text-yellow-600 fill-yellow-500"
-                                      : ""
-                                  }
-                                />
-                                <span>
-                                  {followedCases.has(result.diary_number)
-                                    ? "Following"
-                                    : "Follow"}
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            className="flex items-center justify-center w-32 space-x-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                            onClick={() => handleViewDetails(result)}
-                            disabled={detailsLoading === result.diary_number}
-                          >
-                            {detailsLoading === result.diary_number ? (
-                              <div className="flex items-center space-x-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Loading...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                <span>Details</span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Index No.</TableHead>
+                    <TableHead>Diary Number</TableHead>
+                    <TableHead>Case Number</TableHead>
+                    <TableHead>Petitioner</TableHead>
+                    <TableHead>Respondent</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Follow</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredResults.map((result) => (
+                    <TableRow key={result.serial_number}>
+                      <TableCell className="font-medium">
+                        {result.serial_number}
+                      </TableCell>
+                      <TableCell>{result.diary_number}</TableCell>
+                      <TableCell>{result.case_number}</TableCell>
+                      <TableCell>{result.petitioner_name}</TableCell>
+                      <TableCell>{result.respondent_name}</TableCell>
+                      <TableCell>
+                        <StatusBadge status={result.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleFollowCase(result)}
+                          disabled={followLoading === result.diary_number}
+                          className={
+                            followedCases.has(result.diary_number)
+                              ? "text-yellow-700 bg-yellow-50 border-yellow-200"
+                              : ""
+                          }
+                        >
+                          {followLoading === result.diary_number ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Star
+                                size={16}
+                                className={
+                                  followedCases.has(result.diary_number)
+                                    ? "text-yellow-600 fill-yellow-500"
+                                    : ""
+                                }
+                              />
+                              <span className="ml-1">
+                                {followedCases.has(result.diary_number)
+                                  ? "Following"
+                                  : "Follow"}
+                              </span>
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => handleViewDetails(result)}
+                          disabled={detailsLoading === result.diary_number}
+                        >
+                          {detailsLoading === result.diary_number ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Details
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
