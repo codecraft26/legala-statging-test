@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import { Scale, Gavel, Building2, Bookmark, BookOpen } from "lucide-react";
 import SupremeCourtSearch from "./components/SupremeCourtSearch";
-import SupremeCourtDiarySearch from "./components/SupremeCourtDiarySearch";
-import SupremeCourtCaseDetails from "./components/SupremeCourtCaseDetails";
 import HighCourtAdvocateSearch from "./components/HighCourtAdvocateSearch";
 import HighCourtFilingSearch from "./components/HighCourtFilingSearch";
 import DistrictCourtSearch from "./components/DistrictCourtSearch";
@@ -12,8 +10,6 @@ import KnowledgeSearch from "./components/KnowledgeSearch";
 
 type CourtType =
   | "supreme"
-  | "supreme-diary"
-  | "supreme-details"
   | "high-advocate"
   | "high-filing"
   | "district"
@@ -43,10 +39,6 @@ export default function ResearchPage() {
     switch (activeCourt) {
       case "supreme":
         return <SupremeCourtSearch />;
-      case "supreme-diary":
-        return <SupremeCourtDiarySearch />;
-      case "supreme-details":
-        return <SupremeCourtCaseDetails />;
       case "high-advocate":
         return <HighCourtAdvocateSearch />;
       case "high-filing":
@@ -109,38 +101,6 @@ export default function ResearchPage() {
               }`}
             ></div>
             <span>Search by Party Name</span>
-          </button>
-          <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
-              activeCourt === "supreme-diary"
-                ? "text-blue-600"
-                : "text-gray-600"
-            }`}
-            onClick={() => setActiveCourt("supreme-diary")}
-          >
-            <div
-              className={`w-1 h-1 rounded-full ${
-                activeCourt === "supreme-diary" ? "bg-blue-600" : "bg-gray-400"
-              }`}
-            ></div>
-            <span>Search by Diary Number</span>
-          </button>
-          <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
-              activeCourt === "supreme-details"
-                ? "text-blue-600"
-                : "text-gray-600"
-            }`}
-            onClick={() => setActiveCourt("supreme-details")}
-          >
-            <div
-              className={`w-1 h-1 rounded-full ${
-                activeCourt === "supreme-details"
-                  ? "bg-blue-600"
-                  : "bg-gray-400"
-              }`}
-            ></div>
-            <span>Get Case Details</span>
           </button>
         </div>
       );
@@ -308,38 +268,30 @@ export default function ResearchPage() {
                   ? "Followed Cases"
                   : activeCourt === "supreme"
                     ? "Supreme Court Research"
-                    : activeCourt === "supreme-diary"
-                      ? "Supreme Court Research"
-                      : activeCourt === "supreme-details"
-                        ? "Supreme Court Research"
-                        : activeCourt === "high-advocate"
-                          ? "High Court Research"
-                          : activeCourt === "high-filing"
-                            ? "High Court Research"
-                            : activeCourt === "district"
-                              ? "District Court Research"
-                              : activeCourt === "knowledge"
-                                ? "Legal Knowledge Search"
-                                : "Legal Research"}
+                    : activeCourt === "high-advocate"
+                      ? "High Court Research"
+                      : activeCourt === "high-filing"
+                        ? "High Court Research"
+                        : activeCourt === "district"
+                          ? "District Court Research"
+                          : activeCourt === "knowledge"
+                            ? "Legal Knowledge Search"
+                            : "Legal Research"}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 {activeCourt === "following"
                   ? "Track and manage your followed legal cases"
                   : activeCourt === "supreme"
                     ? "Search Supreme Court cases by party name"
-                    : activeCourt === "supreme-diary"
-                      ? "Search Supreme Court cases by diary number"
-                      : activeCourt === "supreme-details"
-                        ? "Get detailed information about Supreme Court cases"
-                        : activeCourt === "high-advocate"
-                          ? "Search High Court cases by advocate name"
-                          : activeCourt === "high-filing"
-                            ? "Search High Court cases by filing number"
-                            : activeCourt === "district"
-                              ? "Search District Court cases by party name"
-                              : activeCourt === "knowledge"
-                                ? "Search legal judgments, statutes, and precedents using AI"
-                                : "Search and analyze legal cases across different courts"}
+                    : activeCourt === "high-advocate"
+                      ? "Search High Court cases by advocate name"
+                      : activeCourt === "high-filing"
+                        ? "Search High Court cases by filing number"
+                        : activeCourt === "district"
+                          ? "Search District Court cases by party name"
+                          : activeCourt === "knowledge"
+                            ? "Search legal judgments, statutes, and precedents using AI"
+                            : "Search and analyze legal cases across different courts"}
               </p>
             </div>
           </div>

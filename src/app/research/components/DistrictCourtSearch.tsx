@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Star, Eye, Loader2, X } from "lucide-react";
+import { Search, Star, Eye, Loader2, X, Download } from "lucide-react";
 import { useResearchAPI } from "@/hooks/use-research";
 import { districtId } from "../utils/districtId";
 import { useEstCodes } from "@/hooks/use-est-codes";
@@ -26,6 +26,53 @@ interface CaseDetails {
   [key: string]: any;
 }
 
+interface ParsedCaseDetails {
+  courtName: string;
+  caseInfo: {
+    caseType: string;
+    filingNumber: string;
+    filingDate: string;
+    registrationNumber: string;
+    registrationDate: string;
+    cnrNumber: string;
+  };
+  caseStatus: {
+    firstHearingDate: string;
+    nextHearingDate: string;
+    caseStatus: string;
+    stageOfCase: string;
+    courtNumberAndJudge: string;
+  };
+  parties: {
+    petitioners: Array<{
+      name: string;
+      advocate?: string;
+    }>;
+    respondents: Array<{
+      name: string;
+      advocate?: string;
+    }>;
+  };
+  acts: Array<{
+    act: string;
+    sections: string;
+  }>;
+  caseHistory: Array<{
+    registrationNumber: string;
+    judge: string;
+    businessOnDate: string;
+    hearingDate: string;
+    purposeOfHearing: string;
+  }>;
+  processDetails: Array<{
+    processId: string;
+    processDate: string;
+    processTitle: string;
+    partyName: string;
+    issuedProcess: string;
+  }>;
+}
+
 // Status Badge Component
 const StatusBadge = ({ status }: { status: string }) => {
   const bgColor =
@@ -40,32 +87,378 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// Case Details Modal
+// Case Details Modal - Simple table format like old React code
 const CaseDetailsModal = ({
   caseData,
   onClose,
 }: {
-  caseData: CaseDetails | null;
+  caseData: ParsedCaseDetails | null;
   onClose: () => void;
 }) => {
+  const [activeTab, setActiveTab] = useState("overview");
+
   if (!caseData) return null;
+
+  // Function to get available tabs based on data
+  const getAvailableTabs = () => {
+    if (!caseData) return ["overview"];
+    const tabs = ["overview", "parties"];
+    if (caseData.acts.length > 0) tabs.push("acts");
+    if (caseData.caseHistory.length > 0) tabs.push("history");
+    return tabs;
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b p-4 sticky top-0 bg-white z-10">
           <h3 className="text-lg font-semibold">Case Details</h3>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                const dataStr = JSON.stringify(caseData, null, 2);
+                const dataBlob = new Blob([dataStr], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `case-details-${caseData.caseInfo.cnrNumber || "unknown"}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Download size={18} />
+              <span>Download</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {/* Case Header */}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold mb-2">
+              {caseData.caseInfo.cnrNumber || "N/A"}
+            </h2>
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-black text-sm font-medium">
+                CNR: {caseData.caseInfo.cnrNumber || "N/A"}
+              </span>
+              <span className="text-black text-sm mx-2 font-medium">|</span>
+              <span className="text-black text-sm font-medium">
+                Filed: {caseData.caseInfo.filingDate || "N/A"}
+              </span>
+              <span className="text-black text-sm mx-2 font-medium">|</span>
+              <StatusBadge
+                status={caseData.caseStatus.caseStatus || "PENDING"}
+              />
+            </div>
+          </div>
+
+          {/* Tabs Navigation */}
+          <div className="border-b mb-4">
+            <div className="flex overflow-x-auto">
+              {getAvailableTabs().map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === tab
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="mb-4">
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                {/* Case Information Table */}
+                <div className="mb-6">
+                  <h3 className="font-medium mb-4">Case Information</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Field
+                          </th>
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Value
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Case Type
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseInfo.caseType || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Filing Number
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseInfo.filingNumber || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Filing Date
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseInfo.filingDate || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Registration Number
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseInfo.registrationNumber || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Registration Date
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseInfo.registrationDate || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            CNR Number
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm font-mono">
+                            {caseData.caseInfo.cnrNumber || "N/A"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Case Status Table */}
+                <div className="mb-6">
+                  <h3 className="font-medium mb-4">Status Information</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Field
+                          </th>
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Value
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Case Status
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            <StatusBadge
+                              status={caseData.caseStatus.caseStatus || "N/A"}
+                            />
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Stage of Case
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseStatus.stageOfCase || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            First Hearing Date
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseStatus.firstHearingDate || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Next Hearing Date
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseStatus.nextHearingDate || "N/A"}
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-gray-50">
+                          <td className="border border-gray-300 p-2 text-sm font-medium">
+                            Court Number and Judge
+                          </td>
+                          <td className="border border-gray-300 p-2 text-sm">
+                            {caseData.caseStatus.courtNumberAndJudge || "N/A"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "parties" && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-medium mb-2">Petitioners</h3>
+                  <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                    {caseData.parties.petitioners.length > 0 ? (
+                      caseData.parties.petitioners.map((petitioner, index) => (
+                        <li key={index} className="text-sm">
+                          {petitioner.name}
+                          {petitioner.advocate && (
+                            <span className="text-gray-600">
+                              {" "}
+                              (Adv: {petitioner.advocate})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-gray-500">
+                        No petitioner information available
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Respondents</h3>
+                  <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                    {caseData.parties.respondents.length > 0 ? (
+                      caseData.parties.respondents.map((respondent, index) => (
+                        <li key={index} className="text-sm">
+                          {respondent.name}
+                          {respondent.advocate && (
+                            <span className="text-gray-600">
+                              {" "}
+                              (Adv: {respondent.advocate})
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-gray-500">
+                        No respondent information available
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "acts" && (
+              <div>
+                <h3 className="font-medium mb-4">Acts and Sections</h3>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  {caseData.acts.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="border-b pb-3">
+                        <p className="text-sm text-gray-500">Acts</p>
+                        <p className="text-sm font-medium">
+                          {caseData.acts.map((act) => act.act).join(", ") ||
+                            "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Sections</p>
+                        <p className="text-sm font-medium">
+                          {caseData.acts
+                            .map((act) => act.sections)
+                            .join(", ") || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No acts and sections information available
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "history" && (
+              <div>
+                <h3 className="font-medium mb-4">Case History</h3>
+                {caseData.caseHistory.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Business Date
+                          </th>
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Hearing Date
+                          </th>
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Purpose
+                          </th>
+                          <th className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-500">
+                            Judge
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {caseData.caseHistory.map((history, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 p-2 text-sm">
+                              {history.businessOnDate}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-sm">
+                              {history.hearingDate}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-sm">
+                              {history.purposeOfHearing || "N/A"}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-sm">
+                              {history.judge || "N/A"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-700">
+                    No history records available for this case.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t p-4 flex justify-end">
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-4 py-2 rounded-md transition-colors"
           >
-            <X size={20} />
+            Close
           </button>
-        </div>
-        <div className="p-6">
-          <pre className="whitespace-pre-wrap text-sm">
-            {JSON.stringify(caseData, null, 2)}
-          </pre>
         </div>
       </div>
     </div>
@@ -78,9 +471,13 @@ export default function DistrictCourtSearch() {
   const [regYear, setRegYear] = useState(new Date().getFullYear().toString());
   const [caseStatus, setCaseStatus] = useState("P");
   const [selectedEstCodes, setSelectedEstCodes] = useState<string[]>([]);
-  const [searchResults, setSearchResults] = useState<DistrictCourtResult[]>([]);
+  const [searchResults, setSearchResults] = useState<{
+    [courtName: string]: DistrictCourtResult[];
+  }>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [selectedCase, setSelectedCase] = useState<ParsedCaseDetails | null>(
+    null
+  );
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
@@ -117,11 +514,25 @@ export default function DistrictCourtSearch() {
   ).sort();
 
   // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result) =>
-    Object.values(result).some((value) =>
-      String(value).toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  const filteredResults = useMemo(() => {
+    if (!searchQuery) return searchResults;
+
+    const filtered: { [courtName: string]: DistrictCourtResult[] } = {};
+
+    Object.entries(searchResults).forEach(([courtName, cases]) => {
+      const filteredCases = cases.filter((result) =>
+        Object.values(result).some((value) =>
+          String(value).toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+
+      if (filteredCases.length > 0) {
+        filtered[courtName] = filteredCases;
+      }
+    });
+
+    return filtered;
+  }, [searchResults, searchQuery]);
 
   // Handle EST code selection
   const handleEstCodeToggle = (estCode: string) => {
@@ -144,11 +555,214 @@ export default function DistrictCourtSearch() {
     setSelectedEstCodes([]);
   };
 
-  // Function to parse HTML response from district court API
+  // Function to parse case details HTML response
+  const parseCaseDetailsHTML = (
+    htmlString: string
+  ): ParsedCaseDetails | null => {
+    try {
+      if (!htmlString || typeof htmlString !== "string") {
+        console.error("Invalid HTML string provided");
+        return null;
+      }
+
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlString;
+
+      // Extract court name
+      const courtNameElement = tempDiv.querySelector("h2");
+      const courtName = courtNameElement?.textContent?.trim() || "Civil Court";
+
+      // Extract case details from first table with "Case Details" caption
+      const caseDetailsCaption = Array.from(
+        tempDiv.querySelectorAll("caption")
+      ).find((caption) => caption.textContent?.includes("Case Details"));
+      const caseDetailsTable =
+        caseDetailsCaption?.parentElement?.querySelector("tbody tr");
+      const caseInfo = {
+        caseType: caseDetailsTable?.children[0]?.textContent?.trim() || "",
+        filingNumber: caseDetailsTable?.children[1]?.textContent?.trim() || "",
+        filingDate: caseDetailsTable?.children[2]?.textContent?.trim() || "",
+        registrationNumber:
+          caseDetailsTable?.children[3]?.textContent?.trim() || "",
+        registrationDate:
+          caseDetailsTable?.children[4]?.textContent?.trim() || "",
+        cnrNumber: caseDetailsTable?.children[5]?.textContent?.trim() || "",
+      };
+
+      // Extract case status from table with "Case Status" caption
+      const statusCaption = Array.from(
+        tempDiv.querySelectorAll("caption")
+      ).find((caption) => caption.textContent?.includes("Case Status"));
+      const statusTable =
+        statusCaption?.parentElement?.querySelector("tbody tr");
+      const caseStatus = {
+        firstHearingDate: statusTable?.children[0]?.textContent?.trim() || "",
+        nextHearingDate: statusTable?.children[1]?.textContent?.trim() || "",
+        caseStatus: statusTable?.children[2]?.textContent?.trim() || "",
+        stageOfCase: statusTable?.children[3]?.textContent?.trim() || "",
+        courtNumberAndJudge:
+          statusTable?.children[4]?.textContent?.trim() || "",
+      };
+
+      // Extract parties information
+      const petitioners: Array<{ name: string; advocate?: string }> = [];
+      const respondents: Array<{ name: string; advocate?: string }> = [];
+
+      // Parse petitioner section - look for "Petitioner and Advocate" heading
+      const petitionerHeading = Array.from(tempDiv.querySelectorAll("h5")).find(
+        (h5) => h5.textContent?.includes("Petitioner")
+      );
+      if (petitionerHeading) {
+        const petitionerSection = petitionerHeading.nextElementSibling;
+        if (petitionerSection) {
+          const petitionerItems = petitionerSection.querySelectorAll("li");
+          petitionerItems.forEach((item) => {
+            const nameElement = item.querySelector("p");
+            const advocateText = item.textContent || "";
+            const name = nameElement?.textContent?.trim() || "";
+            const advocateMatch = advocateText.match(/Advocate - (.+)/);
+            const advocate = advocateMatch
+              ? advocateMatch[1].trim()
+              : undefined;
+
+            if (name) {
+              petitioners.push({ name, advocate });
+            }
+          });
+        }
+      }
+
+      // Parse respondent section - look for "Respondent and Advocate" heading
+      const respondentHeading = Array.from(tempDiv.querySelectorAll("h5")).find(
+        (h5) => h5.textContent?.includes("Respondent")
+      );
+      if (respondentHeading) {
+        const respondentSection = respondentHeading.nextElementSibling;
+        if (respondentSection) {
+          const respondentItems = respondentSection.querySelectorAll("li");
+          respondentItems.forEach((item) => {
+            const nameElement = item.querySelector("p");
+            const name = nameElement?.textContent?.trim() || "";
+
+            if (name) {
+              respondents.push({ name });
+            }
+          });
+        }
+      }
+
+      // Extract acts information - look for "Acts" caption
+      const acts: Array<{ act: string; sections: string }> = [];
+      const actsCaption = Array.from(tempDiv.querySelectorAll("caption")).find(
+        (caption) => caption.textContent?.includes("Acts")
+      );
+      if (actsCaption) {
+        const actsTable = actsCaption.parentElement?.querySelector("tbody");
+        if (actsTable) {
+          const actRows = actsTable.querySelectorAll("tr");
+          actRows.forEach((row) => {
+            const act = row.children[0]?.textContent?.trim() || "";
+            const sections = row.children[1]?.textContent?.trim() || "";
+            if (act) {
+              acts.push({ act, sections });
+            }
+          });
+        }
+      }
+
+      // Extract case history - look for "Case History" caption
+      const caseHistory: Array<{
+        registrationNumber: string;
+        judge: string;
+        businessOnDate: string;
+        hearingDate: string;
+        purposeOfHearing: string;
+      }> = [];
+      const historyCaption = Array.from(
+        tempDiv.querySelectorAll("caption")
+      ).find((caption) => caption.textContent?.includes("Case History"));
+      if (historyCaption) {
+        const historyTable =
+          historyCaption.parentElement?.querySelector("tbody");
+        if (historyTable) {
+          const historyRows = historyTable.querySelectorAll("tr");
+          historyRows.forEach((row) => {
+            const registrationNumber =
+              row.children[0]?.textContent?.trim() || "";
+            const judge = row.children[1]?.textContent?.trim() || "";
+            const businessOnDate = row.children[2]?.textContent?.trim() || "";
+            const hearingDate = row.children[3]?.textContent?.trim() || "";
+            const purposeOfHearing = row.children[4]?.textContent?.trim() || "";
+
+            if (registrationNumber) {
+              caseHistory.push({
+                registrationNumber,
+                judge,
+                businessOnDate,
+                hearingDate,
+                purposeOfHearing,
+              });
+            }
+          });
+        }
+      }
+
+      // Extract process details - look for "Process Details" caption
+      const processDetails: Array<{
+        processId: string;
+        processDate: string;
+        processTitle: string;
+        partyName: string;
+        issuedProcess: string;
+      }> = [];
+      const processCaption = Array.from(
+        tempDiv.querySelectorAll("caption")
+      ).find((caption) => caption.textContent?.includes("Process Details"));
+      if (processCaption) {
+        const processTable =
+          processCaption.parentElement?.querySelector("tbody");
+        if (processTable) {
+          const processRows = processTable.querySelectorAll("tr");
+          processRows.forEach((row) => {
+            const processId = row.children[0]?.textContent?.trim() || "";
+            const processDate = row.children[1]?.textContent?.trim() || "";
+            const processTitle = row.children[2]?.textContent?.trim() || "";
+            const partyName = row.children[3]?.textContent?.trim() || "";
+            const issuedProcess = row.children[4]?.textContent?.trim() || "";
+
+            if (processId) {
+              processDetails.push({
+                processId,
+                processDate,
+                processTitle,
+                partyName,
+                issuedProcess,
+              });
+            }
+          });
+        }
+      }
+
+      return {
+        courtName,
+        caseInfo,
+        caseStatus,
+        parties: { petitioners, respondents },
+        acts,
+        caseHistory,
+        processDetails,
+      };
+    } catch (error) {
+      console.error("Error parsing case details HTML:", error);
+      return null;
+    }
+  };
+
+  // Function to parse HTML response from district court API and organize by court
   const parseDistrictCourtHTML = (
     htmlString: string
-  ): DistrictCourtResult[] => {
-    const results: DistrictCourtResult[] = [];
+  ): { [courtName: string]: DistrictCourtResult[] } => {
+    const courtResults: { [courtName: string]: DistrictCourtResult[] } = {};
 
     try {
       // Create a temporary DOM element to parse the HTML
@@ -164,8 +778,9 @@ export default function DistrictCourtSearch() {
           tableContent.querySelector("caption")?.textContent || "";
         const tbody = tableContent.querySelector("tbody");
 
-        if (tbody) {
+        if (tbody && caption) {
           const rows = tbody.querySelectorAll("tr");
+          const courtCases: DistrictCourtResult[] = [];
 
           rows.forEach((row) => {
             const cells = row.querySelectorAll("td");
@@ -202,7 +817,7 @@ export default function DistrictCourtSearch() {
               }
 
               if (cino) {
-                results.push({
+                courtCases.push({
                   cino,
                   district_name: districtName,
                   litigant_name: litigantName,
@@ -219,13 +834,17 @@ export default function DistrictCourtSearch() {
               }
             }
           });
+
+          if (courtCases.length > 0) {
+            courtResults[caption] = courtCases;
+          }
         }
       });
     } catch (error) {
       console.error("Error parsing HTML response:", error);
     }
 
-    return results;
+    return courtResults;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -250,7 +869,7 @@ export default function DistrictCourtSearch() {
         const parsedResults = parseDistrictCourtHTML(response.data.data);
         setSearchResults(parsedResults);
       } else {
-        setSearchResults([]);
+        setSearchResults({});
       }
     } catch (err) {
       console.error("Search failed:", err);
@@ -262,15 +881,65 @@ export default function DistrictCourtSearch() {
     setDetailsLoading(caseId);
 
     try {
-      const details = await getDistrictCourtCaseDetail({
+      const response = await getDistrictCourtCaseDetail({
         cino: result.cino,
         district_name: result.district_name,
       });
 
-      setSelectedCase(details);
-      setShowCaseDetails(true);
+      // Parse the HTML response - handle the specific API response structure
+      let htmlData = null;
+
+      // Based on your API response structure: { status: 200, data: "{\"success\":true,\"data\":\"<html>\"}" }
+      if (response?.data) {
+        // Check if data is a stringified JSON (which it should be based on your response)
+        if (typeof response.data === "string") {
+          try {
+            const parsedData = JSON.parse(response.data);
+
+            // Check if the parsed data has the expected structure
+            if (parsedData.success && parsedData.data) {
+              htmlData = parsedData.data;
+            } else {
+              htmlData = response.data; // Fallback to original data
+            }
+          } catch (e) {
+            htmlData = response.data; // Fallback to original data
+          }
+        } else {
+          // If data is already an object
+          htmlData = response.data;
+        }
+      } else {
+        console.error("No data field in response");
+        console.error("Full response object:", response);
+        alert(
+          "No case details data received from the server. Please check the console for more details."
+        );
+        return;
+      }
+
+      if (htmlData) {
+        const parsedDetails = parseCaseDetailsHTML(htmlData);
+
+        if (parsedDetails) {
+          setSelectedCase(parsedDetails);
+          setShowCaseDetails(true);
+        } else {
+          console.error("Failed to parse case details HTML");
+          alert(
+            "Failed to parse case details. The response format may be invalid."
+          );
+        }
+      } else {
+        console.error("No HTML data found after parsing");
+        console.error("Full response object:", response);
+        alert(
+          "No case details data received from the server. Please check the console for more details."
+        );
+      }
     } catch (err) {
       console.error("Failed to fetch case details:", err);
+      alert("Failed to fetch case details. Please try again.");
     } finally {
       setDetailsLoading(null);
     }
@@ -516,7 +1185,7 @@ export default function DistrictCourtSearch() {
       )}
 
       {/* Results Section */}
-      {!loading && searchResults.length > 0 && (
+      {!loading && Object.keys(searchResults).length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
@@ -534,169 +1203,155 @@ export default function DistrictCourtSearch() {
             </div>
           </div>
 
-          {filteredResults.length === 0 ? (
+          {Object.keys(filteredResults).length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-700">
               No results found for your search criteria.
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
-                <table className="min-w-full border-collapse table-fixed">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "100px" }}
-                      >
-                        SERIAL NO.
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "150px" }}
-                      >
-                        CASE TYPE/NUMBER/YEAR
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "200px" }}
-                      >
-                        PETITIONER VS RESPONDENT
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        COURT
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "100px" }}
-                      >
-                        CINO
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "80px" }}
-                      >
-                        FOLLOW
-                      </th>
-                      <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
-                        style={{ minWidth: "80px" }}
-                      >
-                        ACTIONS
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="border-y-4 border-white">
-                    {filteredResults.map((result, index) => {
-                      const caseId = result.cino;
-                      return (
-                        <tr
-                          key={caseId}
-                          className={`transition-colors hover:bg-blue-50 ${
-                            index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                          } border-b-2 border-gray-100 last:border-b-0`}
-                        >
-                          <td className="px-3 py-3 text-xs text-gray-800 font-medium">
-                            {result.serial_number || "N/A"}
-                          </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
-                            <div
-                              className="max-w-[150px] truncate"
-                              title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}
-                            >
-                              {result.case_type || "N/A"}/
-                              {result.case_number || "N/A"}/
-                              {result.case_year || "N/A"}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
-                            <div className="max-w-[200px]">
-                              <div
-                                className="truncate"
-                                title={result.petitioner_name || ""}
-                              >
-                                <strong>Petitioner:</strong>{" "}
-                                {result.petitioner_name || "N/A"}
-                              </div>
-                              {result.respondent_name && (
-                                <div
-                                  className="truncate mt-1"
-                                  title={result.respondent_name}
-                                >
-                                  <strong>Respondent:</strong>{" "}
-                                  {result.respondent_name}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
-                            <div
-                              className="max-w-[120px] truncate"
-                              title={result.court_name || ""}
-                            >
-                              {result.court_name || "N/A"}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-xs text-gray-800 font-medium">
-                            {result.cino}
-                          </td>
-                          <td className="px-3 py-3">
-                            <button
-                              className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                followedCases.has(caseId)
-                                  ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                  : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                              }`}
-                              onClick={() => handleFollowCase(result)}
-                              disabled={followLoading === caseId}
-                            >
-                              {followLoading === caseId ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <Star
-                                    size={12}
-                                    className={
-                                      followedCases.has(caseId)
-                                        ? "text-yellow-600 fill-yellow-500"
-                                        : ""
-                                    }
-                                  />
-                                  <span className="hidden sm:inline">
-                                    {followedCases.has(caseId)
-                                      ? "Following"
-                                      : "Follow"}
-                                  </span>
-                                </>
-                              )}
-                            </button>
-                          </td>
-                          <td className="px-3 py-3">
-                            <button
-                              className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
-                              onClick={() => handleViewDetails(result)}
-                              disabled={detailsLoading === caseId}
-                            >
-                              {detailsLoading === caseId ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <>
-                                  <Eye className="w-3 h-3" />
-                                  <span className="hidden sm:inline">
-                                    Details
-                                  </span>
-                                </>
-                              )}
-                            </button>
-                          </td>
+            <div className="space-y-6">
+              {Object.entries(filteredResults).map(([courtName, cases]) => (
+                <div
+                  key={courtName}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white"
+                >
+                  {/* Court Header */}
+                  <div className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white px-4 py-3">
+                    <h4 className="text-lg font-semibold text-black">
+                      {courtName}
+                    </h4>
+                  </div>
+
+                  {/* Court Table */}
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-full border-collapse table-fixed">
+                      <thead>
+                        <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
+                          <th
+                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            style={{ minWidth: "100px" }}
+                          >
+                            SERIAL NUMBER
+                          </th>
+                          <th
+                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            style={{ minWidth: "150px" }}
+                          >
+                            CASE TYPE/CASE NUMBER/CASE YEAR
+                          </th>
+                          <th
+                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            style={{ minWidth: "200px" }}
+                          >
+                            PETITIONER VERSUS RESPONDENT
+                          </th>
+                          <th
+                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            style={{ minWidth: "100px" }}
+                          >
+                            VIEW
+                          </th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody className="border-y-4 border-white">
+                        {cases.map((result, index) => {
+                          const caseId = result.cino;
+                          return (
+                            <tr
+                              key={caseId}
+                              className={`transition-colors hover:bg-blue-50 ${
+                                index % 2 === 0 ? "bg-white" : "bg-blue-50"
+                              } border-b-2 border-gray-100 last:border-b-0`}
+                            >
+                              <td className="px-3 py-3 text-xs text-gray-800 font-medium">
+                                {result.serial_number || "N/A"}
+                              </td>
+                              <td className="px-3 py-3 text-xs text-gray-700">
+                                <div
+                                  className="max-w-[150px] truncate"
+                                  title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}
+                                >
+                                  {result.case_type || "N/A"}/
+                                  {result.case_number || "N/A"}/
+                                  {result.case_year || "N/A"}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 text-xs text-gray-700">
+                                <div className="max-w-[200px]">
+                                  <div
+                                    className="truncate"
+                                    title={result.petitioner_name || ""}
+                                  >
+                                    <strong>Petitioner:</strong>{" "}
+                                    {result.petitioner_name || "N/A"}
+                                  </div>
+                                  {result.respondent_name && (
+                                    <div
+                                      className="truncate mt-1"
+                                      title={result.respondent_name}
+                                    >
+                                      <strong>Respondent:</strong>{" "}
+                                      {result.respondent_name}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                      followedCases.has(caseId)
+                                        ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                        : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                    }`}
+                                    onClick={() => handleFollowCase(result)}
+                                    disabled={followLoading === caseId}
+                                  >
+                                    {followLoading === caseId ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Star
+                                          size={12}
+                                          className={
+                                            followedCases.has(caseId)
+                                              ? "text-yellow-600 fill-yellow-500"
+                                              : ""
+                                          }
+                                        />
+                                        <span className="hidden sm:inline">
+                                          {followedCases.has(caseId)
+                                            ? "Following"
+                                            : "Follow"}
+                                        </span>
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+                                    onClick={() => handleViewDetails(result)}
+                                    disabled={detailsLoading === caseId}
+                                  >
+                                    {detailsLoading === caseId ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Eye className="w-3 h-3" />
+                                        <span className="hidden sm:inline">
+                                          Details
+                                        </span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

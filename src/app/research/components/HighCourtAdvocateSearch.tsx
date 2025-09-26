@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Star, Eye, Loader2, X } from "lucide-react";
+import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useResearchAPI } from "@/hooks/use-research";
 import {
@@ -31,6 +31,7 @@ interface HighCourtResult {
   type_name?: string;
   state_cd?: string;
   court_code?: string;
+  details?: any; // For storing detailed case information from API
 }
 
 interface CaseDetails {
@@ -51,175 +52,414 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// Case Details Modal
+// Case Details Modal - exactly like old React code
 const CaseDetailsModal = ({
   caseData,
   onClose,
+  followedCases,
+  handleFollowCase,
+  followMutation,
+  unfollowMutation,
 }: {
   caseData: HighCourtResult | null;
   onClose: () => void;
+  followedCases: Set<string>;
+  handleFollowCase: (caseData: HighCourtResult) => void;
+  followMutation: any;
+  unfollowMutation: any;
 }) => {
+  const [activeTab, setActiveTab] = useState("overview");
+
   if (!caseData) return null;
 
+  // Format date helper function
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString || dateString.includes("1970-01-01"))
+      return "Not Available";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Not Available";
+      return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch (err) {
+      return "Not Available";
+    }
+  };
+
+  // Function to render tab content based on active tab (exactly like old React code)
+  const renderTabContent = () => {
+    const details = caseData.details;
+
+    if (!details) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-gray-400 mb-2">No data available</div>
+          <div className="text-sm text-gray-500">
+            No {activeTab.replace(/_/g, " ")} information found for this case.
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case "overview":
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  label: "Filing Number",
+                  value: details.case_details?.filing_number || "N/A",
+                },
+                {
+                  label: "Filing Date",
+                  value: formatDate(details.case_details?.filing_date) || "N/A",
+                },
+                {
+                  label: "Registration Number",
+                  value: details.case_details?.registration_number || "N/A",
+                },
+                {
+                  label: "Registration Date",
+                  value:
+                    formatDate(details.case_details?.registration_date) ||
+                    "N/A",
+                },
+              ].map((item, index) => (
+                <div key={index}>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                    {item.label}
+                  </h3>
+                  <p className="text-sm">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "parties":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-medium mb-2">Petitioners</h3>
+              <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                {details.petitioner_and_advocate?.map(
+                  (petitioner: string, index: number) => (
+                    <li key={index} className="text-sm">
+                      {petitioner.split("    ")[0] || "N/A"}
+                    </li>
+                  )
+                ) || <li className="text-sm">N/A</li>}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">Respondents</h3>
+              <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                {details.respondent_and_advocate?.map(
+                  (respondent: string, index: number) => (
+                    <li key={index} className="text-sm">
+                      {respondent || "N/A"}
+                    </li>
+                  )
+                ) || <li className="text-sm">N/A</li>}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">Petitioner Advocates</h3>
+              <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                {details.petitioner_and_advocate?.map(
+                  (petitioner: string, index: number) => (
+                    <li key={index} className="text-sm">
+                      {petitioner.split("    ")[1] || "N/A"}
+                    </li>
+                  )
+                ) || <li className="text-sm">N/A</li>}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">Respondent Advocates</h3>
+              <ul className="bg-gray-50 p-4 rounded-md space-y-2">
+                <li className="text-sm">N/A</li>
+              </ul>
+            </div>
+          </div>
+        );
+
+      case "status":
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  label: "Case Stage",
+                  value: details.case_status?.stage_of_case || "N/A",
+                },
+                {
+                  label: "First Hearing Date",
+                  value:
+                    formatDate(details.case_status?.first_hearing_date) ||
+                    "N/A",
+                },
+                {
+                  label: "Next Hearing Date",
+                  value:
+                    formatDate(details.case_status?.next_hearing_date) || "N/A",
+                },
+                {
+                  label: "Coram",
+                  value: details.case_status?.coram || "N/A",
+                },
+                {
+                  label: "Judicial Branch",
+                  value: details.case_status?.judicial_branch || "N/A",
+                },
+                {
+                  label: "Not Before Me",
+                  value: details.case_status?.not_before_me || "N/A",
+                },
+              ].map((item, index) => (
+                <div key={index}>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                    {item.label}
+                  </h3>
+                  <p className="text-sm">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "orders":
+        return (
+          <div className="space-y-4">
+            <h3 className="font-medium mb-2">Orders</h3>
+            {details.orders && details.orders.length > 0 ? (
+              <div className="space-y-3">
+                {details.orders.map((order: any, index: number) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-md"
+                  >
+                    <span className="text-sm font-medium">{`Order #${
+                      order.order_number
+                    } - ${formatDate(order.order_date)}`}</span>
+                    <a
+                      href={order.order_details}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      <span>View Order</span>
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-700">
+                No orders available for this case.
+              </div>
+            )}
+          </div>
+        );
+
+      case "ia":
+        return (
+          <div className="space-y-6">
+            <h3 className="font-medium mb-2">
+              Interlocutory Applications (IA)
+            </h3>
+            {details.ia_details && details.ia_details.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full border-collapse bg-gray-50 rounded-md">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-2 text-left text-xs font-medium text-black">
+                        IA Number
+                      </th>
+                      <th className="border border-gray-300 p-2 text-left text-xs font-medium text-black">
+                        Party
+                      </th>
+                      <th className="border border-gray-300 p-2 text-left text-xs font-medium text-black">
+                        Filing Date
+                      </th>
+                      <th className="border border-gray-300 p-2 text-left text-xs font-medium text-black">
+                        Next Date
+                      </th>
+                      <th className="border border-gray-300 p-2 text-left text-xs font-medium text-black">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {details.ia_details.map((ia: any, index: number) => (
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-100 even:bg-white odd:bg-gray-50"
+                      >
+                        <td className="border border-gray-300 p-2 text-sm">
+                          {ia.ia_number || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-sm">
+                          {ia.party || "N/A"}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-sm">
+                          {formatDate(ia.date_of_filing)}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-sm">
+                          {formatDate(ia.next_date)}
+                        </td>
+                        <td className="border border-gray-300 p-2 text-sm">
+                          {ia.ia_status || "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-700">
+                No IA details available for this case.
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="p-6 text-center">
+            <div className="text-gray-400 mb-2">No data available</div>
+            <div className="text-sm text-gray-500">
+              No {activeTab.replace(/_/g, " ")} information found for this case.
+            </div>
+          </div>
+        );
+    }
+  };
+
+  // Get all available tabs from the case data
+  const availableTabs = ["overview", "parties", "status", "orders", "ia"];
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Modal Header */}
         <div className="flex justify-between items-center border-b p-4 sticky top-0 bg-white z-10">
-          <h3 className="text-lg font-semibold">Case Details</h3>
+          <h3 id="modal-title" className="text-lg font-semibold">
+            Case Details
+          </h3>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
+            aria-label="Close modal"
           >
             <X size={20} />
           </button>
         </div>
-        <div className="p-6 space-y-6">
-          {/* Basic Case Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Case Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Case Number:</span>{" "}
-                  {caseData.case_no}
-                </div>
-                <div>
-                  <span className="font-medium">CINO:</span> {caseData.cino}
-                </div>
-                <div>
-                  <span className="font-medium">Case Type:</span>{" "}
-                  {caseData.type_name}
-                </div>
-                <div>
-                  <span className="font-medium">Case Year:</span>{" "}
-                  {caseData.case_year}
-                </div>
-                <div>
-                  <span className="font-medium">Case No 2:</span>{" "}
-                  {caseData.case_no2}
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Court Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">State Code:</span>{" "}
-                  {caseData.state_cd}
-                </div>
-                <div>
-                  <span className="font-medium">Court Code:</span>{" "}
-                  {caseData.court_code}
-                </div>
-                <div>
-                  <span className="font-medium">Decision Date:</span>{" "}
-                  {caseData.date_of_decision
-                    ? new Date(caseData.date_of_decision).toLocaleDateString(
-                        "en-IN"
-                      )
-                    : "N/A"}
-                </div>
-              </div>
+        {/* Case Title and Basic Info */}
+        <div className="p-4">
+          <div className="mb-6">
+            <div className="flex justify-between items-start">
+              <h2 className="text-xl font-bold mb-2">
+                {`${
+                  caseData.details?.case_details?.registration_number || "N/A"
+                } - ${
+                  caseData.details?.petitioner_and_advocate?.[0]?.split(
+                    "    "
+                  )[0] || "Unknown"
+                } vs. ${
+                  caseData.details?.respondent_and_advocate?.[0] || "Unknown"
+                }`}
+              </h2>
+              <button
+                className={`flex items-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
+                  followedCases.has(caseData.cino || caseData.case_no)
+                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                    : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                }`}
+                onClick={() => handleFollowCase(caseData)}
+                disabled={
+                  followMutation.isPending || unfollowMutation.isPending
+                }
+              >
+                <Star
+                  size={16}
+                  className={
+                    followedCases.has(caseData.cino || caseData.case_no)
+                      ? "text-yellow-600 fill-yellow-500"
+                      : ""
+                  }
+                />
+                <span>
+                  {followedCases.has(caseData.cino || caseData.case_no)
+                    ? "Following"
+                    : "Follow"}
+                </span>
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-black text-sm font-medium">
+                CNR:{" "}
+                {caseData.details?.case_details?.cnr_number ||
+                  caseData.cino ||
+                  "N/A"}
+              </span>
+              <span className="text-black text-sm mx-2 font-medium">|</span>
+              <span className="text-black text-sm font-medium">
+                Filed:{" "}
+                {formatDate(caseData.details?.case_details?.filing_date) ||
+                  "N/A"}
+              </span>
+              <span className="text-black text-sm mx-2 font-medium">|</span>
+              <StatusBadge
+                status={
+                  caseData.details?.case_status?.stage_of_case || "PENDING"
+                }
+              />
             </div>
           </div>
 
-          {/* Parties Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Petitioner Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Petitioner Name:</span>{" "}
-                  {caseData.pet_name || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Local Petitioner:</span>{" "}
-                  {caseData.lpet_name || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Party Name 1:</span>{" "}
-                  {caseData.party_name1 || "N/A"}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-red-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Respondent Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Respondent Name:</span>{" "}
-                  {caseData.res_name || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Local Respondent:</span>{" "}
-                  {caseData.lres_name || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Party Name 2:</span>{" "}
-                  {caseData.party_name2 || "N/A"}
-                </div>
-              </div>
+          {/* Tabs Navigation */}
+          <div className="border-b">
+            <div className="flex overflow-x-auto">
+              {availableTabs.map((tab) => (
+                <button
+                  key={tab}
+                  className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                    activeTab === tab
+                      ? "text-blue-600 border-b-2 border-blue-600"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveTab(tab)}
+                  aria-selected={activeTab === tab}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Advocate Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Advocate 1 Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Advocate Name:</span>{" "}
-                  {caseData.adv_name1 || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Local Advocate:</span>{" "}
-                  {caseData.ladv_name1 || "N/A"}
-                </div>
-              </div>
-            </div>
+          {/* Tab Content */}
+          <div className="mb-4">{renderTabContent()}</div>
+        </div>
 
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Advocate 2 Information
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Advocate Name:</span>{" "}
-                  {caseData.adv_name2 || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">Local Advocate:</span>{" "}
-                  {caseData.ladv_name2 || "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          {caseData.orderurlpath && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2">
-                Order Information
-              </h4>
-              <div className="text-sm">
-                <div>
-                  <span className="font-medium">Order URL Path:</span>{" "}
-                  {caseData.orderurlpath}
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Modal Footer */}
+        <div className="border-t p-4 flex justify-end space-x-2">
+          <button
+            onClick={onClose}
+            className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-4 py-2 rounded-md transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -238,6 +478,7 @@ export default function HighCourtAdvocateSearch() {
   );
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useState<{
     court_code: number;
     state_code: number;
@@ -316,9 +557,42 @@ export default function HighCourtAdvocateSearch() {
     });
   };
 
-  const handleViewDetails = (result: HighCourtResult) => {
-    setSelectedCase(result);
-    setShowCaseDetails(true);
+  const handleViewDetails = async (result: HighCourtResult) => {
+    const caseId = result.cino || result.case_no;
+    setLoadingDetails(caseId);
+
+    try {
+      // Use the specific API endpoint provided by the user with POST method
+      const response = await fetch(
+        `https://researchengineinh.infrahive.ai/hc/case?case_no=${result.case_no}&state_cd=${result.state_cd}&dist_cd=1&court_code=${result.court_code}&national_court_code=DLHC01&cino=${result.cino}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const caseDetails = await response.json();
+
+      // Set the detailed case data
+      setSelectedCase({
+        ...result,
+        details: caseDetails,
+      });
+      setShowCaseDetails(true);
+    } catch (err) {
+      console.error("Failed to fetch case details:", err);
+      // Fallback to showing basic case info if API fails
+      setSelectedCase(result);
+      setShowCaseDetails(true);
+    } finally {
+      setLoadingDetails(null);
+    }
   };
 
   // TanStack Query mutations for follow/unfollow
@@ -563,37 +837,25 @@ export default function HighCourtAdvocateSearch() {
                 <table className="min-w-full border-collapse">
                   <thead>
                     <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
-                        CASE NO.
+                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
+                        CNR
                       </th>
                       <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
-                        CINO
+                        CASE NUMBER
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[150px]">
-                        PETITIONER
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[150px]">
-                        RESPONDENT
+                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[200px]">
+                        TITLE
                       </th>
                       <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
-                        ADVOCATE 1
+                        TYPE
                       </th>
                       <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
-                        ADVOCATE 2
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
-                        CASE TYPE
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
-                        YEAR
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
                         DECISION DATE
                       </th>
                       <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[80px]">
                         FOLLOW
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[80px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
                         ACTIONS
                       </th>
                     </tr>
@@ -609,49 +871,24 @@ export default function HighCourtAdvocateSearch() {
                               index % 2 === 0 ? "bg-white" : "bg-blue-50"
                             } border-b-2 border-gray-100 last:border-b-0`}
                           >
+                            <td className="px-3 py-3 text-xs text-gray-700">
+                              {result.cino || "N/A"}
+                            </td>
                             <td className="px-3 py-3 text-xs text-gray-800 font-medium">
-                              {result.case_no}
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
-                              {result.cino}
+                              {result.case_no || "N/A"}
                             </td>
                             <td className="px-3 py-3 text-xs text-gray-700">
                               <div
-                                className="max-w-[150px] truncate"
-                                title={result.pet_name || ""}
+                                className="max-w-[200px] truncate"
+                                title={`${result.pet_name || ""} vs ${result.res_name || ""}`}
                               >
-                                {result.pet_name || "N/A"}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
-                              <div
-                                className="max-w-[150px] truncate"
-                                title={result.res_name || ""}
-                              >
-                                {result.res_name || "N/A"}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
-                              <div
-                                className="max-w-[120px] truncate"
-                                title={result.adv_name1 || ""}
-                              >
-                                {result.adv_name1 || "N/A"}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
-                              <div
-                                className="max-w-[120px] truncate"
-                                title={result.adv_name2 || ""}
-                              >
-                                {result.adv_name2 || "N/A"}
+                                {result.pet_name && result.res_name
+                                  ? `${result.pet_name} vs ${result.res_name}`
+                                  : result.pet_name || result.res_name || "N/A"}
                               </div>
                             </td>
                             <td className="px-3 py-3 text-xs text-gray-700">
                               {result.type_name || "N/A"}
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
-                              {result.case_year || "N/A"}
                             </td>
                             <td className="px-3 py-3 text-xs text-gray-700">
                               {result.date_of_decision
@@ -699,10 +936,17 @@ export default function HighCourtAdvocateSearch() {
                               <button
                                 className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
                                 onClick={() => handleViewDetails(result)}
+                                disabled={loadingDetails === caseId}
                               >
-                                <Eye className="w-3 h-3" />
+                                {loadingDetails === caseId ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Eye className="w-3 h-3" />
+                                )}
                                 <span className="hidden sm:inline">
-                                  Details
+                                  {loadingDetails === caseId
+                                    ? "Loading..."
+                                    : "Details"}
                                 </span>
                               </button>
                             </td>
@@ -768,6 +1012,10 @@ export default function HighCourtAdvocateSearch() {
             setShowCaseDetails(false);
             setSelectedCase(null);
           }}
+          followedCases={followedCases}
+          handleFollowCase={handleFollowCase}
+          followMutation={followMutation}
+          unfollowMutation={unfollowMutation}
         />
       )}
     </div>
