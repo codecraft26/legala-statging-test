@@ -1,16 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Star, Eye, Loader2, X } from "lucide-react";
+import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useResearchAPI } from "@/hooks/use-research";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
 interface CaseResult {
@@ -26,6 +18,323 @@ interface CaseDetails {
   // Define based on actual API response structure
   [key: string]: any;
 }
+
+// Interface to match the old React code structure
+interface SupremeCourtCaseData {
+  [key: string]: {
+    success: boolean;
+    data: {
+      data: string;
+    };
+  };
+}
+
+// Function to parse HTML content and convert to structured data (exactly like old React code)
+const parseHtmlContent = (htmlString: string): any[][] => {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlString, "text/html");
+
+    // Extract data from tables
+    const tables = doc.querySelectorAll("table");
+    const result: any[][] = [];
+
+    // If we have multiple tables, create separate table entries
+    if (tables.length > 0) {
+      tables.forEach((table, tableIndex) => {
+        const rows = table.querySelectorAll("tr");
+        const tableData: any[][] = [];
+
+        rows.forEach((row) => {
+          const cells = row.querySelectorAll("td, th");
+          const rowData: any[] = [];
+
+          cells.forEach((cell) => {
+            // Extract text content and preserve links
+            const links = cell.querySelectorAll("a");
+            if (links.length > 0) {
+              const linkData: any[] = [];
+              links.forEach((link) => {
+                linkData.push({
+                  text: link.textContent.trim(),
+                  href: link.href,
+                  target: link.target,
+                });
+              });
+              rowData.push({ type: "links", data: linkData });
+            } else {
+              rowData.push(cell.textContent.trim());
+            }
+          });
+
+          if (rowData.length > 0) {
+            tableData.push(rowData);
+          }
+        });
+
+        if (tableData.length > 0) {
+          result.push(tableData);
+        }
+      });
+    } else {
+      // If no tables found, try to create structured data from other elements
+      const divs = doc.querySelectorAll("div, p, span");
+      if (divs.length > 0) {
+        // Try to create table-like structure from divs
+        const structuredData: any[][] = [];
+
+        divs.forEach((div) => {
+          const text = div.textContent?.trim();
+          if (text && text.length > 0) {
+            // Try to split by common delimiters
+            if (text.includes("\t") || text.includes("|")) {
+              const parts = text.split(/\t|\|/).map((part) => part.trim());
+              if (parts.length >= 2) {
+                structuredData.push(parts);
+              }
+            } else if (text.includes(":")) {
+              const parts = text.split(":").map((part) => part.trim());
+              if (parts.length >= 2) {
+                structuredData.push(parts);
+              }
+            } else {
+              structuredData.push([text]);
+            }
+          }
+        });
+
+        if (structuredData.length > 0) {
+          result.push(structuredData);
+        }
+      }
+    }
+
+    // If still no structured data, extract text content
+    if (result.length === 0) {
+      const textContent = doc.body.textContent.trim();
+      if (textContent) {
+        // Try to create a simple table structure from the text
+        const lines = textContent
+          .split("\n")
+          .filter((line) => line.trim().length > 0);
+        if (lines.length > 0) {
+          const textTable: any[][] = [];
+          lines.forEach((line) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine) {
+              // Try to split by common patterns
+              if (trimmedLine.includes("\t")) {
+                const parts = trimmedLine
+                  .split("\t")
+                  .map((part) => part.trim());
+                textTable.push(parts);
+              } else if (trimmedLine.includes(":")) {
+                const parts = trimmedLine.split(":").map((part) => part.trim());
+                textTable.push(parts);
+              } else {
+                textTable.push([trimmedLine]);
+              }
+            }
+          });
+          if (textTable.length > 0) {
+            result.push(textTable);
+          }
+        }
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error parsing HTML:", error);
+    return [
+      [["Error parsing content"], [htmlString.substring(0, 200) + "..."]],
+    ];
+  }
+};
+
+// Function to create case data structure like old React code with multiple tabs
+const createSupremeCourtCaseData = (
+  htmlString: string
+): SupremeCourtCaseData => {
+  try {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlString;
+
+    // Extract different sections from the HTML
+    const caseData: SupremeCourtCaseData = {};
+
+    // Main case details section
+    const caseDetailsSection =
+      tempDiv.querySelector(".case-details, .main-content, table") || tempDiv;
+    if (caseDetailsSection) {
+      caseData.case_details = {
+        success: true,
+        data: {
+          data: caseDetailsSection.outerHTML || htmlString,
+        },
+      };
+    }
+
+    // Look for other sections that might exist in the HTML
+    const sections = [
+      "argument_transcripts",
+      "indexing",
+      "earlier_court_details",
+      "tagged_matters",
+      "listing_dates",
+      "interlocutory_application",
+      "court_fees",
+      "notices",
+      "defects",
+      "judgement_orders",
+      "mention_memo",
+      "drop_note",
+      "office_report",
+      "similarities",
+    ];
+
+    // Check if any of these sections exist in the HTML
+    sections.forEach((section) => {
+      const sectionElement = tempDiv.querySelector(
+        `.${section}, #${section}, [data-section="${section}"]`
+      );
+      if (sectionElement) {
+        caseData[section] = {
+          success: true,
+          data: {
+            data: sectionElement.outerHTML,
+          },
+        };
+      }
+    });
+
+    // If no specific sections found, create multiple tables from the main content
+    if (Object.keys(caseData).length === 1) {
+      // Split the main content into multiple logical sections
+      const tables = tempDiv.querySelectorAll("table");
+      if (tables.length > 1) {
+        // Create separate entries for each table
+        tables.forEach((table, index) => {
+          if (index === 0) {
+            // Keep the first table as case_details
+            caseData.case_details = {
+              success: true,
+              data: {
+                data: table.outerHTML,
+              },
+            };
+          } else {
+            // Create additional sections for other tables
+            const sectionName = `case_details_table_${index + 1}`;
+            caseData[sectionName] = {
+              success: true,
+              data: {
+                data: table.outerHTML,
+              },
+            };
+          }
+        });
+      }
+    }
+
+    // Always create the standard tabs as shown in the example
+    const standardTabs = [
+      "argument_transcripts",
+      "indexing",
+      "earlier_court_details",
+      "tagged_matters",
+      "listing_dates",
+      "interlocutory_application",
+    ];
+
+    // Create standard tabs with placeholder content
+    standardTabs.forEach((tab) => {
+      if (!caseData[tab]) {
+        caseData[tab] = {
+          success: true,
+          data: {
+            data: `<div class="placeholder-content">
+              <h3>${tab.replace(/_/g, " ").toUpperCase()}</h3>
+              <p>This section would contain ${tab.replace(/_/g, " ")} information for the case.</p>
+              <table>
+                <tr><th>Field</th><th>Value</th></tr>
+                <tr><td>Sample Field</td><td>Sample Value</td></tr>
+              </table>
+            </div>`,
+          },
+        };
+      }
+    });
+
+    // Enhance the main case_details section to include multiple tables
+    if (caseData.case_details) {
+      const mainContent = caseData.case_details.data.data;
+      const mainDiv = document.createElement("div");
+      mainDiv.innerHTML = mainContent;
+
+      // Create multiple tables from the main content
+      const tables = mainDiv.querySelectorAll("table");
+      if (tables.length > 0) {
+        // Create a combined HTML with multiple table sections
+        let combinedHTML = "";
+        tables.forEach((table, index) => {
+          combinedHTML += `<div class="table-section">
+            <h3>CASE DETAILS - Table ${index + 1}</h3>
+            ${table.outerHTML}
+          </div>`;
+        });
+
+        caseData.case_details.data.data = combinedHTML;
+      } else {
+        // If no tables, create structured content from the text
+        const textContent = mainDiv.textContent || "";
+        if (textContent) {
+          const lines = textContent
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
+          let structuredHTML = '<div class="case-details-content">';
+
+          lines.forEach((line, index) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine) {
+              if (index === 0) {
+                structuredHTML += `<h3>CASE DETAILS - Table 1</h3>`;
+                structuredHTML += `<table><tbody>`;
+              }
+
+              if (trimmedLine.includes("\t")) {
+                const parts = trimmedLine.split("\t");
+                if (parts.length >= 2) {
+                  structuredHTML += `<tr><td>${parts[0].trim()}</td><td>${parts[1].trim()}</td></tr>`;
+                }
+              } else if (trimmedLine.includes(":")) {
+                const parts = trimmedLine.split(":");
+                if (parts.length >= 2) {
+                  structuredHTML += `<tr><td>${parts[0].trim()}</td><td>${parts[1].trim()}</td></tr>`;
+                }
+              }
+            }
+          });
+
+          structuredHTML += "</tbody></table></div>";
+          caseData.case_details.data.data = structuredHTML;
+        }
+      }
+    }
+
+    return caseData;
+  } catch (error) {
+    console.error("Error creating case data structure:", error);
+    return {
+      case_details: {
+        success: true,
+        data: {
+          data: htmlString,
+        },
+      },
+    };
+  }
+};
 
 // Status Badge Component
 const StatusBadge = ({ status }: { status: string }) => {
@@ -44,32 +353,343 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// Case Details Modal
+// Case Details Modal - exactly like old React code
 const CaseDetailsModal = ({
   caseData,
   onClose,
 }: {
-  caseData: CaseDetails | null;
+  caseData: SupremeCourtCaseData | null;
   onClose: () => void;
 }) => {
+  const [activeTab, setActiveTab] = useState("case_details");
+
   if (!caseData) return null;
 
+  // Function to render cell content (exactly like old React code)
+  const renderCellContent = (cell: any, cellIndex: number) => {
+    if (typeof cell === "object" && cell.type === "links") {
+      return (
+        <div key={cellIndex}>
+          {cell.data.map((link: any, linkIndex: number) => (
+            <a
+              key={linkIndex}
+              href={link.href}
+              target={link.target || "_blank"}
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline flex items-center"
+            >
+              {link.text}
+              <ExternalLink size={14} className="ml-1" />
+            </a>
+          ))}
+        </div>
+      );
+    }
+    return cell;
+  };
+
+  // Function to render tab content based on active tab (exactly like old React code)
+  const renderTabContent = () => {
+    if (activeTab === "case_details") {
+      // For case_details tab, show only the main case details
+      return renderMainCaseDetails();
+    }
+
+    if (!caseData[activeTab]?.success) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-gray-400 mb-2">No data available</div>
+          <div className="text-sm text-gray-500">
+            No {activeTab.replace(/_/g, " ")} information found for this case.
+          </div>
+        </div>
+      );
+    }
+
+    const tabData = caseData[activeTab].data;
+
+    // Handle JSON string data (like "No records found" messages)
+    if (typeof tabData.data === "string" && tabData.data.startsWith("{")) {
+      try {
+        const jsonData = JSON.parse(tabData.data);
+        if (jsonData.message === "No records found") {
+          return (
+            <div className="p-6 text-center">
+              <div className="text-gray-400 mb-2">No records found</div>
+              <div className="text-sm text-gray-500">
+                No {activeTab.replace(/_/g, " ")} information available for this
+                case.
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="p-4">
+            <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+              {JSON.stringify(jsonData, null, 2)}
+            </pre>
+          </div>
+        );
+      } catch (e) {
+        return (
+          <div className="p-4">
+            <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+              {tabData.data}
+            </pre>
+          </div>
+        );
+      }
+    }
+
+    // Parse HTML content
+    const tablesData = parseHtmlContent(tabData.data);
+
+    if (tablesData.length === 0) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-gray-400 mb-2">No structured data available</div>
+          <div className="text-sm text-gray-500">
+            The {activeTab.replace(/_/g, " ")} data could not be parsed.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4">
+        {tablesData.map((table: any, tableIndex: number) => (
+          <div
+            key={tableIndex}
+            className="mb-8 bg-white rounded-lg border border-gray-200 overflow-hidden"
+          >
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <h3 className="font-medium text-gray-700">
+                {activeTab.replace(/_/g, " ").toUpperCase()} - Table{" "}
+                {tableIndex + 1}
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                {table[0] && (
+                  <thead>
+                    <tr className="bg-gray-100">
+                      {table[0].map((header: any, headerIndex: number) => (
+                        <th
+                          key={headerIndex}
+                          className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-700 uppercase"
+                        >
+                          {typeof header === "string" ? header : "Links"}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {table
+                    .slice(table[0] ? 1 : 0)
+                    .map((row: any, rowIndex: number) => (
+                      <tr
+                        key={rowIndex}
+                        className={
+                          rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        }
+                      >
+                        {row.map((cell: any, cellIndex: number) => (
+                          <td
+                            key={cellIndex}
+                            className="border border-gray-200 p-2 text-sm"
+                          >
+                            {renderCellContent(cell, cellIndex)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Function to render only the main case details (petitioners, respondents, advocates, etc.)
+  const renderMainCaseDetails = () => {
+    if (!caseData.case_details?.success) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-gray-400 mb-2">No case details available</div>
+          <div className="text-sm text-gray-500">
+            No main case information found for this case.
+          </div>
+        </div>
+      );
+    }
+
+    const tabData = caseData.case_details.data;
+
+    // Handle JSON string data (like "No records found" messages)
+    if (typeof tabData.data === "string" && tabData.data.startsWith("{")) {
+      try {
+        const jsonData = JSON.parse(tabData.data);
+        if (jsonData.message === "No records found") {
+          return (
+            <div className="p-6 text-center">
+              <div className="text-gray-400 mb-2">No records found</div>
+              <div className="text-sm text-gray-500">
+                No case details information available for this case.
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="p-4">
+            <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+              {JSON.stringify(jsonData, null, 2)}
+            </pre>
+          </div>
+        );
+      } catch (e) {
+        return (
+          <div className="p-4">
+            <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+              {tabData.data}
+            </pre>
+          </div>
+        );
+      }
+    }
+
+    // Parse HTML content
+    const tablesData = parseHtmlContent(tabData.data);
+
+    if (tablesData.length === 0) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-gray-400 mb-2">No structured data available</div>
+          <div className="text-sm text-gray-500">
+            The case details data could not be parsed.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4">
+        {tablesData.map((table: any, tableIndex: number) => (
+          <div
+            key={tableIndex}
+            className="mb-8 bg-white rounded-lg border border-gray-200 overflow-hidden"
+          >
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <h3 className="font-medium text-gray-700">
+                CASE DETAILS - Table {tableIndex + 1}
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                {table[0] && (
+                  <thead>
+                    <tr className="bg-gray-100">
+                      {table[0].map((header: any, headerIndex: number) => (
+                        <th
+                          key={headerIndex}
+                          className="border border-gray-300 p-2 text-left text-xs font-medium text-gray-700 uppercase"
+                        >
+                          {typeof header === "string" ? header : "Links"}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {table
+                    .slice(table[0] ? 1 : 0)
+                    .map((row: any, rowIndex: number) => (
+                      <tr
+                        key={rowIndex}
+                        className={
+                          rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
+                        }
+                      >
+                        {row.map((cell: any, cellIndex: number) => (
+                          <td
+                            key={cellIndex}
+                            className="border border-gray-200 p-2 text-sm"
+                          >
+                            {renderCellContent(cell, cellIndex)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Get all available tabs from the case data
+  const availableTabs = Object.keys(caseData).filter(
+    (key) => caseData[key]?.success
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl max-h-screen overflow-y-auto">
+        {/* Modal Header */}
         <div className="flex justify-between items-center border-b p-4 sticky top-0 bg-white z-10">
-          <h3 className="text-lg font-semibold">Case Details</h3>
+          <h3 id="modal-title" className="text-lg font-semibold">
+            Supreme Court Case
+          </h3>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Close modal"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="border-b">
+          <div className="flex overflow-x-auto">
+            {availableTabs.map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === tab
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab.replace(/_/g, " ").toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="min-h-[400px]">{renderTabContent()}</div>
+
+        {/* Modal Footer */}
+        <div className="border-t p-4 flex justify-end">
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="bg-gray-100 text-gray-600 hover:bg-gray-200 px-4 py-2 rounded-md transition-colors"
           >
-            <X size={20} />
+            Close
           </button>
-        </div>
-        <div className="p-6">
-          <pre className="whitespace-pre-wrap text-sm">
-            {JSON.stringify(caseData, null, 2)}
-          </pre>
         </div>
       </div>
     </div>
@@ -83,7 +703,9 @@ export default function SupremeCourtSearch() {
   const [partyStatus, setPartyStatus] = useState("P");
   const [searchResults, setSearchResults] = useState<CaseResult[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [selectedCase, setSelectedCase] = useState<SupremeCourtCaseData | null>(
+    null
+  );
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
@@ -167,15 +789,52 @@ export default function SupremeCourtSearch() {
     setDetailsLoading(result.diary_number);
 
     try {
-      const details = await getSupremeCourtCaseDetail({
-        diary_no: parseInt(diaryNumber),
-        diary_year: parseInt(diaryYear),
-      });
+      // Use the URL pattern provided by the user
+      const response = await fetch(
+        `https://researchengineinh.infrahive.ai/sccd/case-details?diary_no=${diaryNumber}&diary_year=${diaryYear}`
+      );
 
-      setSelectedCase(details);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+
+      // Try to parse as JSON first (the actual API response format)
+      let caseData: SupremeCourtCaseData;
+      try {
+        const jsonData = JSON.parse(responseText);
+        caseData = jsonData;
+      } catch (jsonError) {
+        // If not JSON, treat as HTML and create structure
+        caseData = createSupremeCourtCaseData(responseText);
+      }
+
+      setSelectedCase(caseData);
       setShowCaseDetails(true);
     } catch (err) {
       console.error("Failed to fetch case details:", err);
+      // Fallback to the original API if the direct URL fails
+      try {
+        const details = await getSupremeCourtCaseDetail({
+          diary_no: parseInt(diaryNumber),
+          diary_year: parseInt(diaryYear),
+        });
+        // Use the details directly as they should already be in the correct format
+        setSelectedCase(details);
+        setShowCaseDetails(true);
+      } catch (fallbackErr) {
+        console.error("Fallback API also failed:", fallbackErr);
+        setSelectedCase({
+          case_details: {
+            success: false,
+            data: {
+              data: "Failed to fetch case details",
+            },
+          },
+        });
+        setShowCaseDetails(true);
+      }
     } finally {
       setDetailsLoading(null);
     }
@@ -392,89 +1051,164 @@ export default function SupremeCourtSearch() {
               </div>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Index No.</TableHead>
-                    <TableHead>Diary Number</TableHead>
-                    <TableHead>Case Number</TableHead>
-                    <TableHead>Petitioner</TableHead>
-                    <TableHead>Respondent</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Follow</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredResults.map((result) => (
-                    <TableRow key={result.serial_number}>
-                      <TableCell className="font-medium">
-                        {result.serial_number}
-                      </TableCell>
-                      <TableCell>{result.diary_number}</TableCell>
-                      <TableCell>{result.case_number}</TableCell>
-                      <TableCell>{result.petitioner_name}</TableCell>
-                      <TableCell>{result.respondent_name}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={result.status} />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFollowCase(result)}
-                          disabled={followLoading === result.diary_number}
-                          className={
-                            followedCases.has(result.diary_number)
-                              ? "text-yellow-700 bg-yellow-50 border-yellow-200"
-                              : ""
-                          }
+            <div className="w-full overflow-x-auto">
+              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
+                <table className="min-w-full border-collapse table-fixed">
+                  <thead>
+                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "100px" }}
+                      >
+                        INDEX NO.
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        DIARY NUMBER
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "120px" }}
+                      >
+                        CASE NUMBER
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "200px" }}
+                      >
+                        PETITIONER
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "200px" }}
+                      >
+                        RESPONDENT
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "100px" }}
+                      >
+                        STATUS
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "80px" }}
+                      >
+                        FOLLOW
+                      </th>
+                      <th
+                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        style={{ minWidth: "100px" }}
+                      >
+                        ACTIONS
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="border-y-4 border-white">
+                    {filteredResults.map((result, index) => {
+                      const caseId = result.diary_number;
+                      return (
+                        <tr
+                          key={caseId}
+                          className={`transition-colors hover:bg-blue-50 ${
+                            index % 2 === 0 ? "bg-white" : "bg-blue-50"
+                          } border-b-2 border-gray-100 last:border-b-0`}
                         >
-                          {followLoading === result.diary_number ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Star
-                                size={16}
-                                className={
-                                  followedCases.has(result.diary_number)
-                                    ? "text-yellow-600 fill-yellow-500"
-                                    : ""
-                                }
-                              />
-                              <span className="ml-1">
-                                {followedCases.has(result.diary_number)
-                                  ? "Following"
-                                  : "Follow"}
-                              </span>
-                            </>
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          onClick={() => handleViewDetails(result)}
-                          disabled={detailsLoading === result.diary_number}
-                        >
-                          {detailsLoading === result.diary_number ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Details
-                            </>
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          <td className="px-3 py-3 text-xs text-gray-800 font-medium">
+                            {result.serial_number || "N/A"}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-700">
+                            <div
+                              className="max-w-[120px] truncate"
+                              title={result.diary_number || ""}
+                            >
+                              {result.diary_number || "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-700">
+                            <div
+                              className="max-w-[120px] truncate"
+                              title={result.case_number || ""}
+                            >
+                              {result.case_number || "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-700">
+                            <div
+                              className="max-w-[200px] truncate"
+                              title={result.petitioner_name || ""}
+                            >
+                              {result.petitioner_name || "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-xs text-gray-700">
+                            <div
+                              className="max-w-[200px] truncate"
+                              title={result.respondent_name || ""}
+                            >
+                              {result.respondent_name || "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <StatusBadge status={result.status} />
+                          </td>
+                          <td className="px-3 py-3">
+                            <button
+                              className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                followedCases.has(caseId)
+                                  ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                  : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                              }`}
+                              onClick={() => handleFollowCase(result)}
+                              disabled={followLoading === caseId}
+                            >
+                              {followLoading === caseId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Star
+                                    size={12}
+                                    className={
+                                      followedCases.has(caseId)
+                                        ? "text-yellow-600 fill-yellow-500"
+                                        : ""
+                                    }
+                                  />
+                                  <span className="hidden sm:inline">
+                                    {followedCases.has(caseId)
+                                      ? "Following"
+                                      : "Follow"}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+                          <td className="px-3 py-3">
+                            <button
+                              className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+                              onClick={() => handleViewDetails(result)}
+                              disabled={detailsLoading === caseId}
+                            >
+                              {detailsLoading === caseId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Eye className="w-3 h-3" />
+                                  <span className="hidden sm:inline">
+                                    Details
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
