@@ -186,12 +186,6 @@ export default function ResearchPage() {
           <span className="font-medium">Following</span>
         </button>
 
-        {/* Knowledge Search label */}
-        <div className="flex items-center space-x-3 px-6 py-4 text-gray-500 cursor-default">
-          <BookOpen className="h-5 w-5" />
-          <span className="font-medium">Knowledge Research</span>
-        </div>
-
         {/* Divider */}
         <div className="mx-4 my-2 border-b border-gray-100"></div>
 
