@@ -14,12 +14,13 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface CaseResult {
-  serial_number: string;
+  serial_number: number;
   diary_number: string;
   case_number: string;
   petitioner_name: string;
   respondent_name: string;
   status: string;
+  action: string;
 }
 
 interface CaseDetails {
@@ -76,11 +77,9 @@ const CaseDetailsModal = ({
   );
 };
 
-export default function SupremeCourtSearch() {
-  const [partyName, setPartyName] = useState("");
-  const [partyType, setPartyType] = useState("any");
+export default function SupremeCourtDiarySearch() {
+  const [diaryNumber, setDiaryNumber] = useState("");
   const [year, setYear] = useState(new Date().getFullYear().toString());
-  const [partyStatus, setPartyStatus] = useState("P");
   const [searchResults, setSearchResults] = useState<CaseResult[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
@@ -92,7 +91,7 @@ export default function SupremeCourtSearch() {
   const {
     loading,
     error,
-    searchSupremeCourtByParty,
+    searchSupremeCourtByDiary,
     getSupremeCourtCaseDetail,
     followResearch,
     unfollowResearch,
@@ -115,18 +114,14 @@ export default function SupremeCourtSearch() {
     e.preventDefault();
 
     try {
-      console.warn("Searching Supreme Court with params:", {
-        party_type: partyType,
-        party_name: partyName,
+      console.warn("Searching Supreme Court with diary number:", {
+        diary_no: parseInt(diaryNumber),
         year: parseInt(year),
-        party_status: partyStatus,
       });
 
-      const data = await searchSupremeCourtByParty({
-        party_type: partyType,
-        party_name: partyName,
+      const data = await searchSupremeCourtByDiary({
+        diary_no: parseInt(diaryNumber),
         year: parseInt(year),
-        party_status: partyStatus,
       });
 
       console.warn("API Response:", data);
@@ -211,66 +206,29 @@ export default function SupremeCourtSearch() {
   return (
     <div className="p-6">
       <h2 className="text-xl font-semibold mb-4">
-        Supreme Court Cases by Party Name
+        Supreme Court Cases by Diary Number
       </h2>
 
       <div className="bg-white p-6 rounded-md border border-gray-200 max-w-xl">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="col-span-2">
+            <div>
               <label
-                htmlFor="party-input"
+                htmlFor="diary-input"
                 className="block text-sm font-medium mb-1 text-gray-700"
               >
-                Party Name *
+                Diary Number *
               </label>
               <input
-                type="text"
-                id="party-input"
-                value={partyName}
-                onChange={(e) => setPartyName(e.target.value)}
+                type="number"
+                id="diary-input"
+                value={diaryNumber}
+                onChange={(e) => setDiaryNumber(e.target.value)}
                 className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                placeholder="Enter party name"
+                placeholder="Enter diary number"
                 required
               />
-              <div className="text-sm text-gray-500 mt-1">Example: Tanishk</div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="stage-select"
-                className="block text-sm font-medium mb-1 text-gray-700"
-              >
-                Stage
-              </label>
-              <select
-                id="stage-select"
-                value={partyStatus}
-                onChange={(e) => setPartyStatus(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              >
-                <option value="P">P</option>
-                <option value="C">D</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="type-select"
-                className="block text-sm font-medium mb-1 text-gray-700"
-              >
-                Type
-              </label>
-              <select
-                id="type-select"
-                value={partyType}
-                onChange={(e) => setPartyType(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              >
-                <option value="any">any</option>
-                <option value="petitioner">petitioner</option>
-                <option value="respondent">respondent</option>
-              </select>
+              <div className="text-sm text-gray-500 mt-1">Example: 406</div>
             </div>
 
             <div>
@@ -481,38 +439,45 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* No Data Found State */}
-      {!loading && searchResults.length === 0 && !error && partyName && (
-        <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
-          <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="h-8 w-8 text-yellow-600" />
+      {!loading &&
+        searchResults.length === 0 &&
+        !error &&
+        diaryNumber &&
+        year && (
+          <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+            <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-8 w-8 text-yellow-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No Data Found
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              No cases found for diary number {diaryNumber} of year {year}.
+              Please verify the diary number and year, or try a different case.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No Data Found
-          </h3>
-          <p className="text-gray-600 max-w-md mx-auto">
-            No cases found for party name &quot;{partyName}&quot; in year {year}
-            . Please verify the party name and search criteria, or try a
-            different search.
-          </p>
-        </div>
-      )}
+        )}
 
       {/* No Search Performed State */}
-      {!loading && searchResults.length === 0 && !error && !partyName && (
-        <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="h-8 w-8 text-blue-600" />
+      {!loading &&
+        searchResults.length === 0 &&
+        !error &&
+        !diaryNumber &&
+        !year && (
+          <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Search Supreme Court Cases by Diary Number
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Enter a diary number and select the year to find Supreme Court
+              cases. Use the example &quot;406&quot; to test the search
+              functionality.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Search Supreme Court Cases
-          </h3>
-          <p className="text-gray-600 max-w-md mx-auto">
-            Enter a party name and select your search criteria to find Supreme
-            Court cases. Use the example &quot;Tanishk&quot; to test the search
-            functionality.
-          </p>
-        </div>
-      )}
+        )}
 
       {/* Case Details Modal */}
       {showCaseDetails && (
