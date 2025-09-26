@@ -11,12 +11,13 @@ const AUTH_PATHS = [
   "/accept-invite",
   "/forgot-password",
   "/reset-password",
+  "/invite",
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuth = AUTH_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}?`)
+    (p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`)
   );
 
   if (isAuth) {
