@@ -77,7 +77,58 @@ export default function AcceptInvitePage() {
       });
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.message ?? "Failed to accept invite");
+      // Enhanced error handling for different types of API errors
+      let errorMessage = "Failed to accept invite";
+      
+      if (err?.message) {
+        // Check if it's a structured error response
+        try {
+          const errorData = JSON.parse(err.message);
+          
+          // Handle different error response formats
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            // Handle Zod validation errors
+            if (errorData.error.name === "ZodError" && errorData.error.issues) {
+              const firstIssue = errorData.error.issues[0];
+              if (firstIssue.path.includes("token") && firstIssue.validation === "uuid") {
+                errorMessage = "Invalid invitation token format. Please check your invitation link.";
+              } else {
+                errorMessage = firstIssue.message || "Validation error occurred.";
+              }
+            } else {
+              errorMessage = errorData.error;
+            }
+          }
+        } catch {
+          // If not JSON, use the message as is
+          errorMessage = err.message;
+        }
+      }
+      
+      // Handle specific error cases with more comprehensive matching
+      if (errorMessage.includes("Invalid invite token") || 
+          errorMessage.includes("Invalid token") ||
+          errorMessage.includes("Invalid invitation token format")) {
+        errorMessage = "This invitation link is invalid or has expired. Please contact your administrator for a new invitation.";
+      } else if (errorMessage.includes("Unique constraint failed") || 
+                 errorMessage.includes("email") ||
+                 errorMessage.includes("already exists")) {
+        errorMessage = "An account with this email already exists. Please try logging in instead.";
+      } else if (errorMessage.includes("400") || 
+                 errorMessage.includes("Bad Request") ||
+                 errorMessage.includes("Validation error")) {
+        errorMessage = "Invalid request. Please check your information and try again.";
+      } else if (errorMessage.includes("500") || 
+                 errorMessage.includes("Internal Server Error") ||
+                 errorMessage.includes("PrismaClientKnownRequestError")) {
+        errorMessage = "Server error occurred. Please try again later or contact support.";
+      } else if (errorMessage.includes("Invalid uuid")) {
+        errorMessage = "Invalid invitation link format. Please check your invitation email.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -210,9 +261,49 @@ export default function AcceptInvitePage() {
           </div>
 
           {error && (
-            <div className="flex items-center space-x-2 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
-              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              </div>
+              
+              {/* Show appropriate action buttons based on error type */}
+              {error.includes("account with this email already exists") && (
+                <div className="flex space-x-2">
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href="/login">
+                      Go to Login
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="flex-1">
+                    <Link href="/forgot-password">
+                      Reset Password
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              
+              {error.includes("invalid or has expired") && (
+                <div className="text-center">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/login">
+                      Back to Login
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              
+              {error.includes("Server error") && (
+                <div className="text-center">
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
