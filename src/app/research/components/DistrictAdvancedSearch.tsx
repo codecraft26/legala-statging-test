@@ -3,12 +3,18 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Api } from "@/lib/api-client";
-import { districtIndex } from "../utils/districtId";
+import { districtId, districtIndex } from "../utils/districtId";
+import { useEstCodes } from "@/hooks/use-est-codes";
 
 type Result = unknown;
 
 export default function DistrictAdvancedSearch() {
   const [tab, setTab] = useState<"party" | "detail">("party");
+  const {
+    getEstCodeOptionsForDistrict,
+    loading: estLoading,
+    error: estError,
+  } = useEstCodes();
 
   const states = useMemo(() => districtIndex.map((d) => d.state), []);
   const [stateName, setStateName] = useState<string>(
@@ -19,6 +25,10 @@ export default function DistrictAdvancedSearch() {
     [stateName]
   );
   const [district, setDistrict] = useState<string>("");
+
+  const estCodeOptions = useMemo(() => {
+    return district ? getEstCodeOptionsForDistrict(district) : [];
+  }, [district, getEstCodeOptionsForDistrict]);
 
   const [partyName, setPartyName] = useState<string>("");
   const [regYear, setRegYear] = useState<string>("");
@@ -48,9 +58,11 @@ export default function DistrictAdvancedSearch() {
 
   const onSubmitParty = (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedDistrict = district || districts[0] || "";
+    const selectedDistrictName = district || districts[0]?.name || "";
     callApi("/research/district-court/search-party", {
-      district_name: selectedDistrict.toLowerCase().replace(/\s+/g, " "),
+      district_name: String(selectedDistrictName)
+        .toLowerCase()
+        .replace(/\s+/g, " "),
       litigant_name: partyName,
       reg_year: Number(regYear) || undefined,
       case_status: caseStatus,
@@ -103,17 +115,44 @@ export default function DistrictAdvancedSearch() {
               onChange={(e) => setDistrict(e.target.value)}
             >
               {districts.map((d) => (
-                <option key={d} value={d}>
-                  {d}
+                <option key={d.id} value={d.name}>
+                  {d.name}
                 </option>
               ))}
             </select>
-            <input
-              className="rounded-md border px-3 py-2 text-sm"
-              placeholder="EST code (e.g., JKSG02,JKSG01)"
-              value={estCode}
-              onChange={(e) => setEstCode(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                className="rounded-md border px-3 py-2 text-sm w-full"
+                placeholder="EST code (e.g., JKSG02,JKSG01)"
+                value={estCode}
+                onChange={(e) => setEstCode(e.target.value)}
+                list="estCodeDatalist"
+                disabled={!district || estLoading}
+              />
+              <datalist id="estCodeDatalist">
+                {estCodeOptions.map((option, index) => (
+                  <option key={index} value={option.code}>
+                    {option.description}
+                  </option>
+                ))}
+              </datalist>
+              {!district && (
+                <div className="text-xs text-red-500 mt-1">
+                  Select a district first to see EST codes.
+                </div>
+              )}
+              {estError && (
+                <div className="text-xs text-red-500 mt-1">
+                  Error loading EST codes: {estError}
+                </div>
+              )}
+              {district && estCodeOptions.length > 0 && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {estCodeOptions.length} EST codes available. Type to search or
+                  click dropdown arrow.
+                </div>
+              )}
+            </div>
           </div>
           <form
             onSubmit={onSubmitParty}
