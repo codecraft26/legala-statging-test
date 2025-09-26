@@ -11,6 +11,7 @@ const AUTH_PATHS = [
   "/accept-invite",
   "/forgot-password",
   "/reset-password",
+  "/invite",
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
