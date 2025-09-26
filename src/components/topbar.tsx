@@ -51,10 +51,25 @@ export default function Topbar() {
     if (!user && lsToken) {
       (async () => {
         try {
-          const detail = await Api.get("/user/detail");
-          dispatch(setCredentials({ token: lsToken, user: detail } as any));
+          const detailResponse = await Api.get("/user/detail");
+          const detail = detailResponse.data || detailResponse;
+          // Normalize role before storing
+          const normalizedDetail = {
+            ...detail,
+            role:
+              detail.role?.toLowerCase() === "owner"
+                ? "Owner"
+                : detail.role?.toLowerCase() === "admin"
+                  ? "Admin"
+                  : detail.role?.toLowerCase() === "member"
+                    ? "Member"
+                    : detail.role || "Member",
+          };
+          dispatch(
+            setCredentials({ token: lsToken, user: normalizedDetail } as any)
+          );
           try {
-            localStorage.setItem("user", JSON.stringify(detail));
+            localStorage.setItem("user", JSON.stringify(normalizedDetail));
           } catch {}
         } catch (_) {
           // ignore; fall back to login button
@@ -141,8 +156,18 @@ export default function Topbar() {
                           user
                             ? String(user.role || "")
                             : mounted && typeof window !== "undefined"
-                              ? JSON.parse(localStorage.getItem("user") || "{}")
-                                  .role
+                              ? (() => {
+                                  const lsUser = JSON.parse(
+                                    localStorage.getItem("user") || "{}"
+                                  );
+                                  return lsUser.role?.toLowerCase() === "owner"
+                                    ? "Owner"
+                                    : lsUser.role?.toLowerCase() === "admin"
+                                      ? "Admin"
+                                      : lsUser.role?.toLowerCase() === "member"
+                                        ? "Member"
+                                        : lsUser.role || "Member";
+                                })()
                               : undefined
                         }
                       />

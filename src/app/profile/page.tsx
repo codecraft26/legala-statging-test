@@ -24,8 +24,9 @@ export default function ProfilePage() {
       try {
         setLoading(true);
         setError(null);
-        const detail: any = await Api.get("/user/detail");
-        const userData = (detail && (detail.data ?? detail)) as any;
+        const detailResponse: any = await Api.get("/user/detail");
+        const userData = (detailResponse &&
+          (detailResponse.data ?? detailResponse)) as any;
         if (userData) dispatch(setUser(userData));
       } catch (e: any) {
         setError(e?.message || "Failed to load profile");

@@ -9,6 +9,21 @@ export interface AuthUser {
   [key: string]: unknown;
 }
 
+// Helper function to normalize role data
+const normalizeRole = (role?: string): string => {
+  if (!role) return "Member";
+  switch (role.toLowerCase()) {
+    case "owner":
+      return "Owner";
+    case "admin":
+      return "Admin";
+    case "member":
+      return "Member";
+    default:
+      return role; // Keep original if it's something else
+  }
+};
+
 export interface Workspace {
   id: string;
   name: string;
@@ -39,13 +54,21 @@ const authSlice = createSlice({
       action: PayloadAction<{ token: string; user: AuthUser }>
     ) {
       state.token = action.payload.token;
-      state.user = action.payload.user;
+      state.user = {
+        ...action.payload.user,
+        role: normalizeRole(action.payload.user.role),
+      };
     },
     setToken(state, action: PayloadAction<string | null>) {
       state.token = action.payload;
     },
     setUser(state, action: PayloadAction<AuthUser | null>) {
-      state.user = action.payload;
+      state.user = action.payload
+        ? {
+            ...action.payload,
+            role: normalizeRole(action.payload.role),
+          }
+        : null;
     },
     setWorkspaces(state, action: PayloadAction<Workspace[]>) {
       state.workspaces = action.payload;
