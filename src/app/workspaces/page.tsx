@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Api } from "@/lib/api-client";
+import { getCookie } from "@/lib/utils";
 import {
   RefreshCw,
   Folder,
@@ -51,8 +52,7 @@ export default function WorkspacesPage() {
   };
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined" ? getCookie("token") : null;
     if (!token) {
       window.location.href = "/login";
       return;

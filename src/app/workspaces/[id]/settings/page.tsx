@@ -72,9 +72,7 @@ export default function WorkspaceSettingsPage() {
       await Api.delete(`/workspace?id=${workspaceId}`);
       try {
         if (typeof window !== "undefined") {
-          const saved = localStorage.getItem("workspaceId");
-          if (saved === String(workspaceId))
-            localStorage.removeItem("workspaceId");
+          document.cookie = `workspaceId=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
         }
       } catch {}
       router.push("/dashboard");

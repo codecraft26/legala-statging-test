@@ -2,7 +2,13 @@
 
 import React, { useState, useMemo } from "react";
 import { Search, Star, Eye, Loader2, X, Download } from "lucide-react";
-import { useResearchAPI } from "@/hooks/use-research";
+import {
+  useDistrictByParty,
+  useDistrictDetail,
+  useFollowResearch,
+  useUnfollowResearch,
+} from "@/hooks/use-research";
+import { getApiBaseUrl } from "@/lib/utils";
 import { districtId } from "../utils/districtId";
 import { useEstCodes } from "@/hooks/use-est-codes";
 
@@ -483,14 +489,19 @@ export default function DistrictCourtSearch() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const {
-    loading,
-    error,
-    searchDistrictCourtByParty,
-    getDistrictCourtCaseDetail,
-    followResearch,
-    unfollowResearch,
-  } = useResearchAPI();
+  const [partyParams, setPartyParams] = useState<
+    | {
+        district_name: string;
+        litigant_name: string;
+        reg_year: number;
+        case_status: string;
+        est_code: string;
+      }
+    | null
+  >(null);
+  const partyQuery = useDistrictByParty(partyParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   const {
     getEstCodeOptionsForDistrict,
@@ -501,6 +512,22 @@ export default function DistrictCourtSearch() {
   const estCodeOptions = useMemo(() => {
     return districtName ? getEstCodeOptionsForDistrict(districtName) : [];
   }, [districtName, getEstCodeOptionsForDistrict]);
+
+  // Parse query response into grouped results when data arrives
+  React.useEffect(() => {
+    const raw = partyQuery.data as any;
+    if (!raw) return;
+    let html: string | null = null;
+    if (typeof raw === "string") html = raw;
+    else if (typeof raw?.data === "string") html = raw.data;
+    else if (typeof raw?.data?.data === "string") html = raw.data.data;
+    if (html) {
+      const parsed = parseDistrictCourtHTML(html);
+      setSearchResults(parsed);
+    } else {
+      setSearchResults({});
+    }
+  }, [partyQuery.data]);
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -855,25 +882,13 @@ export default function DistrictCourtSearch() {
       return;
     }
 
-    try {
-      const response = await searchDistrictCourtByParty({
-        district_name: districtName.toLowerCase(),
-        litigant_name: litigantName,
-        reg_year: parseInt(regYear),
-        case_status: caseStatus,
-        est_code: selectedEstCodes.join(","),
-      });
-
-      // Parse the HTML response
-      if (response?.data?.data) {
-        const parsedResults = parseDistrictCourtHTML(response.data.data);
-        setSearchResults(parsedResults);
-      } else {
-        setSearchResults({});
-      }
-    } catch (err) {
-      console.error("Search failed:", err);
-    }
+    setPartyParams({
+      district_name: districtName.toLowerCase(),
+      litigant_name: litigantName,
+      reg_year: parseInt(regYear),
+      case_status: caseStatus,
+      est_code: selectedEstCodes.join(","),
+    });
   };
 
   const handleViewDetails = async (result: DistrictCourtResult) => {
@@ -881,61 +896,24 @@ export default function DistrictCourtSearch() {
     setDetailsLoading(caseId);
 
     try {
-      const response = await getDistrictCourtCaseDetail({
-        cino: result.cino,
-        district_name: result.district_name,
+      const base = getApiBaseUrl();
+      const res = await fetch(`${base}/research/district-court/case-detail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cino: result.cino,
+          district_name: result.district_name,
+        }),
       });
-
-      // Parse the HTML response - handle the specific API response structure
-      let htmlData = null;
-
-      // Based on your API response structure: { status: 200, data: "{\"success\":true,\"data\":\"<html>\"}" }
-      if (response?.data) {
-        // Check if data is a stringified JSON (which it should be based on your response)
-        if (typeof response.data === "string") {
-          try {
-            const parsedData = JSON.parse(response.data);
-
-            // Check if the parsed data has the expected structure
-            if (parsedData.success && parsedData.data) {
-              htmlData = parsedData.data;
-            } else {
-              htmlData = response.data; // Fallback to original data
-            }
-          } catch (e) {
-            htmlData = response.data; // Fallback to original data
-          }
-        } else {
-          // If data is already an object
-          htmlData = response.data;
-        }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const payload = typeof json?.data === "string" ? json.data : json;
+      const parsedDetails = parseCaseDetailsHTML(payload);
+      if (parsedDetails) {
+        setSelectedCase(parsedDetails);
+        setShowCaseDetails(true);
       } else {
-        console.error("No data field in response");
-        console.error("Full response object:", response);
-        alert(
-          "No case details data received from the server. Please check the console for more details."
-        );
-        return;
-      }
-
-      if (htmlData) {
-        const parsedDetails = parseCaseDetailsHTML(htmlData);
-
-        if (parsedDetails) {
-          setSelectedCase(parsedDetails);
-          setShowCaseDetails(true);
-        } else {
-          console.error("Failed to parse case details HTML");
-          alert(
-            "Failed to parse case details. The response format may be invalid."
-          );
-        }
-      } else {
-        console.error("No HTML data found after parsing");
-        console.error("Full response object:", response);
-        alert(
-          "No case details data received from the server. Please check the console for more details."
-        );
+        alert("Failed to parse case details. The response format may be invalid.");
       }
     } catch (err) {
       console.error("Failed to fetch case details:", err);
@@ -951,17 +929,17 @@ export default function DistrictCourtSearch() {
 
     try {
       if (followedCases.has(caseId)) {
-        await unfollowResearch(caseId);
+        await unfollowMutation.mutateAsync(caseId);
         setFollowedCases((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(caseId);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(caseId);
+          return next;
         });
       } else {
-        await followResearch({
+        await followMutation.mutateAsync({
           court: "District_Court",
           followed: caseData,
-          workspaceId: "current-workspace", // Replace with actual workspace ID
+          workspaceId: "current-workspace",
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }
@@ -1158,9 +1136,9 @@ export default function DistrictCourtSearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={loading}
+                disabled={partyQuery.isLoading || partyQuery.isFetching}
               >
-                {loading ? (
+                {partyQuery.isLoading || partyQuery.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -1178,14 +1156,14 @@ export default function DistrictCourtSearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {partyQuery.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
-          <p className="text-red-700 dark:text-red-400">{error}</p>
+          <p className="text-red-700 dark:text-red-400">{partyQuery.error instanceof Error ? partyQuery.error.message : "An error occurred while searching"}</p>
         </div>
       )}
 
       {/* Results Section */}
-      {!loading && Object.keys(searchResults).length > 0 && (
+      {!partyQuery.isLoading && !partyQuery.isFetching && Object.keys(searchResults).length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>

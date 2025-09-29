@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import Topbar from "@/components/topbar";
+import { getCookie } from "@/lib/utils";
 
 const AUTH_PATHS = [
   "/login",
@@ -24,7 +25,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isAuth) return;
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const token = typeof window !== "undefined" ? getCookie("token") : null;
       if (!token) {
         router.replace("/login");
       }

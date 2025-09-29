@@ -117,7 +117,9 @@ export default function ExtractPage() {
         // Extraction failed
         setIsLoading(false);
         setCurrentExtractionId(null);
-        console.error("Extraction failed");
+        console.error("Extraction failed:", pollingData);
+        // Show user-friendly error message
+        alert(`Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`);
       }
     }
   }, [pollingData]);
@@ -262,6 +264,7 @@ export default function ExtractPage() {
                                 console.error("Extraction failed:", error);
                                 setIsLoading(false);
                                 setProgress(0);
+                                alert(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`);
                               },
                             }
                           );
@@ -269,6 +272,7 @@ export default function ExtractPage() {
                           console.error("Error starting extraction:", error);
                           setIsLoading(false);
                           setProgress(0);
+                          alert(`Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`);
                         }
                       }}
                     />

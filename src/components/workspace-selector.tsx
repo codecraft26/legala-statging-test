@@ -9,6 +9,7 @@ import {
   setCurrentWorkspace,
   Workspace,
 } from "@/store/slices/authSlice";
+import { getCookie, setCookie } from "@/lib/utils";
 
 export default function WorkspaceSelector() {
   const dispatch = useDispatch();
@@ -32,11 +33,8 @@ export default function WorkspaceSelector() {
 
         dispatch(setWorkspaces(workspaceList));
 
-        // Set current workspace from localStorage or first available
-        const savedId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("workspaceId")
-            : null;
+        // Set current workspace from cookie or first available
+        const savedId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
 
         if (savedId && workspaceList.length) {
           const savedWorkspace = workspaceList.find((w) => w.id === savedId);
@@ -44,11 +42,11 @@ export default function WorkspaceSelector() {
             dispatch(setCurrentWorkspace(savedWorkspace));
           } else if (workspaceList.length > 0) {
             dispatch(setCurrentWorkspace(workspaceList[0]));
-            localStorage.setItem("workspaceId", workspaceList[0].id);
+            setCookie("workspaceId", workspaceList[0].id, 30, { sameSite: "lax", secure: true });
           }
         } else if (workspaceList.length > 0) {
           dispatch(setCurrentWorkspace(workspaceList[0]));
-          localStorage.setItem("workspaceId", workspaceList[0].id);
+          setCookie("workspaceId", workspaceList[0].id, 30, { sameSite: "lax", secure: true });
         }
       } catch (err: any) {
         setError(err?.message ?? "Failed to load workspaces");
@@ -64,7 +62,7 @@ export default function WorkspaceSelector() {
       dispatch(setCurrentWorkspace(workspace));
       try {
         if (typeof window !== "undefined") {
-          localStorage.setItem("workspaceId", workspaceId);
+          setCookie("workspaceId", workspaceId, 30, { sameSite: "lax", secure: true });
         }
       } catch {}
 

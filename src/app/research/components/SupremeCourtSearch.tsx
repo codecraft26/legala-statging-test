@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
-import { useResearchAPI } from "@/hooks/use-research";
+import {
+  useSupremeByParty,
+  useSupremeDetail,
+  useFollowResearch,
+  useUnfollowResearch,
+} from "@/hooks/use-research";
+import { getApiBaseUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface CaseResult {
@@ -109,7 +115,7 @@ const parseHtmlContent = (htmlString: string): any[][] => {
       }
     }
 
-    // If still no structured data, extract text content
+  
     if (result.length === 0) {
       const textContent = doc.body.textContent.trim();
       if (textContent) {
@@ -711,14 +717,36 @@ export default function SupremeCourtSearch() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const {
-    loading,
-    error,
-    searchSupremeCourtByParty,
-    getSupremeCourtCaseDetail,
-    followResearch,
-    unfollowResearch,
-  } = useResearchAPI();
+  const [searchParams, setSearchParams] = useState<
+    | {
+        party_type: string;
+        party_name: string;
+        year: number;
+        party_status: string;
+      }
+    | null
+  >(null);
+  const searchQueryResult = useSupremeByParty(searchParams);
+  const [detailParams, setDetailParams] = useState<
+    | {
+        diary_no: number;
+        diary_year: number;
+      }
+    | null
+  >(null);
+  const detailsQuery = useSupremeDetail(detailParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
+
+  const rawResults = React.useMemo(() => {
+    const data: any = searchQueryResult.data;
+    if (!data) return [] as any[];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray((data as any).results)) return (data as any).results;
+    if (Array.isArray((data as any).data)) return (data as any).data;
+    if (Array.isArray((data as any).cases)) return (data as any).cases;
+    return [] as any[];
+  }, [searchQueryResult.data]);
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -727,7 +755,7 @@ export default function SupremeCourtSearch() {
   );
 
   // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result) =>
+  const filteredResults = rawResults.filter((result: any) =>
     Object.values(result).some((value) =>
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -735,53 +763,12 @@ export default function SupremeCourtSearch() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    try {
-      console.warn("Searching Supreme Court with params:", {
-        party_type: partyType,
-        party_name: partyName,
-        year: parseInt(year),
-        party_status: partyStatus,
-      });
-
-      const data = await searchSupremeCourtByParty({
-        party_type: partyType,
-        party_name: partyName,
-        year: parseInt(year),
-        party_status: partyStatus,
-      });
-
-      console.warn("API Response:", data);
-
-      // Handle different possible response structures
-      let results = [];
-      if (data) {
-        if (Array.isArray(data)) {
-          results = data;
-        } else if (data.results && Array.isArray(data.results)) {
-          results = data.results;
-        } else if (data.data && Array.isArray(data.data)) {
-          results = data.data;
-        } else if (data.cases && Array.isArray(data.cases)) {
-          results = data.cases;
-        } else {
-          console.warn(
-            "No search results found or unexpected API response structure:",
-            data
-          );
-          results = [];
-        }
-      } else {
-        console.warn("No data returned from API");
-        results = [];
-      }
-
-      setSearchResults(results);
-      console.warn("Processed results:", results);
-    } catch (err) {
-      console.error("Search failed:", err);
-      setSearchResults([]);
-    }
+    setSearchParams({
+      party_type: partyType,
+      party_name: partyName,
+      year: parseInt(year),
+      party_status: partyStatus,
+    });
   };
 
   const handleViewDetails = async (result: CaseResult) => {
@@ -789,50 +776,33 @@ export default function SupremeCourtSearch() {
     setDetailsLoading(result.diary_number);
 
     try {
-      // Use the URL pattern provided by the user
+      // Prefer our backend API using env base URL
+      const base = getApiBaseUrl();
       const response = await fetch(
-        `https://researchengineinh.infrahive.ai/sccd/case-details?diary_no=${diaryNumber}&diary_year=${diaryYear}`
+        `${base}/research/supreme-court/case-detail`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            diary_no: parseInt(diaryNumber),
+            diary_year: parseInt(diaryYear),
+          }),
+        }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const responseText = await response.text();
-
-      // Try to parse as JSON first (the actual API response format)
-      let caseData: SupremeCourtCaseData;
-      try {
-        const jsonData = JSON.parse(responseText);
-        caseData = jsonData;
-      } catch (jsonError) {
-        // If not JSON, treat as HTML and create structure
-        caseData = createSupremeCourtCaseData(responseText);
-      }
-
-      setSelectedCase(caseData);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      setSelectedCase(data);
       setShowCaseDetails(true);
     } catch (err) {
       console.error("Failed to fetch case details:", err);
-      // Fallback to the original API if the direct URL fails
-      try {
-        const details = await getSupremeCourtCaseDetail({
-          diary_no: parseInt(diaryNumber),
-          diary_year: parseInt(diaryYear),
-        });
-        // Use the details directly as they should already be in the correct format
-        setSelectedCase(details);
-        setShowCaseDetails(true);
-      } catch (fallbackErr) {
-        console.error("Fallback API also failed:", fallbackErr);
-        setSelectedCase({
-          case_details: {
-            success: false,
-            data: {
-              data: "Failed to fetch case details",
-            },
-          },
-        });
+      setDetailParams({
+        diary_no: parseInt(diaryNumber),
+        diary_year: parseInt(diaryYear),
+      });
+      // Use query result when available
+      if (detailsQuery.data) {
+        setSelectedCase(detailsQuery.data as any);
         setShowCaseDetails(true);
       }
     } finally {
@@ -846,17 +816,17 @@ export default function SupremeCourtSearch() {
 
     try {
       if (followedCases.has(caseId)) {
-        await unfollowResearch(caseId);
+        await unfollowMutation.mutateAsync(caseId);
         setFollowedCases((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(caseId);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(caseId);
+          return next;
         });
       } else {
-        await followResearch({
+        await followMutation.mutateAsync({
           court: "Supreme_Court",
           followed: caseData,
-          workspaceId: "current-workspace", // Replace with actual workspace ID
+          workspaceId: "current-workspace",
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }
@@ -957,9 +927,9 @@ export default function SupremeCourtSearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={loading}
+                disabled={searchQueryResult.isLoading || searchQueryResult.isFetching}
               >
-                {loading ? (
+                {searchQueryResult.isLoading || searchQueryResult.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -977,13 +947,13 @@ export default function SupremeCourtSearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {searchQueryResult.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
               <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{error}</p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{searchQueryResult.error instanceof Error ? searchQueryResult.error.message : "An error occurred while searching"}</p>
               <p className="text-red-500 dark:text-red-300/80 text-xs mt-2">
                 Please check your internet connection and try again. If the
                 problem persists, contact support.
@@ -994,13 +964,13 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* Success Message */}
-      {!loading && searchResults.length > 0 && (
+      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length > 0 && (
         <div className="mt-4 p-4 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
             <p className="text-green-700 dark:text-emerald-300">
-              Found {searchResults.length} case
-              {searchResults.length !== 1 ? "s" : ""} matching your search
+              Found {filteredResults.length} case
+              {filteredResults.length !== 1 ? "s" : ""} matching your search
               criteria.
             </p>
           </div>
@@ -1008,7 +978,7 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* Results Section */}
-      {!loading && searchResults.length > 0 && (
+      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
@@ -1107,7 +1077,7 @@ export default function SupremeCourtSearch() {
                     </tr>
                   </thead>
                   <tbody className="border-y-4 border-white dark:border-zinc-900">
-                    {filteredResults.map((result, index) => {
+                    {filteredResults.map((result: any, index: number) => {
                       const caseId = result.diary_number;
                       return (
                         <tr
@@ -1215,7 +1185,7 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* No Data Found State */}
-      {!loading && searchResults.length === 0 && !error && partyName && (
+      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length === 0 && partyName && (
         <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
           <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-yellow-600" />
@@ -1232,7 +1202,7 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* No Search Performed State */}
-      {!loading && searchResults.length === 0 && !error && !partyName && (
+      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length === 0 && !partyName && (
         <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
           <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-blue-600" />

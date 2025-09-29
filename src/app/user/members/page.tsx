@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { Api } from "@/lib/api-client";
+import { getCookie } from "@/lib/utils";
 
 interface Member {
   id: string;
@@ -33,8 +34,7 @@ export default function MembersPage() {
   };
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined" ? getCookie("token") : null;
     if (!token) {
       window.location.href = "/login";
       return;

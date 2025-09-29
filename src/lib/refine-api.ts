@@ -28,8 +28,8 @@ export class RefineApi {
 
   static async refineText(request: RefineRequest): Promise<RefineResponse> {
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const { getCookie } = require("@/lib/utils");
+      const token = typeof window !== "undefined" ? getCookie("token") : null;
 
       const response = await fetch(RefineApi.getRefineEndpoint(), {
         method: "POST",
@@ -69,8 +69,8 @@ export class RefineApi {
     usage?: { input_tokens: number; output_tokens: number };
   }> {
     try {
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const { getCookie } = require("@/lib/utils");
+      const token = typeof window !== "undefined" ? getCookie("token") : null;
 
       const response = await fetch(RefineApi.getRefineEndpoint(), {
         method: "POST",

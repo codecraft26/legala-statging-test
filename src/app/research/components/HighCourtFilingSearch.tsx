@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useResearchAPI } from "@/hooks/use-research";
+import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch } from "@/hooks/use-research";
+import { getApiBaseUrl } from "@/lib/utils";
 import {
   stateCodeMapping,
   courtComplexMapping,
@@ -503,8 +504,9 @@ export default function HighCourtFilingSearch() {
   } | null>(null);
 
   const queryClient = useQueryClient();
-  const { searchHighCourtByFilingNumber, followResearch, unfollowResearch } =
-    useResearchAPI();
+  const filingQuery = useHighByFilingNumber(searchParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -512,53 +514,18 @@ export default function HighCourtFilingSearch() {
     (currentYear - i).toString()
   );
 
-  // TanStack Query for search results
-  const {
-    data: searchResults = [],
-    isLoading,
-    error,
-    isFetching,
-  } = useQuery<HighCourtResult[]>({
-    queryKey: ["highCourtFilingSearch", searchParams],
-    queryFn: async (): Promise<HighCourtResult[]> => {
-      if (!searchParams) return [];
-
-      console.warn("Searching High Court by filing number:", searchParams);
-      const data = await searchHighCourtByFilingNumber(searchParams);
-
-      // Handle different possible response structures
-      let results: HighCourtResult[] = [];
-      if (data) {
-        if (Array.isArray(data)) {
-          results = data;
-        } else if (data.results && Array.isArray(data.results)) {
-          results = data.results;
-        } else if (data.data && Array.isArray(data.data)) {
-          results = data.data;
-        } else if (data.cases && Array.isArray(data.cases)) {
-          results = data.cases;
-        } else {
-          console.warn(
-            "No search results found or unexpected API response structure:",
-            data
-          );
-          results = [];
-        }
-      } else {
-        console.warn("No data returned from API");
-        results = [];
-      }
-
-      console.warn("Processed results:", results);
-      return results;
-    },
-    enabled: !!searchParams,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (replaced cacheTime)
-  });
+  const rawResults: HighCourtResult[] = Array.isArray(filingQuery.data)
+    ? (filingQuery.data as HighCourtResult[])
+    : Array.isArray((filingQuery.data as any)?.results)
+    ? ((filingQuery.data as any).results as HighCourtResult[])
+    : Array.isArray((filingQuery.data as any)?.data)
+    ? ((filingQuery.data as any).data as HighCourtResult[])
+    : Array.isArray((filingQuery.data as any)?.cases)
+    ? ((filingQuery.data as any).cases as HighCourtResult[])
+    : [];
 
   // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result: HighCourtResult) =>
+  const filteredResults = rawResults.filter((result: HighCourtResult) =>
     Object.values(result).some((value: any) =>
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -583,16 +550,19 @@ export default function HighCourtFilingSearch() {
     setLoadingDetails(caseId);
 
     try {
-      // Use the specific API endpoint provided by the user with POST method
-      const response = await fetch(
-        `https://researchengineinh.infrahive.ai/hc/case?case_no=${result.case_no}&state_cd=${result.state_cd}&dist_cd=1&court_code=${result.court_code}&national_court_code=DLHC01&cino=${result.cino}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const base = getApiBaseUrl();
+      const response = await fetch(`${base}/research/high-court/case-detail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          case_no: Number(result.case_no),
+          state_code: Number(result.state_cd),
+          cino: result.cino,
+          court_code: Number(result.court_code),
+          national_court_code: "DLHC01",
+          dist_cd: 1,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -617,38 +587,7 @@ export default function HighCourtFilingSearch() {
   };
 
   // TanStack Query mutations for follow/unfollow
-  const followMutation = useMutation({
-    mutationFn: async (caseData: HighCourtResult) => {
-      return await followResearch({
-        court: "High_Court",
-        followed: caseData,
-        workspaceId: "current-workspace", // Replace with actual workspace ID
-      });
-    },
-    onSuccess: (_, caseData) => {
-      const caseId = caseData.cino || caseData.case_no;
-      setFollowedCases((prev) => new Set(prev).add(caseId));
-    },
-    onError: (error) => {
-      console.error("Follow failed:", error);
-    },
-  });
-
-  const unfollowMutation = useMutation({
-    mutationFn: async (caseId: string) => {
-      return await unfollowResearch(caseId);
-    },
-    onSuccess: (_, caseId) => {
-      setFollowedCases((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(caseId);
-        return newSet;
-      });
-    },
-    onError: (error) => {
-      console.error("Unfollow failed:", error);
-    },
-  });
+  // (already declared above)
 
   const handleFollowCase = (caseData: HighCourtResult) => {
     const caseId = caseData.cino || caseData.case_no;
@@ -656,7 +595,11 @@ export default function HighCourtFilingSearch() {
     if (followedCases.has(caseId)) {
       unfollowMutation.mutate(caseId);
     } else {
-      followMutation.mutate(caseData);
+      followMutation.mutate({
+        court: "High_Court",
+        followed: caseData,
+        workspaceId: "current-workspace",
+      });
     }
   };
 
@@ -757,9 +700,9 @@ export default function HighCourtFilingSearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={isLoading || isFetching}
+                disabled={filingQuery.isLoading || filingQuery.isFetching}
               >
-                {isLoading || isFetching ? (
+                {filingQuery.isLoading || filingQuery.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -777,30 +720,26 @@ export default function HighCourtFilingSearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {filingQuery.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
               <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
-                {error instanceof Error
-                  ? error.message
-                  : "An error occurred while searching"}
-              </p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{filingQuery.error instanceof Error ? filingQuery.error.message : "An error occurred while searching"}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Success Message */}
-      {!isLoading && !isFetching && searchResults.length > 0 && (
+      {!filingQuery.isLoading && !filingQuery.isFetching && filteredResults.length > 0 && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
             <p className="text-green-700">
-              Found {searchResults.length} case
-              {searchResults.length !== 1 ? "s" : ""} matching your search
+              Found {filteredResults.length} case
+              {filteredResults.length !== 1 ? "s" : ""} matching your search
               criteria.
             </p>
           </div>
@@ -808,7 +747,7 @@ export default function HighCourtFilingSearch() {
       )}
 
       {/* Results Section */}
-      {!isLoading && !isFetching && searchResults.length > 0 && (
+      {!filingQuery.isLoading && !filingQuery.isFetching && filteredResults.length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
@@ -972,10 +911,10 @@ export default function HighCourtFilingSearch() {
       )}
 
       {/* No Data Found State */}
-      {!isLoading &&
-        !isFetching &&
-        searchResults.length === 0 &&
-        !error &&
+      {!filingQuery.isLoading &&
+        !filingQuery.isFetching &&
+        filteredResults.length === 0 &&
+        !filingQuery.error &&
         searchParams && (
           <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
@@ -993,10 +932,10 @@ export default function HighCourtFilingSearch() {
         )}
 
       {/* No Search Performed State */}
-      {!isLoading &&
-        !isFetching &&
-        searchResults.length === 0 &&
-        !error &&
+      {!filingQuery.isLoading &&
+        !filingQuery.isFetching &&
+        filteredResults.length === 0 &&
+        !filingQuery.error &&
         !searchParams && (
           <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">

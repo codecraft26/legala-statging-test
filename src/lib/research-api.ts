@@ -7,9 +7,10 @@ import { getApiBaseUrl } from "./utils";
 
 const API_BASE_URL = `${getApiBaseUrl()}/research`;
 
+import { getCookie } from "@/lib/utils";
+
 const getAuthHeaders = () => {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : "";
+  const token = typeof window !== "undefined" ? getCookie("token") || "" : "";
 
   // Debug: Check if token exists (only in development)
   if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { getCookie } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -28,8 +29,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined" ? getCookie("token") : null;
     setAuthed(!!token);
   }, []);
 
