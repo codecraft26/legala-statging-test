@@ -67,6 +67,13 @@ export default function WorkspaceSelector() {
           localStorage.setItem("workspaceId", workspaceId);
         }
       } catch {}
+
+      // Force a soft refresh so pages pick up the new workspace and re-fetch
+      try {
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+      } catch {}
     }
   };
 
