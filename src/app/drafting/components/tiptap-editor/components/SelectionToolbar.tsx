@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Editor } from "@tiptap/react";
 import { X, Copy, Replace, Loader2, Edit3, Send } from "lucide-react";
 import { RefineApi } from "@/lib/refine-api";
@@ -21,6 +22,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [resultText, setResultText] = useState("");
+  const [improvements, setImprovements] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [isInteracting, setIsInteracting] = useState(false);
   const [hasSelectedText, setHasSelectedText] = useState(false);
@@ -168,10 +170,12 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
         instruction: customPrompt,
       });
 
-      if (result.refined_text && result.refined_text.trim()) {
-        setResultText(result.refined_text.trim());
+      const refined = (result.refined_text || "").trim();
+      if (refined) {
+        setResultText(refined);
         setUsage(result.usage || null);
         setShowResult(true);
+        setImprovements(computeImprovements(selectedText, refined));
       }
 
       if (onRefine) {
@@ -191,6 +195,26 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       setShowResult(false);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const computeImprovements = (original: string, refined: string) => {
+    try {
+      const origWords = original.split(/\s+/);
+      const refWords = refined.split(/\s+/);
+      const added = refWords.filter((w) => !origWords.includes(w));
+      const removed = origWords.filter((w) => !refWords.includes(w));
+      const suggestions: string[] = [];
+      if (refined.length > original.length) {
+        suggestions.push("Added detail/length");
+      } else if (refined.length < original.length) {
+        suggestions.push("Conciseness improvements");
+      }
+      if (added.length) suggestions.push(`Added: ${added.slice(0, 6).join(" ")}${added.length > 6 ? " …" : ""}`);
+      if (removed.length) suggestions.push(`Removed: ${removed.slice(0, 6).join(" ")}${removed.length > 6 ? " …" : ""}`);
+      return suggestions.length ? suggestions : ["Reworded/cleaned up phrasing"];
+    } catch {
+      return ["Refined phrasing and style"];
     }
   };
 
@@ -274,7 +298,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
 
   if (!isVisible) return null;
 
-  return (
+  return createPortal(
     <div
       ref={toolbarRef}
       className="fixed z-50 animate-in fade-in-0 zoom-in-95 duration-200"
@@ -441,6 +465,17 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
                 </button>
               </div>
 
+      {improvements.length > 0 && (
+        <div className="mb-2">
+          <h5 className="text-xs font-medium text-gray-600 mb-1">What changed</h5>
+          <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
+            {improvements.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
               {usage && (
                 <div className="pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
@@ -483,5 +518,5 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
         </div>
       )}
     </div>
-  );
+  , typeof document !== "undefined" ? document.body : (null as unknown as Element));
 }

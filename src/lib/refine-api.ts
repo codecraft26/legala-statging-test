@@ -48,9 +48,11 @@ export class RefineApi {
       }
 
       const result = await response.json();
+      const data = result?.data ?? result;
       return {
-        refined_text: result.refined_text || result.text || result.content,
-        usage: result.usage || null,
+        refined_text:
+          data?.refined_text || data?.text || data?.content || result?.refined_text || result?.text || result?.content,
+        usage: data?.usage || result?.usage || null,
       };
     } catch (error) {
       console.error("Error refining text:", error);

@@ -27,6 +27,8 @@ import TextStyle from "@tiptap/extension-text-style";
 import EditorHeader from "./components/EditorHeader";
 import EditorToolbar from "./components/EditorToolbar";
 import SelectionToolbar from "./components/SelectionToolbar";
+import { SlashCommands } from "./slash-commands";
+import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
 import DataHubSelector from "./components/DataHubSelector";
 import DocumentBrowser from "./components/DocumentBrowser";
@@ -199,6 +201,7 @@ export default function TiptapEditor() {
         onVariableClick: handleVariableClick,
         currentVariables: variables,
       }),
+      SlashCommands,
     ],
     editorProps: {
       attributes: {
@@ -785,6 +788,7 @@ export default function TiptapEditor() {
                   });
                 }}
               />
+              <SelectionRefineMenu editor={editor} />
             </div>
           </div>
 
