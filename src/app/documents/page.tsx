@@ -280,7 +280,29 @@ export default function DocumentsPage() {
                 {filtered.map((it) => (
                   <div
                     key={it.id}
-                    className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-accent"
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 hover:bg-accent ${it.type === "folder" ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (it.type === "folder") {
+                        setCurrentFolderId(it.id);
+                        
+                        setFolderPath((p) => [
+                          ...p,
+                          { id: it.id, name: it.filename },
+                        ]);
+                      }
+                    }}
+                    role={it.type === "folder" ? "button" : undefined}
+                    tabIndex={it.type === "folder" ? 0 : undefined}
+                    onKeyDown={(e) => {
+                      if (it.type === "folder" && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        setCurrentFolderId(it.id);
+                        setFolderPath((p) => [
+                          ...p,
+                          { id: it.id, name: it.filename },
+                        ]);
+                      }
+                    }}
                   >
                     <div className="text-xl">
                       {it.type === "folder" ? "📁" : "📄"}
@@ -292,27 +314,16 @@ export default function DocumentsPage() {
                         </p>
                         <button
                           className="text-red-600 hover:underline text-xs inline-flex items-center gap-1"
-                          onClick={() => remove(it)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            remove(it);
+                          }}
                           title="Delete"
                         >
                           <Trash2 className="h-3 w-3" /> Delete
                         </button>
                       </div>
                     </div>
-                    {it.type === "folder" ? (
-                      <button
-                        className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
-                        onClick={() => {
-                          setCurrentFolderId(it.id);
-                          setFolderPath((p) => [
-                            ...p,
-                            { id: it.id, name: it.filename },
-                          ]);
-                        }}
-                      >
-                        Open
-                      </button>
-                    ) : null}
                   </div>
                 ))}
               </div>

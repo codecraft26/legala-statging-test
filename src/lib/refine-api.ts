@@ -1,4 +1,4 @@
-export interface RefineRequest {
+ export interface RefineRequest {
   text: string;
   instruction: string;
 }
@@ -19,15 +19,19 @@ export interface RefineError {
 }
 
 export class RefineApi {
-  private static readonly REFINE_ENDPOINT =
-    "http://localhost:4242/api/tool/refine-text";
+  private static getRefineEndpoint(): string {
+    // Lazy import to avoid potential circular deps at module init
+    const { getApiBaseUrl } = require("@/lib/utils");
+    const base: string = getApiBaseUrl();
+    return `${base}/tool/refine-text`;
+  }
 
   static async refineText(request: RefineRequest): Promise<RefineResponse> {
     try {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-      const response = await fetch(this.REFINE_ENDPOINT, {
+      const response = await fetch(RefineApi.getRefineEndpoint(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +70,7 @@ export class RefineApi {
       const token =
         typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-      const response = await fetch(this.REFINE_ENDPOINT, {
+      const response = await fetch(RefineApi.getRefineEndpoint(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
