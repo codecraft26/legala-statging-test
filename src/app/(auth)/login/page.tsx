@@ -41,8 +41,8 @@ export default function LoginPage() {
         localStorage.setItem("token", token);
       }
       // Fetch user detail
-      const userResponse = await Api.get("/user/detail");
-      const user = userResponse.data || userResponse;
+      const userResponse = await Api.get<any>("/user/detail");
+      const user = (userResponse as any).data || userResponse;
       // Normalize role before storing
       const normalizedUser = {
         ...user,

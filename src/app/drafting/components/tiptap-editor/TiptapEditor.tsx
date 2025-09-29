@@ -33,6 +33,8 @@ import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
 import DataHubSelector from "./components/DataHubSelector";
 import DocumentBrowser from "./components/DocumentBrowser";
 import { Api } from "@/lib/api-client";
+import { FontSize } from "./extensions/FontSize";
+import "./styles/EditorStyles.css";
 
 // Variable Highlighting Extension
 const VariableHighlight = Extension.create({
@@ -186,7 +188,12 @@ export default function TiptapEditor() {
       Underline,
       TextStyle,
       FontFamily,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      FontSize,
+      TextAlign.configure({ 
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+        defaultAlignment: "left",
+      }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image.configure({ allowBase64: true }),
       Table.configure({ resizable: true }),
@@ -195,6 +202,9 @@ export default function TiptapEditor() {
       TableCell,
       Placeholder.configure({
         placeholder: 'Start typing or press "/" for commands…',
+        showOnlyWhenEditable: true,
+        showOnlyCurrent: false,
+        includeChildren: false,
       }),
       CharacterCount.configure({ limit: charLimit }),
       VariableHighlight.configure({
@@ -233,6 +243,15 @@ export default function TiptapEditor() {
       textAlignLeft: editor.isActive({ textAlign: "left" }),
       textAlignCenter: editor.isActive({ textAlign: "center" }),
       textAlignRight: editor.isActive({ textAlign: "right" }),
+      textAlignJustify: editor.isActive({ textAlign: "justify" }),
+      heading1: editor.isActive("heading", { level: 1 }),
+      heading2: editor.isActive("heading", { level: 2 }),
+      heading3: editor.isActive("heading", { level: 3 }),
+      heading4: editor.isActive("heading", { level: 4 }),
+      heading5: editor.isActive("heading", { level: 5 }),
+      heading6: editor.isActive("heading", { level: 6 }),
+      fontSize: editor.getAttributes("textStyle").fontSize || "",
+      fontFamily: editor.getAttributes("textStyle").fontFamily || "inherit",
     });
   }, [editor]);
 
@@ -781,7 +800,7 @@ export default function TiptapEditor() {
               <SelectionToolbar
                 editor={editor}
                 onRefine={(originalText, refinedText, instruction) => {
-                  console.log("Text refined:", {
+                  console.warn("Text refined:", {
                     originalText,
                     refinedText,
                     instruction,

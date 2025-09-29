@@ -23,6 +23,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const [showResult, setShowResult] = useState(false);
   const [resultText, setResultText] = useState("");
   const [improvements, setImprovements] = useState<string[]>([]);
+  const lastSelectionRef = useRef<{ from: number; to: number } | null>(null);
   const [error, setError] = useState("");
   const [isInteracting, setIsInteracting] = useState(false);
   const [hasSelectedText, setHasSelectedText] = useState(false);
@@ -42,7 +43,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
     // Function to check and update selection
     const updateSelection = () => {
       if (isInteracting || isProcessing || showResult) {
-        console.log(
+        console.warn(
           "Skipping selection update - isInteracting:",
           isInteracting,
           "isProcessing:",
@@ -55,7 +56,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
 
       const { selection } = editor.state;
       const { from, to, empty } = selection;
-      console.log(
+      console.warn(
         "Updating selection - from:",
         from,
         "to:",
@@ -78,6 +79,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       if (text.trim().length > 3) {
         setSelectedText(text);
         setHasSelectedText(true);
+        lastSelectionRef.current = { from, to };
 
         const { view } = editor;
         const start = view.coordsAtPos(from);
@@ -225,27 +227,15 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const handleReplaceResult = () => {
     if (!editor || !resultText) return;
 
-    const { selection } = editor.state;
-    console.log("Replace - Current selection:", selection);
-    console.log(
-      "Replace - Selection from:",
-      selection.from,
-      "to:",
-      selection.to
-    );
-    console.log("Replace - Result text:", resultText);
-
-    if (selection.from === selection.to) {
+    const range = lastSelectionRef.current || editor.state.selection;
+    if (!range || (range as any).from === (range as any).to) {
       console.error("No text selected for replacement");
       return;
     }
 
-    editor
-      .chain()
-      .focus()
-      .deleteRange({ from: selection.from, to: selection.to })
-      .insertContent(resultText)
-      .run();
+    const from = (range as any).from;
+    const to = (range as any).to;
+    editor.chain().focus().deleteRange({ from, to }).insertContent(resultText).run();
 
     setShowResult(false);
     setIsVisible(false);
@@ -276,7 +266,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   };
 
   const handleToolbarMouseEnter = () => {
-    console.log("Toolbar mouse enter - setting isInteracting to true");
+    console.warn("Toolbar mouse enter - setting isInteracting to true");
     setIsInteracting(true);
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -285,7 +275,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   };
 
   const handleToolbarMouseLeave = () => {
-    console.log("Toolbar mouse leave - setting isInteracting to false");
+    console.warn("Toolbar mouse leave - setting isInteracting to false");
     setIsInteracting(false);
     if (!isProcessing && !showResult && !hasSelectedText) {
       hideTimeoutRef.current = setTimeout(() => {

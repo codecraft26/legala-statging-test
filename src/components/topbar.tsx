@@ -51,8 +51,8 @@ export default function Topbar() {
     if (!user && lsToken) {
       (async () => {
         try {
-          const detailResponse = await Api.get("/user/detail");
-          const detail = detailResponse.data || detailResponse;
+          const detailResponse = await Api.get<any>("/user/detail");
+          const detail = (detailResponse as any).data || detailResponse;
           // Normalize role before storing
           const normalizedDetail = {
             ...detail,
