@@ -3,7 +3,9 @@
  * Provides access to Supreme Court, High Court, and District Court case search functionality
  */
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4242"}${process.env.NEXT_PUBLIC_API_BASE_PATH || "/api"}/research`;
+import { getApiBaseUrl } from "./utils";
+
+const API_BASE_URL = `${getApiBaseUrl()}/research`;
 
 const getAuthHeaders = () => {
   const token =

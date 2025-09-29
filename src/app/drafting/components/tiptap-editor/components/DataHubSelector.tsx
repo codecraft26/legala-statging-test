@@ -273,14 +273,7 @@ export default function DataHubSelector({ onApply }: Props) {
   return (
     <div className="p-4 border-b border-gray-200">
       <div className="flex items-center justify-between mb-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Select from Data Hub
-          {selectedWorkspace && (
-            <span className="text-blue-600 ml-1">
-              ({selectedWorkspace.name})
-            </span>
-          )}
-        </label>
+        <label className="block text-sm font-medium text-gray-700">Select from Data Hub</label>
         <button
           onClick={() => setShowDataHub(!showDataHub)}
           className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
@@ -298,51 +291,7 @@ export default function DataHubSelector({ onApply }: Props) {
 
       {showDataHub && (
         <div className="space-y-3">
-          {/* Workspace Selector */}
-          <div className="relative" ref={workspaceRef}>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Workspace
-            </label>
-            <button
-              onClick={() => setIsWorkspaceOpen(!isWorkspaceOpen)}
-              className="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-left shadow-sm hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-900">
-                  {selectedWorkspace?.name || "Select workspace"}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 text-gray-400 transition-transform ${
-                    isWorkspaceOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </div>
-            </button>
-
-            {isWorkspaceOpen && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-40 overflow-auto">
-                {loadingWorkspaces ? (
-                  <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                    Loading workspaces...
-                  </div>
-                ) : workspaces.length > 0 ? (
-                  workspaces.map((workspace) => (
-                    <button
-                      key={workspace.id}
-                      onClick={() => handleWorkspaceSelect(workspace)}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 focus:bg-gray-50 focus:outline-none text-sm border-b border-gray-100 last:border-b-0"
-                    >
-                      {workspace.name}
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500 text-center">
-                    No workspaces found
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Workspace selector hidden on drafting page; auto-selects in background */}
 
           {/* Document Selector */}
           {selectedWorkspace && (

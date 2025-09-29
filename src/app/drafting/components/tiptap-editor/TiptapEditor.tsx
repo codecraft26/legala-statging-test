@@ -24,13 +24,14 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import FontFamily from "@tiptap/extension-font-family";
 import TextStyle from "@tiptap/extension-text-style";
+import Gapcursor from "@tiptap/extension-gapcursor";
+import { TrailingNode } from "./extensions/TrailingNode";
 import EditorHeader from "./components/EditorHeader";
 import EditorToolbar from "./components/EditorToolbar";
 import SelectionToolbar from "./components/SelectionToolbar";
 import { SlashCommands } from "./slash-commands";
 import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
-import DataHubSelector from "./components/DataHubSelector";
 import DocumentBrowser from "./components/DocumentBrowser";
 import { Api } from "@/lib/api-client";
 import { FontSize } from "./extensions/FontSize";
@@ -211,6 +212,8 @@ export default function TiptapEditor() {
         onVariableClick: handleVariableClick,
         currentVariables: variables,
       }),
+      Gapcursor,
+      TrailingNode.configure({ node: "paragraph" }),
       SlashCommands,
     ],
     editorProps: {
@@ -893,7 +896,8 @@ export default function TiptapEditor() {
             }}
           />
 
-          <DataHubSelector
+          {/* DataHubSelector removed on drafting page */}
+          {/* <DataHubSelector
             onApply={async (html, vars, title) => {
               // console.log("DataHub onApply called with:", { html, vars, title });
               if (!editor) {
@@ -947,7 +951,7 @@ export default function TiptapEditor() {
 
               // console.log("DataHub document applied successfully");
             }}
-          />
+          /> */}
 
           <VariablesPanel
             variables={variables}

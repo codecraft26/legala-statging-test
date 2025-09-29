@@ -10,8 +10,8 @@ export default function DraftingPage() {
   const { currentWorkspace } = useSelector((s: RootState) => s.auth);
 
   return (
-    <main className="h-screen flex flex-col overflow-hidden">
-      <div className="flex-shrink-0 p-6 border-b border-gray-200 bg-white">
+    <main className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+      <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">AutoDraft Pro</h1>

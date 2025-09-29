@@ -869,17 +869,17 @@ export default function SupremeCourtSearch() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">
+      <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-foreground">
         Supreme Court Cases by Party Name
       </h2>
 
-      <div className="bg-white p-6 rounded-md border border-gray-200 max-w-xl">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-md border border-gray-200 dark:border-zinc-800 max-w-xl">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="col-span-2">
               <label
                 htmlFor="party-input"
-                className="block text-sm font-medium mb-1 text-gray-700"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300"
               >
                 Party Name *
               </label>
@@ -888,17 +888,17 @@ export default function SupremeCourtSearch() {
                 id="party-input"
                 value={partyName}
                 onChange={(e) => setPartyName(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 placeholder="Enter party name"
                 required
               />
-              <div className="text-sm text-gray-500 mt-1">Example: Tanishk</div>
+              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Example: Tanishk</div>
             </div>
 
             <div>
               <label
                 htmlFor="stage-select"
-                className="block text-sm font-medium mb-1 text-gray-700"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300"
               >
                 Stage
               </label>
@@ -906,7 +906,7 @@ export default function SupremeCourtSearch() {
                 id="stage-select"
                 value={partyStatus}
                 onChange={(e) => setPartyStatus(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 <option value="P">P</option>
                 <option value="C">D</option>
@@ -916,7 +916,7 @@ export default function SupremeCourtSearch() {
             <div>
               <label
                 htmlFor="type-select"
-                className="block text-sm font-medium mb-1 text-gray-700"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300"
               >
                 Type
               </label>
@@ -924,7 +924,7 @@ export default function SupremeCourtSearch() {
                 id="type-select"
                 value={partyType}
                 onChange={(e) => setPartyType(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 <option value="any">any</option>
                 <option value="petitioner">petitioner</option>
@@ -935,7 +935,7 @@ export default function SupremeCourtSearch() {
             <div>
               <label
                 htmlFor="year-select"
-                className="block text-sm font-medium mb-1 text-gray-700"
+                className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300"
               >
                 Year
               </label>
@@ -943,7 +943,7 @@ export default function SupremeCourtSearch() {
                 id="year-select"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -978,13 +978,13 @@ export default function SupremeCourtSearch() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
-              <p className="text-red-700 font-medium">Search Error</p>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
-              <p className="text-red-500 text-xs mt-2">
+              <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{error}</p>
+              <p className="text-red-500 dark:text-red-300/80 text-xs mt-2">
                 Please check your internet connection and try again. If the
                 problem persists, contact support.
               </p>
@@ -995,10 +995,10 @@ export default function SupremeCourtSearch() {
 
       {/* Success Message */}
       {!loading && searchResults.length > 0 && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+        <div className="mt-4 p-4 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
-            <p className="text-green-700">
+            <p className="text-green-700 dark:text-emerald-300">
               Found {searchResults.length} case
               {searchResults.length !== 1 ? "s" : ""} matching your search
               criteria.
@@ -1018,10 +1018,10 @@ export default function SupremeCourtSearch() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Data..."
-                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-64 border border-black dark:border-zinc-700 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900" />
+                <Search size={16} className="text-gray-900 dark:text-zinc-300" />
               </div>
             </div>
           </div>
@@ -1052,74 +1052,74 @@ export default function SupremeCourtSearch() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
+              <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
                 <table className="min-w-full border-collapse table-fixed">
                   <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
+                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900">
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "100px" }}
                       >
                         INDEX NO.
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "120px" }}
                       >
                         DIARY NUMBER
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "120px" }}
                       >
                         CASE NUMBER
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "200px" }}
                       >
                         PETITIONER
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "200px" }}
                       >
                         RESPONDENT
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "100px" }}
                       >
                         STATUS
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "80px" }}
                       >
                         FOLLOW
                       </th>
                       <th
-                        className="px-3 py-3 text-xs font-semibold text-black text-left"
+                        className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                         style={{ minWidth: "100px" }}
                       >
                         ACTIONS
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="border-y-4 border-white">
+                  <tbody className="border-y-4 border-white dark:border-zinc-900">
                     {filteredResults.map((result, index) => {
                       const caseId = result.diary_number;
                       return (
                         <tr
                           key={caseId}
-                          className={`transition-colors hover:bg-blue-50 ${
-                            index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                          } border-b-2 border-gray-100 last:border-b-0`}
+                          className={`transition-colors hover:bg-blue-50 dark:hover:bg-zinc-800 ${
+                            index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-blue-50 dark:bg-zinc-950"
+                          } border-b-2 border-gray-100 dark:border-zinc-800 last:border-b-0`}
                         >
-                          <td className="px-3 py-3 text-xs text-gray-800 font-medium">
+                          <td className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
                             {result.serial_number || "N/A"}
                           </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
+                          <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                             <div
                               className="max-w-[120px] truncate"
                               title={result.diary_number || ""}
@@ -1127,7 +1127,7 @@ export default function SupremeCourtSearch() {
                               {result.diary_number || "N/A"}
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
+                          <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                             <div
                               className="max-w-[120px] truncate"
                               title={result.case_number || ""}
@@ -1135,7 +1135,7 @@ export default function SupremeCourtSearch() {
                               {result.case_number || "N/A"}
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
+                          <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                             <div
                               className="max-w-[200px] truncate"
                               title={result.petitioner_name || ""}
@@ -1143,7 +1143,7 @@ export default function SupremeCourtSearch() {
                               {result.petitioner_name || "N/A"}
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-xs text-gray-700">
+                          <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                             <div
                               className="max-w-[200px] truncate"
                               title={result.respondent_name || ""}
@@ -1159,7 +1159,7 @@ export default function SupremeCourtSearch() {
                               className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
                                 followedCases.has(caseId)
                                   ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                  : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                  : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
                               }`}
                               onClick={() => handleFollowCase(result)}
                               disabled={followLoading === caseId}
@@ -1216,14 +1216,14 @@ export default function SupremeCourtSearch() {
 
       {/* No Data Found State */}
       {!loading && searchResults.length === 0 && !error && partyName && (
-        <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+        <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
           <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-yellow-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
             No Data Found
           </h3>
-          <p className="text-gray-600 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
             No cases found for party name &quot;{partyName}&quot; in year {year}
             . Please verify the party name and search criteria, or try a
             different search.
@@ -1233,14 +1233,14 @@ export default function SupremeCourtSearch() {
 
       {/* No Search Performed State */}
       {!loading && searchResults.length === 0 && !error && !partyName && (
-        <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+        <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
           <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <Search className="h-8 w-8 text-blue-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
             Search Supreme Court Cases
           </h3>
-          <p className="text-gray-600 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
             Enter a party name and select your search criteria to find Supreme
             Court cases. Use the example &quot;Tanishk&quot; to test the search
             functionality.

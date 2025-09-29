@@ -662,22 +662,22 @@ export default function HighCourtFilingSearch() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">
+      <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-foreground">
         High Court Cases by Filing Number
       </h2>
 
-      <div className="bg-white p-6 rounded-md border border-gray-200 max-w-2xl">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-md border border-gray-200 dark:border-zinc-800 max-w-2xl">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Court Configuration */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Court Type
               </label>
               <select
                 value={courtCode}
                 onChange={(e) => setCourtCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {courtCodeMapping.map((court) => (
                   <option key={court.code} value={court.code}>
@@ -688,13 +688,13 @@ export default function HighCourtFilingSearch() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 State
               </label>
               <select
                 value={stateCode}
                 onChange={(e) => setStateCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {stateCodeMapping.map((state) => (
                   <option key={state.code} value={state.code}>
@@ -705,13 +705,13 @@ export default function HighCourtFilingSearch() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Court Complex
               </label>
               <select
                 value={courtComplexCode}
                 onChange={(e) => setCourtComplexCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {courtComplexMapping.map((complex) => (
                   <option key={complex.code} value={complex.code}>
@@ -722,28 +722,28 @@ export default function HighCourtFilingSearch() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Case Number *
               </label>
               <input
                 type="number"
                 value={caseNo}
                 onChange={(e) => setCaseNo(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 placeholder="5293619"
                 required
               />
-              <div className="text-sm text-gray-500 mt-1">Example: 5293619</div>
+              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Example: 5293619</div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Registration Year
               </label>
               <select
                 value={rgYear}
                 onChange={(e) => setRgYear(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -778,12 +778,12 @@ export default function HighCourtFilingSearch() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
-              <p className="text-red-700 font-medium">Search Error</p>
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
                 {error instanceof Error
                   ? error.message
                   : "An error occurred while searching"}
@@ -818,10 +818,10 @@ export default function HighCourtFilingSearch() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Data..."
-                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-64 border border-black dark:border-zinc-700 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900" />
+                <Search size={16} className="text-gray-900 dark:text-zinc-300" />
               </div>
             </div>
           </div>
@@ -852,45 +852,45 @@ export default function HighCourtFilingSearch() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
+              <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
                 <table className="min-w-full border-collapse">
                   <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
+                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
                         CNR
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[200px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[200px]">
                         CASE TITLE
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
                         CASE NUMBER
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[120px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
                         TYPE
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[80px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[80px]">
                         FOLLOW
                       </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black text-left min-w-[100px]">
+                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[100px]">
                         ACTIONS
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="border-y-4 border-white">
+                  <tbody className="border-y-4 border-white dark:border-zinc-900">
                     {filteredResults.map(
                       (result: HighCourtResult, index: number) => {
                         const caseId = result.cino || result.case_no;
                         return (
                           <tr
                             key={caseId}
-                            className={`transition-colors hover:bg-blue-50 ${
-                              index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                            } border-b-2 border-gray-100 last:border-b-0`}
+                            className={`transition-colors hover:bg-blue-50 dark:hover:bg-zinc-800 ${
+                              index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-blue-50 dark:bg-zinc-950"
+                            } border-b-2 border-gray-100 dark:border-zinc-800 last:border-b-0`}
                           >
-                            <td className="px-3 py-3 text-xs text-gray-700">
+                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                               {result.cino || "N/A"}
                             </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
+                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                               <div
                                 className="max-w-[200px] truncate"
                                 title={`${result.pet_name || ""} vs ${result.res_name || ""}`}
@@ -900,10 +900,10 @@ export default function HighCourtFilingSearch() {
                                   : result.pet_name || result.res_name || "N/A"}
                               </div>
                             </td>
-                            <td className="px-3 py-3 text-xs text-gray-800 font-medium">
+                            <td className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
                               {result.case_no}
                             </td>
-                            <td className="px-3 py-3 text-xs text-gray-700">
+                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                               {result.type_name || "N/A"}
                             </td>
                             <td className="px-3 py-3">
@@ -911,7 +911,7 @@ export default function HighCourtFilingSearch() {
                                 className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
                                   followedCases.has(caseId)
                                     ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                    : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                    : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
                                 }`}
                                 onClick={() => handleFollowCase(result)}
                                 disabled={
@@ -977,14 +977,14 @@ export default function HighCourtFilingSearch() {
         searchResults.length === 0 &&
         !error &&
         searchParams && (
-          <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
               <Search className="h-8 w-8 text-yellow-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
               No Data Found
             </h3>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
               No cases found for case number {searchParams.case_no} in year{" "}
               {searchParams.rgyear}. Please verify the case number and year, or
               try a different search.
@@ -998,14 +998,14 @@ export default function HighCourtFilingSearch() {
         searchResults.length === 0 &&
         !error &&
         !searchParams && (
-          <div className="mt-6 p-8 bg-white rounded-lg border border-gray-200 text-center">
+          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <Search className="h-8 w-8 text-blue-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
               Search High Court Cases by Filing Number
             </h3>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
               Enter a case number and select the registration year to find High
               Court cases. Use the example &quot;5293619&quot; to test the
               search functionality.

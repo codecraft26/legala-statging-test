@@ -974,21 +974,21 @@ export default function DistrictCourtSearch() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">
+      <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-foreground">
         District Court Cases by Party Name
       </h2>
 
-      <div className="bg-white p-6 rounded-md border border-gray-200 max-w-2xl">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-md border border-gray-200 dark:border-zinc-800 max-w-2xl">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 District Name *
               </label>
               <select
                 value={districtName}
                 onChange={(e) => setDistrictName(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 required
               >
                 {uniqueDistricts.map((district) => (
@@ -997,20 +997,20 @@ export default function DistrictCourtSearch() {
                   </option>
                 ))}
               </select>
-              <div className="text-sm text-gray-500 mt-1">
+              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
                 Example: srinagar
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Litigant Name *
               </label>
               <input
                 type="text"
                 value={litigantName}
                 onChange={(e) => setLitigantName(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 placeholder="Enter litigant name"
                 required
               />
@@ -1018,13 +1018,13 @@ export default function DistrictCourtSearch() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Registration Year
               </label>
               <select
                 value={regYear}
                 onChange={(e) => setRegYear(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -1035,13 +1035,13 @@ export default function DistrictCourtSearch() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Case Status
               </label>
               <select
                 value={caseStatus}
                 onChange={(e) => setCaseStatus(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               >
                 <option value="P">P (Pending)</option>
                 <option value="D">D (Disposed)</option>
@@ -1050,7 +1050,7 @@ export default function DistrictCourtSearch() {
             </div>
 
             <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1 text-gray-700">
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Establishment Code *
               </label>
 
@@ -1059,7 +1059,7 @@ export default function DistrictCourtSearch() {
                 <button
                   type="button"
                   onClick={handleSelectAllEstCodes}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
                   disabled={estLoading || estCodeOptions.length === 0}
                 >
                   Select All
@@ -1067,27 +1067,27 @@ export default function DistrictCourtSearch() {
                 <button
                   type="button"
                   onClick={handleClearAllEstCodes}
-                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
                   disabled={estLoading}
                 >
                   Clear All
                 </button>
-                <span className="text-xs text-gray-500 self-center">
+                <span className="text-xs text-gray-500 dark:text-zinc-400 self-center">
                   {selectedEstCodes.length} selected
                 </span>
               </div>
 
               {/* EST Code Checkboxes */}
-              <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
+              <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-zinc-800 rounded-md p-3 bg-gray-50 dark:bg-zinc-950">
                 {estLoading ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">
                       Loading EST codes...
                     </span>
                   </div>
                 ) : estError ? (
-                  <div className="text-sm text-red-500">
+                  <div className="text-sm text-red-500 dark:text-red-400">
                     Error loading EST codes: {estError}
                   </div>
                 ) : estCodeOptions.length > 0 ? (
@@ -1095,7 +1095,7 @@ export default function DistrictCourtSearch() {
                     {estCodeOptions.map((option, index) => (
                       <label
                         key={index}
-                        className="flex items-center space-x-2 cursor-pointer hover:bg-white p-1 rounded"
+                        className="flex items-center space-x-2 cursor-pointer hover:bg-white dark:hover:bg-zinc-800 p-1 rounded"
                       >
                         <input
                           type="checkbox"
@@ -1104,10 +1104,10 @@ export default function DistrictCourtSearch() {
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-gray-900 dark:text-zinc-200">
                             {option.code}
                           </span>
-                          <span className="text-xs text-gray-500 ml-2">
+                          <span className="text-xs text-gray-500 dark:text-zinc-400 ml-2">
                             {option.description}
                           </span>
                         </div>
@@ -1115,7 +1115,7 @@ export default function DistrictCourtSearch() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-500 text-center py-2">
+                  <div className="text-sm text-gray-500 dark:text-zinc-400 text-center py-2">
                     No EST codes available for {districtName}
                   </div>
                 )}
@@ -1124,20 +1124,20 @@ export default function DistrictCourtSearch() {
               {/* Selected EST Codes Display */}
               {selectedEstCodes.length > 0 && (
                 <div className="mt-2">
-                  <div className="text-xs text-gray-600 mb-1">
+                  <div className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Selected EST codes:
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {selectedEstCodes.map((code) => (
                       <span
                         key={code}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
                       >
                         {code}
                         <button
                           type="button"
                           onClick={() => handleEstCodeToggle(code)}
-                          className="ml-1 text-blue-600 hover:text-blue-800"
+                          className="ml-1 text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200"
                         >
                           <X size={12} />
                         </button>
@@ -1179,8 +1179,8 @@ export default function DistrictCourtSearch() {
 
       {/* Error Display */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-700">{error}</p>
+        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
+          <p className="text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
 
@@ -1195,10 +1195,10 @@ export default function DistrictCourtSearch() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Data..."
-                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-64 border border-black dark:border-zinc-700 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900" />
+                <Search size={16} className="text-gray-900 dark:text-zinc-300" />
               </div>
             </div>
           </div>
@@ -1212,11 +1212,11 @@ export default function DistrictCourtSearch() {
               {Object.entries(filteredResults).map(([courtName, cases]) => (
                 <div
                   key={courtName}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white"
+                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900"
                 >
                   {/* Court Header */}
-                  <div className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white px-4 py-3">
-                    <h4 className="text-lg font-semibold text-black">
+                  <div className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900 px-4 py-3">
+                    <h4 className="text-lg font-semibold text-black dark:text-zinc-200">
                       {courtName}
                     </h4>
                   </div>
@@ -1225,47 +1225,47 @@ export default function DistrictCourtSearch() {
                   <div className="w-full overflow-x-auto">
                     <table className="min-w-full border-collapse table-fixed">
                       <thead>
-                        <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
+                        <tr className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900">
                           <th
-                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                             style={{ minWidth: "100px" }}
                           >
                             SERIAL NUMBER
                           </th>
                           <th
-                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                             style={{ minWidth: "150px" }}
                           >
                             CASE TYPE/CASE NUMBER/CASE YEAR
                           </th>
                           <th
-                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                             style={{ minWidth: "200px" }}
                           >
                             PETITIONER VERSUS RESPONDENT
                           </th>
                           <th
-                            className="px-3 py-3 text-xs font-semibold text-black text-left"
+                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
                             style={{ minWidth: "100px" }}
                           >
                             VIEW
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="border-y-4 border-white">
+                      <tbody className="border-y-4 border-white dark:border-zinc-900">
                         {cases.map((result, index) => {
                           const caseId = result.cino;
                           return (
                             <tr
                               key={caseId}
-                              className={`transition-colors hover:bg-blue-50 ${
-                                index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                              } border-b-2 border-gray-100 last:border-b-0`}
+                              className={`transition-colors hover:bg-blue-50 dark:hover:bg-zinc-800 ${
+                                index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-blue-50 dark:bg-zinc-950"
+                              } border-b-2 border-gray-100 dark:border-zinc-800 last:border-b-0`}
                             >
-                              <td className="px-3 py-3 text-xs text-gray-800 font-medium">
+                              <td className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
                                 {result.serial_number || "N/A"}
                               </td>
-                              <td className="px-3 py-3 text-xs text-gray-700">
+                              <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                                 <div
                                   className="max-w-[150px] truncate"
                                   title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}
@@ -1275,7 +1275,7 @@ export default function DistrictCourtSearch() {
                                   {result.case_year || "N/A"}
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-xs text-gray-700">
+                              <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
                                 <div className="max-w-[200px]">
                                   <div
                                     className="truncate"
@@ -1301,7 +1301,7 @@ export default function DistrictCourtSearch() {
                                     className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
                                       followedCases.has(caseId)
                                         ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                        : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                        : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
                                     }`}
                                     onClick={() => handleFollowCase(result)}
                                     disabled={followLoading === caseId}

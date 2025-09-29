@@ -117,8 +117,61 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
     keywords: ["table", "grid"],
     icon: Table,
     category: "Media",
-    run: (e) =>
-      e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+    run: (e) => {
+      // Insert the table first
+      e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+
+      // After insertion, ensure there's a paragraph after the table so users can click and type outside.
+      // Use raf to ensure ProseMirror has committed the table insertion transaction.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            const { state } = e as any;
+            const { selection, doc } = state;
+            const { $from } = selection;
+
+            // Walk up from the current selection to find the nearest table node and its start position
+            let tableNode: any = null;
+            let tablePos: number | null = null;
+            for (let depth = $from.depth; depth >= 0; depth--) {
+              const node = $from.node(depth);
+              if (node.type && node.type.name === "table") {
+                tableNode = node;
+                tablePos = $from.start(depth);
+                break;
+              }
+            }
+
+            if (tableNode && tablePos !== null) {
+              const afterTablePos = tablePos + tableNode.nodeSize;
+              const nextNode = doc.nodeAt(afterTablePos);
+
+              // If no paragraph immediately follows the table, insert an empty paragraph at the exact position and move cursor into it
+              if (!nextNode || nextNode.type.name !== "paragraph") {
+                (e as any).commands.insertContentAt(afterTablePos, {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "" }],
+                });
+                e.chain().focus().setTextSelection(afterTablePos + 1).scrollIntoView().run();
+              } else {
+                // If a paragraph already exists, move the cursor there
+                e.chain().focus().setTextSelection(afterTablePos + 1).scrollIntoView().run();
+              }
+            } else {
+              // Fallback: append a paragraph to the end of the document and move cursor there
+              const endPos = (e as any).state.doc.content.size;
+              (e as any).commands.insertContentAt(endPos, {
+                type: "paragraph",
+                content: [{ type: "text", text: "" }],
+              });
+              e.chain().focus().setTextSelection(endPos + 1).scrollIntoView().run();
+            }
+          } catch {
+            // No-op on failure; table insertion already succeeded
+          }
+        });
+      });
+    },
   },
   
   // Text Alignment
@@ -215,17 +268,15 @@ export const SlashCommands = Extension.create({
 
           function renderList(container: HTMLDivElement, props: any) {
             const { clientRect, items, command } = props;
-            if (clientRect) {
-              const rect = clientRect();
-              if (rect) {
-                Object.assign(container.style, {
-                  position: "absolute",
-                  left: `${rect.left}px`,
-                  top: `${rect.bottom + 6}px`,
-                  width: "320px",
-                });
-              }
-            }
+            // Pin the menu to the left-center of the screen regardless of caret position
+            Object.assign(container.style, {
+              position: "fixed",
+              left: `60px`,
+              top: `50%`,
+              transform: "translateY(-50%)",
+              width: "320px",
+              zIndex: "9999",
+            });
             container.innerHTML = "";
 
             // Create the main container with shadcn styling

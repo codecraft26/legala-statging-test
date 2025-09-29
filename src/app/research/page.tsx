@@ -88,10 +88,10 @@ export default function ResearchPage() {
   const renderCourtDropdownItems = (courtId: string) => {
     if (courtId === "supreme") {
       return (
-        <div className="bg-gray-50 overflow-hidden ml-2">
+        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
           <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
-              activeCourt === "supreme" ? "text-blue-600" : "text-gray-600"
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "supreme" ? "text-blue-600" : "text-gray-600 dark:text-zinc-300"
             }`}
             onClick={() => setActiveCourt("supreme")}
           >
@@ -108,12 +108,12 @@ export default function ResearchPage() {
 
     if (courtId === "high") {
       return (
-        <div className="bg-gray-50 overflow-hidden ml-2">
+        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
           <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm flex items-center space-x-2 transition-colors ${
               activeCourt === "high-advocate"
                 ? "text-blue-600"
-                : "text-gray-600"
+                : "text-gray-600 dark:text-zinc-300"
             }`}
             onClick={() => setActiveCourt("high-advocate")}
           >
@@ -125,8 +125,8 @@ export default function ResearchPage() {
             <span>Search by Advocate Name</span>
           </button>
           <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
-              activeCourt === "high-filing" ? "text-blue-600" : "text-gray-600"
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "high-filing" ? "text-blue-600" : "text-gray-600 dark:text-zinc-300"
             }`}
             onClick={() => setActiveCourt("high-filing")}
           >
@@ -143,10 +143,10 @@ export default function ResearchPage() {
 
     if (courtId === "district") {
       return (
-        <div className="bg-gray-50 overflow-hidden ml-2">
+        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
           <button
-            className={`w-full px-6 py-3 text-left hover:bg-gray-100 text-sm flex items-center space-x-2 transition-colors ${
-              activeCourt === "district" ? "text-blue-600" : "text-gray-600"
+            className={`w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm flex items-center space-x-2 transition-colors ${
+              activeCourt === "district" ? "text-blue-600" : "text-gray-600 dark:text-zinc-300"
             }`}
             onClick={() => setActiveCourt("district")}
           >
@@ -165,20 +165,20 @@ export default function ResearchPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 dark:bg-background">
       {/* Sidebar */}
-      <div className="w-52 bg-white flex flex-col shadow-md">
+      <div className="w-52 bg-white dark:bg-zinc-900 flex flex-col shadow-md">
         {/* App title */}
-        <div className="bg-white-600 p-9 flex items-center justify-center border-b">
-          <h1 className="font-bold text-lg text-gray-800">Legal Research</h1>
+        <div className="p-9 flex items-center justify-center border-b border-gray-200 dark:border-zinc-800">
+          <h1 className="font-bold text-lg text-gray-800 dark:text-foreground">Legal Research</h1>
         </div>
 
         {/* Following button */}
         <button
-          className={`flex items-center space-x-3 px-6 py-4 hover:bg-gray-50 transition-colors duration-200 ${
+          className={`flex items-center space-x-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors duration-200 ${
             activeCourt === "following"
-              ? "text-blue-600 bg-gray-50"
-              : "text-gray-700"
+              ? "text-blue-600 bg-gray-50 dark:bg-zinc-800"
+              : "text-gray-700 dark:text-zinc-200"
           }`}
           onClick={() => setActiveCourt("following")}
         >
@@ -187,7 +187,7 @@ export default function ResearchPage() {
         </button>
 
         {/* Divider */}
-        <div className="mx-4 my-2 border-b border-gray-100"></div>
+        <div className="mx-4 my-2 border-b border-gray-100 dark:border-zinc-800"></div>
 
         {/* Court navigation */}
         <div className="flex-1 overflow-y-auto px-2">
@@ -196,10 +196,10 @@ export default function ResearchPage() {
             return (
               <div key={court.id} className="mb-1 overflow-hidden">
                 <button
-                  className={`flex items-center justify-between w-full px-4 py-3 hover:bg-gray-50 text-left transition-colors duration-200 ${
+                  className={`flex items-center justify-between w-full px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800 text-left transition-colors duration-200 ${
                     openDropdown === court.id
-                      ? "bg-gray-50 text-blue-600"
-                      : "text-gray-700"
+                      ? "bg-gray-50 dark:bg-zinc-800 text-blue-600"
+                      : "text-gray-700 dark:text-zinc-200"
                   }`}
                   onClick={() => toggleDropdown(court.id)}
                 >
@@ -229,7 +229,7 @@ export default function ResearchPage() {
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-gray-400"
+                      className="h-4 w-4 text-gray-400 dark:text-zinc-500"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -254,10 +254,10 @@ export default function ResearchPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-foreground">
                 {activeCourt === "following"
                   ? "Followed Cases"
                   : activeCourt === "supreme"
@@ -272,7 +272,7 @@ export default function ResearchPage() {
                             ? "Legal Knowledge Search"
                             : "Legal Research"}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-zinc-400 mt-1">
                 {activeCourt === "following"
                   ? "Track and manage your followed legal cases"
                   : activeCourt === "supreme"
@@ -292,7 +292,7 @@ export default function ResearchPage() {
         </div>
 
         {/* Main content area */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-zinc-950">
           {renderContent()}
         </main>
       </div>
