@@ -34,6 +34,7 @@ import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
 import DocumentBrowser from "./components/DocumentBrowser";
 import { Api } from "@/lib/api-client";
+import { DraftingApi } from "@/lib/drafting-api";
 import { FontSize } from "./extensions/FontSize";
 import "./styles/EditorStyles.css";
 
@@ -140,11 +141,14 @@ export default function TiptapEditor() {
   );
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Get workspace ID from localStorage on mount
+  // Get workspace ID from cookie on mount (fallback to localStorage for old data)
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const workspaceId = localStorage.getItem("workspaceId");
-      setCurrentWorkspaceId(workspaceId);
+      try {
+        const cookieMatch = document.cookie.match(/(?:^|; )workspaceId=([^;]*)/);
+        const workspaceId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+        setCurrentWorkspaceId(workspaceId);
+      } catch {}
     }
   }, []);
 
@@ -650,6 +654,34 @@ export default function TiptapEditor() {
     }
   }, [editor, documentTitle, variableValues, sanitizeHtmlContent]);
 
+  // Draft from existing documents
+  const handleDraftFromDocuments = useCallback(
+    async (
+      documentIds: string[],
+      instruction: string,
+      workspaceId: string
+    ) => {
+      try {
+        const draftResponse = await DraftingApi.draftFromDocuments({
+          documentId: documentIds,
+          instruction: instruction,
+          workspaceId: workspaceId,
+        });
+
+        // If the API returns content, update the editor
+        if (draftResponse.content && editor) {
+          editor.commands.setContent(draftResponse.content);
+        }
+
+        return draftResponse;
+      } catch (error) {
+        console.error("Error drafting from documents:", error);
+        throw error;
+      }
+    },
+    [editor]
+  );
+
   // Save draft to document (create draft and save as document)
   const handleSaveDraftToDocument = useCallback(
     async (
@@ -686,27 +718,21 @@ export default function TiptapEditor() {
         );
 
         // First create a draft
-        const createDraftResponse = await Api.post<{
-          id: string;
-          status: string;
-        }>("/drafting", {
-          name: fileName,
+        const createDraftResponse = await DraftingApi.draftFromDocuments({
+          documentId: [], // Array of document IDs to draft from (empty for new drafts)
           instruction: `Auto-generated draft: ${documentTitle}`,
-          content: finalContent,
           workspaceId: workspaceId,
         });
 
         const draftId = createDraftResponse.id;
 
         // Then save the draft as a document
-        const saveResponse = await Api.post("/drafting/save-to-document", {
-          draftId: draftId,
-          fileName: fileName.endsWith(`.${fileFormat}`)
-            ? fileName
-            : `${fileName}.${fileFormat}`,
-          workspaceId: workspaceId,
-          fileFormat: fileFormat,
-        });
+        const saveResponse = await DraftingApi.saveDraftToDocument(
+          draftId,
+          fileName,
+          workspaceId,
+          fileFormat
+        );
 
         alert(`Draft "${fileName}" saved successfully as document!`);
       } catch (error) {

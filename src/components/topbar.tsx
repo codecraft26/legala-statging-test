@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import WorkspaceSelector from "@/components/workspace-selector";
 import { Api } from "@/lib/api-client";
+import { deleteCookie, getCookie } from "@/lib/utils";
 
 function RoleBadge({ role }: { role?: string }) {
   if (!role) return null;
@@ -42,12 +43,14 @@ export default function Topbar() {
   const router = useRouter();
 
   const initials = (user?.email || "U").charAt(0).toUpperCase();
+  const isAuthed = Boolean(
+    user || token || (typeof window !== "undefined" && getCookie("token"))
+  );
 
   // Ensure user is loaded when token exists (after refresh)
   useEffect(() => {
     setMounted(true);
-    const lsToken =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const lsToken = typeof window !== "undefined" ? getCookie("token") : null;
     if (!user && lsToken) {
       (async () => {
         try {
@@ -69,7 +72,7 @@ export default function Topbar() {
             setCredentials({ token: lsToken, user: normalizedDetail } as any)
           );
           try {
-            localStorage.setItem("user", JSON.stringify(normalizedDetail));
+            // keep only in redux/state; avoid duplicating in localStorage
           } catch {}
         } catch (_) {
           // ignore; fall back to login button
@@ -112,11 +115,7 @@ export default function Topbar() {
             <Bell size={16} />
           </button>
           <ThemeToggle />
-          {mounted &&
-          (user ||
-            token ||
-            (typeof window !== "undefined" &&
-              localStorage.getItem("token"))) ? (
+          {mounted && isAuthed ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setOpen((v) => !v)}
@@ -174,7 +173,7 @@ export default function Topbar() {
                     </div>
                     {user?.email ? (
                       <p className="text-xs text-muted-foreground truncate max-w-32">
-                        {user.email as string}
+                        {String(user.email || "")}
                       </p>
                     ) : mounted &&
                       typeof window !== "undefined" &&
@@ -215,7 +214,7 @@ export default function Topbar() {
                     onClick={() => {
                       setOpen(false);
                       if (typeof window !== "undefined") {
-                        localStorage.removeItem("token");
+                        deleteCookie("token");
                       }
                       dispatch(logout());
                       router.push("/login");

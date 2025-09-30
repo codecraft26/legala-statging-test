@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { http } from "@/lib/http";
+import { getBackendBaseUrl } from "@/lib/utils";
 
 export interface EstCodeData {
   [district: string]: {
@@ -21,37 +24,24 @@ export interface EstCodesResponse {
 }
 
 export function useEstCodes() {
-  const [estData, setEstData] = useState<EstCodeData>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const ccBase =
+    process.env.NEXT_PUBLIC_CC_BASE_URL || getBackendBaseUrl();
 
-  useEffect(() => {
-    const fetchEstCodes = async () => {
-      try {
-        const response = await fetch(
-          "https://researchengineinh.infrahive.ai/cc/est-codes"
-        );
+  const query = useQuery<{ [district: string]: any }, Error>({
+    queryKey: ["est-codes", ccBase],
+    queryFn: async () => {
+      const { data } = await http.get<EstCodesResponse>(
+        `${ccBase.replace(/\/$/, "")}/cc/est-codes`
+      );
+      if (!data?.success) throw new Error("Failed to load EST codes");
+      return data.data as EstCodeData;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch EST codes");
-        }
-
-        const data: EstCodesResponse = await response.json();
-
-        if (data.success) {
-          setEstData(data.data);
-        } else {
-          throw new Error("API returned success: false");
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEstCodes();
-  }, []);
+  const estData: EstCodeData = query.data ?? {};
+  const loading = query.isLoading || query.isFetching;
+  const error = query.error?.message ?? null;
 
   const getEstCodeOptionsForDistrict = (
     districtName: string

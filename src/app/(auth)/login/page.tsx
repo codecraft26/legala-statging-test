@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 import { RootState } from "@/store";
 import { useRouter } from "next/navigation";
+import { getCookie, setCookie } from "@/lib/utils";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -20,8 +21,7 @@ export default function LoginPage() {
 
   // If already logged in, redirect to dashboard
   useEffect(() => {
-    const storedToken =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const storedToken = typeof window !== "undefined" ? getCookie("token") : null;
     if (token || storedToken) {
       router.replace("http://localhost:3000/dashboard");
     }
@@ -38,7 +38,7 @@ export default function LoginPage() {
       });
       const token = res.token;
       if (typeof window !== "undefined") {
-        localStorage.setItem("token", token);
+        setCookie("token", token, 7, { sameSite: "lax", secure: true });
       }
       // Fetch user detail
       const userResponse = await Api.get<any>("/user/detail");
@@ -58,7 +58,8 @@ export default function LoginPage() {
       dispatch(setCredentials({ token, user: normalizedUser } as any));
       try {
         if (typeof window !== "undefined") {
-          localStorage.setItem("user", JSON.stringify(normalizedUser));
+          // Optionally store minimal user info in cookie if needed later
+          // Avoid large cookies; prefer redux/state
         }
       } catch {}
       router.replace("http://localhost:3000/dashboard");

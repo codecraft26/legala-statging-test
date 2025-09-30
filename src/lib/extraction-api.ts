@@ -67,26 +67,32 @@ export const extractionApi = {
   extractFiles: async (
     request: CreateExtractionFilesRequest
   ): Promise<ApiResponse<ExtractionAgent>> => {
-    const formData = new FormData();
+    try {
+      const formData = new FormData();
 
-    // Add files
-    request.files.forEach((file) => {
-      formData.append("files", file);
-    });
+      // Add files
+      request.files.forEach((file) => {
+        formData.append("files", file);
+      });
 
-    // Add other parameters
-    formData.append("name", request.name);
-    formData.append("tags", JSON.stringify(request.tags));
-    if (request.instruction) {
-      formData.append("instruction", request.instruction);
+      // Add other parameters
+      formData.append("name", request.name);
+      formData.append("tags", JSON.stringify(request.tags));
+      if (request.instruction) {
+        formData.append("instruction", request.instruction);
+      }
+      formData.append("workspaceId", request.workspaceId);
+
+      const response = await Api.post<ApiResponse<ExtractionAgent>>(
+        "/extract/files",
+        formData,
+        true
+      );
+      return response;
+    } catch (error) {
+      console.error("Extraction API error:", error);
+      throw error;
     }
-    formData.append("workspaceId", request.workspaceId);
-
-    return Api.post<ApiResponse<ExtractionAgent>>(
-      "/extract/files",
-      formData,
-      true
-    );
   },
 
   // Extract data from saved documents

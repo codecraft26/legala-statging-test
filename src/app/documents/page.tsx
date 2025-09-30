@@ -12,6 +12,12 @@ type Item = {
   type: "file" | "folder";
   filename: string;
   parent_folder_id?: string | null;
+  user?: {
+    name?: string;
+    email?: string;
+    role?: string;
+  };
+  createdAt?: string;
 };
 
 export default function DocumentsPage() {
@@ -69,6 +75,12 @@ export default function DocumentsPage() {
             : "file",
         filename: String(d?.name ?? d?.filename ?? ""),
         parent_folder_id: d?.parentId ?? d?.parent_folder_id ?? null,
+        user: d?.user ? {
+          name: d.user.name,
+          email: d.user.email,
+          role: d.user.role,
+        } : undefined,
+        createdAt: d?.createdAt,
       }));
       setItems(list);
     } catch (e) {
@@ -309,11 +321,30 @@ export default function DocumentsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="truncate text-sm font-medium">
-                          {it.filename}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {it.filename}
+                          </p>
+                          {it.type === "file" && it.user && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs text-muted-foreground truncate">
+                                Uploaded by <span className="font-medium text-foreground">{it.user.name || it.user.email}</span>
+                              </p>
+                              {it.user.role && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {it.user.role}
+                                </span>
+                              )}
+                              {it.createdAt && (
+                                <span className="text-xs text-muted-foreground">
+                                  • {new Date(it.createdAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <button
-                          className="text-red-600 hover:underline text-xs inline-flex items-center gap-1"
+                          className="text-red-600 hover:underline text-xs inline-flex items-center gap-1 ml-2 shrink-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             remove(it);

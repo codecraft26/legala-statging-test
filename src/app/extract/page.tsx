@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { Api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   FileText,
   Tag,
@@ -12,6 +14,8 @@ import {
   Loader2,
   Sparkles,
   Settings,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import ProgressBar from "./components/ProgressBar";
 import FileUpload from "./components/FileUpload";
@@ -21,6 +25,7 @@ import {
   useExtractions,
   useCreateExtractionFiles,
   useExtractionPolling,
+  useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
 
 type Extraction = {
@@ -58,6 +63,7 @@ const DUMMY: Extraction[] = [
 ];
 
 export default function ExtractPage() {
+  const router = useRouter();
   const { currentWorkspace } = useSelector((s: RootState) => s.auth);
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<{ file: File }[]>([]);
@@ -68,6 +74,13 @@ export default function ExtractPage() {
   const [currentExtractionId, setCurrentExtractionId] = useState<string | null>(
     null
   );
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const { mutate: removeExtraction, isPending: isDeleting } =
+    useRemoveExtractionAgent();
 
   // Use TanStack Query hooks
   const {
@@ -95,6 +108,27 @@ export default function ExtractPage() {
       progress: extraction.status === "PROCESSING" ? 50 : undefined,
     })) || [];
 
+  // Pagination derived data
+  const filtered = items.filter((x) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      x.name.toLowerCase().includes(q) ||
+      x.tags.join(" ").toLowerCase().includes(q) ||
+      new Date(x.createdAt).toLocaleString().toLowerCase().includes(q) ||
+      x.status.toLowerCase().includes(q)
+    );
+  });
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentItems = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+  // Reset page when the items or pageSize change
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, totalItems]);
+
   // Handle polling updates
   useEffect(() => {
     if (pollingData) {
@@ -117,7 +151,9 @@ export default function ExtractPage() {
         // Extraction failed
         setIsLoading(false);
         setCurrentExtractionId(null);
-        console.error("Extraction failed");
+        console.error("Extraction failed:", pollingData);
+        // Show user-friendly error message
+        alert(`Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`);
       }
     }
   }, [pollingData]);
@@ -262,6 +298,7 @@ export default function ExtractPage() {
                                 console.error("Extraction failed:", error);
                                 setIsLoading(false);
                                 setProgress(0);
+                                alert(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`);
                               },
                             }
                           );
@@ -269,6 +306,7 @@ export default function ExtractPage() {
                           console.error("Error starting extraction:", error);
                           setIsLoading(false);
                           setProgress(0);
+                          alert(`Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`);
                         }
                       }}
                     />
@@ -328,52 +366,161 @@ export default function ExtractPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((x) => (
-            <div key={x.id} className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-md p-2 bg-accent text-foreground/90">
-                    <FileText size={16} />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{x.name}</div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Clock size={12} />{" "}
-                      {new Date(x.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <StatusBadge status={x.status} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {x.tags.length > 0 ? (
-                  x.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground"
-                    >
-                      <Tag size={12} /> {t}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-xs text-muted-foreground">No tags</span>
-                )}
-              </div>
-              {x.status === "processing" ? (
-                <div className="flex items-center gap-2 text-xs">
-                  <Loader2 className="animate-spin" size={14} /> Processing…{" "}
-                  {x.progress}%
-                </div>
-              ) : null}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <Button variant="outline" size="sm">
-                  Details
-                </Button>
-                <Button size="sm">Open</Button>
-              </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="relative w-full max-w-sm">
+              <Input
+                placeholder="Search extractions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-          ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                // Simple refresh: clear cache by invalidating queries via a remount approach
+                // Trigger refetch by toggling pageSize temporarily
+                setPageSize((s) => (s === 10 ? 11 : 10));
+                setTimeout(() => setPageSize(10), 0);
+              }}
+              title="Refresh"
+              aria-label="Refresh"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="rounded-lg border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Name</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Created</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Tags</th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">No extractions found</td>
+                    </tr>
+                  ) : (
+                    currentItems.map((x) => (
+                      <tr key={x.id} className="border-t">
+                        <td className="px-4 py-3">
+                          <button
+                            className="flex items-center gap-2 hover:underline"
+                            onClick={() => router.push(`/extract/${x.id}`)}
+                          >
+                            <div className="rounded p-1 bg-accent"><FileText size={14} /></div>
+                            <div className="font-medium text-left">{x.name}</div>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock size={12} /> {new Date(x.createdAt).toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {x.tags.length > 0 ? (
+                              x.tags.map((t) => (
+                                <span key={t} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground">
+                                  <Tag size={10} /> {t}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No tags</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={x.status} />
+                          {x.status === "processing" ? (
+                            <span className="ml-2 text-xs text-muted-foreground">{x.progress || 0}%</span>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-600 hover:text-red-700"
+                              disabled={isDeleting && deletingId === x.id}
+                              aria-label="Delete extraction"
+                              title="Delete"
+                              onClick={() => {
+                                if (!confirm("Delete this extraction? This cannot be undone.")) return;
+                                setDeletingId(x.id);
+                                removeExtraction(x.id, {
+                                  onError: (err) => {
+                                    console.error("Failed to delete extraction:", err);
+                                    alert(
+                                      `Failed to delete extraction: ${
+                                        err instanceof Error ? err.message : "Unknown error"
+                                      }`
+                                    );
+                                  },
+                                  onSettled: () => setDeletingId(null),
+                                });
+                              }}
+                            >
+                              {isDeleting && deletingId === x.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <span>Rows per page</span>
+              <select
+                className="border rounded px-2 py-1 bg-background"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+              >
+                {[5, 10, 20, 50].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-muted-foreground">
+                {totalItems === 0 ? 0 : (page - 1) * pageSize + 1}-{Math.min(page * pageSize, totalItems)} of {totalItems}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <div className="text-sm text-muted-foreground">Page {page} of {totalPages}</div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </main>

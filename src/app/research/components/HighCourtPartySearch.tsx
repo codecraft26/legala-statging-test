@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Search, X, Star, Eye, Loader2 } from "lucide-react";
-import { useResearchAPI } from "@/hooks/use-research";
+import {
+  useHighByParty,
+  useHighDetail,
+  useFollowResearch,
+  useUnfollowResearch,
+} from "@/hooks/use-research";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 
 interface HighCourtPartyResult {
   case_no: number;
@@ -88,14 +94,20 @@ export default function HighCourtPartySearch() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const {
-    loading,
-    error,
-    searchHighCourtByParty,
-    getHighCourtCaseDetail,
-    followResearch,
-    unfollowResearch,
-  } = useResearchAPI();
+  const [searchParams, setSearchParams] = useState<
+    | {
+        court_code: number;
+        state_code: number;
+        court_complex_code: number;
+        petres_name: string;
+        rgyear: number;
+        f: "BOTH" | "PENDING" | "DISPOSED";
+      }
+    | null
+  >(null);
+  const partyQuery = useHighByParty(searchParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -189,20 +201,14 @@ export default function HighCourtPartySearch() {
       return;
     }
 
-    try {
-      const data = await searchHighCourtByParty({
-        court_code: courtCode,
-        state_code: stateCode,
-        court_complex_code: courtComplexCode,
-        petres_name: partyName,
-        rgyear: parseInt(year),
-        f: stage,
-      });
-
-      setSearchResults(data?.results || []);
-    } catch (err) {
-      console.error("Search failed:", err);
-    }
+    setSearchParams({
+      court_code: courtCode,
+      state_code: stateCode,
+      court_complex_code: courtComplexCode,
+      petres_name: partyName,
+      rgyear: parseInt(year),
+      f: stage,
+    } as any);
   };
 
   const handleViewDetails = async (result: HighCourtPartyResult) => {
@@ -210,16 +216,25 @@ export default function HighCourtPartySearch() {
     setDetailsLoading(caseId);
 
     try {
-      const nationalCourtCode = result.cino?.substring(0, 6) || "";
-      const details = await getHighCourtCaseDetail({
-        case_no: result.case_no,
-        state_code: result.state_cd,
-        cino: result.cino,
-        court_code: result.court_code,
-        national_court_code: nationalCourtCode,
-        dist_cd: result.court_code,
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const response = await fetch(`${base}/research/high-court/case-detail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          case_no: Number(result.case_no),
+          state_code: Number(result.state_cd),
+          cino: result.cino,
+          court_code: Number(result.court_code),
+          national_court_code: (result.cino || "").substring(0, 6),
+          dist_cd: 1,
+        }),
       });
-
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const details = await response.json();
       setSelectedCase(details);
       setShowCaseDetails(true);
     } catch (err) {
@@ -235,17 +250,17 @@ export default function HighCourtPartySearch() {
 
     try {
       if (followedCases.has(caseId)) {
-        await unfollowResearch(caseId);
+        await unfollowMutation.mutateAsync(caseId);
         setFollowedCases((prev) => {
           const newSet = new Set(prev);
           newSet.delete(caseId);
           return newSet;
         });
       } else {
-        await followResearch({
+        await followMutation.mutateAsync({
           court: "High_Court",
           followed: caseData,
-          workspaceId: "current-workspace", // Replace with actual workspace ID
+          workspaceId: "current-workspace",
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }
@@ -433,9 +448,9 @@ export default function HighCourtPartySearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={loading}
+                disabled={partyQuery.isLoading || partyQuery.isFetching}
               >
-                {loading ? (
+                {partyQuery.isLoading || partyQuery.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -453,14 +468,14 @@ export default function HighCourtPartySearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {partyQuery.error && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700">{partyQuery.error instanceof Error ? partyQuery.error.message : 'An error occurred while searching'}</p>
         </div>
       )}
 
       {/* Results Section */}
-      {!loading && searchResults.length > 0 && (
+      {!partyQuery.isLoading && !partyQuery.isFetching && (Array.isArray((partyQuery.data as any)?.results) ? (partyQuery.data as any).results.length : Array.isArray(partyQuery.data) ? (partyQuery.data as any[]).length : 0) > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
@@ -508,7 +523,17 @@ export default function HighCourtPartySearch() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredResults.map((result, index) => {
+                  {(Array.isArray(partyQuery.data)
+                    ? (partyQuery.data as any[])
+                    : (partyQuery.data as any)?.results || [])
+                    .filter((result: any) =>
+                      Object.values(result).some((value: any) =>
+                        String(value)
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase())
+                      )
+                    )
+                    .map((result: any, index: number) => {
                     const caseId = result.cino || result.case_no.toString();
                     return (
                       <tr

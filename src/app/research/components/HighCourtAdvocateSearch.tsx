@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useResearchAPI } from "@/hooks/use-research";
+import { useHighByAdvocate, useFollowResearch, useUnfollowResearch } from "@/hooks/use-research";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import {
   stateCodeMapping,
   courtComplexMapping,
@@ -36,6 +38,139 @@ interface HighCourtResult {
 
 interface CaseDetails {
   [key: string]: any;
+}
+
+// Parse High Court HTML details into structured object expected by the UI
+function parseHighCourtHtml(html: string): any {
+  try {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const getText = (selector: string) =>
+      (container.querySelector(selector)?.textContent || "").trim();
+
+    const getCellAfterLabel = (tableSelector: string, label: string): string => {
+      const table = container.querySelector(tableSelector);
+      if (!table) return "";
+      const tds = Array.from(table.querySelectorAll("td"));
+      for (let i = 0; i < tds.length - 1; i++) {
+        const labelText = tds[i].textContent?.replace(/\s+/g, " ").trim() || "";
+        if (labelText.toLowerCase().includes(label.toLowerCase())) {
+          return (tds[i + 1].textContent || "").trim();
+        }
+      }
+      return "";
+    };
+
+    // Case details table (first table under "Case Details")
+    const caseDetailsTable = container.querySelector(".case_details_table");
+    const case_details = {
+      filing_number: getCellAfterLabel(".case_details_table", "Filing Number") || "",
+      filing_date: getCellAfterLabel(".case_details_table", "Filing Date") || "",
+      registration_number:
+        getCellAfterLabel(".case_details_table", "Registration Number") || "",
+      registration_date:
+        getCellAfterLabel(".case_details_table", "Registration Date") || "",
+      cnr_number: (container.querySelector(".case_details_table tr strong")?.textContent || "").trim() || "",
+    };
+
+    // Case Status table (after "Case Status")
+    const statusTable = Array.from(container.querySelectorAll("table")).find((t) =>
+      /Case Status/i.test(t.previousElementSibling?.textContent || "")
+    );
+    const statusRows = statusTable ? Array.from(statusTable.querySelectorAll("tr")) : [];
+    const statusMap: Record<string, string> = {};
+    statusRows.forEach((tr) => {
+      const cells = tr.querySelectorAll("td");
+      if (cells.length >= 2) {
+        const key = (cells[0].textContent || "").replace(/\s+/g, " ").trim();
+        const value = (cells[1].textContent || "").replace(/\s+/g, " ").trim();
+        statusMap[key.toLowerCase()] = value;
+      }
+    });
+    const case_status = {
+      first_hearing_date: statusMap["first hearing date"] || "",
+      decision_date: statusMap["decision date"] || "",
+      stage_of_case: statusMap["case status"] || "",
+      nature_of_disposal: statusMap["nature of disposal"] || "",
+      coram: statusMap["coram"] || "",
+      judicial_branch: statusMap["judicial branch"] || "",
+      not_before_me: statusMap["not before me"] || "",
+    };
+
+    // Parties and advocates
+    const petitionerSpan = container.querySelector(".Petitioner_Advocate_table");
+    const respondentSpan = container.querySelector(".Respondent_Advocate_table");
+    const petitioner_and_advocate = petitionerSpan
+      ? (petitionerSpan.textContent || "")
+          .split(/\n|<br\s*\/?>(?=\s*)/gi as any)
+          .map((s) => String(s).trim())
+          .filter(Boolean)
+      : [];
+    const respondent_and_advocate = respondentSpan
+      ? (respondentSpan.textContent || "")
+          .split(/\n|<br\s*\/?>(?=\s*)/gi as any)
+          .map((s) => String(s).trim())
+          .filter(Boolean)
+      : [];
+
+    // Orders table
+    const ordersHeader = Array.from(container.querySelectorAll("h2")).find((h) =>
+      /Orders/i.test(h.textContent || "")
+    );
+    const ordersTable = ordersHeader?.parentElement?.nextElementSibling as HTMLTableElement | null;
+    const orders: any[] = [];
+    if (ordersTable) {
+      const rows = Array.from(ordersTable.querySelectorAll("tr")).slice(1);
+      rows.forEach((tr) => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length >= 5) {
+          const link = tds[4].querySelector("a") as HTMLAnchorElement | null;
+          orders.push({
+            order_number: (tds[0].textContent || "").trim(),
+            case_no: (tds[1].textContent || "").trim(),
+            judge: (tds[2].textContent || "").trim(),
+            order_date: (tds[3].textContent || "").trim(),
+            order_details: link?.href || "",
+          });
+        }
+      });
+    }
+
+    // IA details table
+    const iaHeader = Array.from(container.querySelectorAll("h2")).find((h) =>
+      /IA Details/i.test(h.textContent || "")
+    );
+    const iaTable = iaHeader?.nextElementSibling as HTMLTableElement | null;
+    const ia_details: any[] = [];
+    if (iaTable) {
+      const rows = Array.from(iaTable.querySelectorAll("tr")).slice(1);
+      rows.forEach((tr) => {
+        const tds = tr.querySelectorAll("td, th");
+        if (tds.length >= 5) {
+          ia_details.push({
+            ia_number: (tds[0].textContent || "").replace(/\s+/g, " ").trim(),
+            party: (tds[1].textContent || "").trim(),
+            date_of_filing: (tds[2].textContent || "").trim(),
+            next_date: (tds[3].textContent || "").trim(),
+            ia_status: (tds[4].textContent || "").trim(),
+          });
+        }
+      });
+    }
+
+    return {
+      case_details,
+      case_status,
+      petitioner_and_advocate,
+      respondent_and_advocate,
+      orders,
+      ia_details,
+    };
+  } catch (e) {
+    console.warn("Failed to parse High Court HTML details:", e);
+    return {};
+  }
 }
 
 // Status Badge Component
@@ -479,6 +614,8 @@ export default function HighCourtAdvocateSearch() {
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [searchParams, setSearchParams] = useState<{
     court_code: number;
     state_code: number;
@@ -488,60 +625,38 @@ export default function HighCourtAdvocateSearch() {
   } | null>(null);
 
   const queryClient = useQueryClient();
-  const { searchHighCourtByAdvocate, followResearch, unfollowResearch } =
-    useResearchAPI();
-
-  // TanStack Query for search results
-  const {
-    data: searchResults = [],
-    isLoading,
-    error,
-    isFetching,
-  } = useQuery<HighCourtResult[]>({
-    queryKey: ["highCourtAdvocateSearch", searchParams],
-    queryFn: async (): Promise<HighCourtResult[]> => {
-      if (!searchParams) return [];
-
-      console.warn("Searching High Court by advocate:", searchParams);
-      const data = await searchHighCourtByAdvocate(searchParams);
-
-      // Handle different possible response structures
-      let results: HighCourtResult[] = [];
-      if (data) {
-        if (Array.isArray(data)) {
-          results = data;
-        } else if (data.results && Array.isArray(data.results)) {
-          results = data.results;
-        } else if (data.data && Array.isArray(data.data)) {
-          results = data.data;
-        } else if (data.cases && Array.isArray(data.cases)) {
-          results = data.cases;
-        } else {
-          console.warn(
-            "No search results found or unexpected API response structure:",
-            data
-          );
-          results = [];
-        }
-      } else {
-        console.warn("No data returned from API");
-        results = [];
-      }
-
-      console.warn("Processed results:", results);
-      return results;
-    },
-    enabled: !!searchParams,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (replaced cacheTime)
-  });
+  const advocateQuery = useHighByAdvocate(searchParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result: HighCourtResult) =>
+  const rawResults: HighCourtResult[] = Array.isArray(advocateQuery.data)
+    ? (advocateQuery.data as HighCourtResult[])
+    : Array.isArray((advocateQuery.data as any)?.results)
+    ? ((advocateQuery.data as any).results as HighCourtResult[])
+    : Array.isArray((advocateQuery.data as any)?.data)
+    ? ((advocateQuery.data as any).data as HighCourtResult[])
+    : Array.isArray((advocateQuery.data as any)?.cases)
+    ? ((advocateQuery.data as any).cases as HighCourtResult[])
+    : [];
+
+  const filteredResults = rawResults.filter((result: HighCourtResult) =>
     Object.values(result).some((value: any) =>
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  // Pagination calculations
+  const total = filteredResults.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, total);
+  const currentPageResults = filteredResults.slice(startIndex, endIndex);
+
+  // Reset page when results change
+  React.useEffect(() => {
+    setPage(1);
+  }, [advocateQuery.isFetching, searchQuery, JSON.stringify(searchParams)]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -563,26 +678,41 @@ export default function HighCourtAdvocateSearch() {
 
     try {
       // Use the specific API endpoint provided by the user with POST method
-      const response = await fetch(
-        `https://researchengineinh.infrahive.ai/hc/case?case_no=${result.case_no}&state_cd=${result.state_cd}&dist_cd=1&court_code=${result.court_code}&national_court_code=DLHC01&cino=${result.cino}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const response = await fetch(`${base}/research/high-court/case-detail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          case_no: Number(result.case_no),
+          state_code: Number(result.state_cd),
+          cino: result.cino,
+          court_code: Number(result.court_code),
+          national_court_code: "DLHC01",
+          dist_cd: 1,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const caseDetails = await response.json();
+      const raw = await response.json();
 
-      // Set the detailed case data
+      // API can respond with { status: 200, data: "<html>...</html>" }
+      // Normalize into the structure our UI expects
+      const details = typeof raw?.data === "string"
+        ? parseHighCourtHtml(raw.data)
+        : typeof raw === "string"
+          ? parseHighCourtHtml(raw)
+          : raw;
+
       setSelectedCase({
         ...result,
-        details: caseDetails,
+        details,
       });
       setShowCaseDetails(true);
     } catch (err) {
@@ -596,38 +726,7 @@ export default function HighCourtAdvocateSearch() {
   };
 
   // TanStack Query mutations for follow/unfollow
-  const followMutation = useMutation({
-    mutationFn: async (caseData: HighCourtResult) => {
-      return await followResearch({
-        court: "High_Court",
-        followed: caseData,
-        workspaceId: "current-workspace", // Replace with actual workspace ID
-      });
-    },
-    onSuccess: (_, caseData) => {
-      const caseId = caseData.cino || caseData.case_no;
-      setFollowedCases((prev) => new Set(prev).add(caseId));
-    },
-    onError: (error) => {
-      console.error("Follow failed:", error);
-    },
-  });
-
-  const unfollowMutation = useMutation({
-    mutationFn: async (caseId: string) => {
-      return await unfollowResearch(caseId);
-    },
-    onSuccess: (_, caseId) => {
-      setFollowedCases((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(caseId);
-        return newSet;
-      });
-    },
-    onError: (error) => {
-      console.error("Unfollow failed:", error);
-    },
-  });
+  // (defined above)
 
   const handleFollowCase = (caseData: HighCourtResult) => {
     const caseId = caseData.cino || caseData.case_no;
@@ -635,7 +734,11 @@ export default function HighCourtAdvocateSearch() {
     if (followedCases.has(caseId)) {
       unfollowMutation.mutate(caseId);
     } else {
-      followMutation.mutate(caseData);
+      followMutation.mutate({
+        court: "High_Court",
+        followed: caseData,
+        workspaceId: "current-workspace",
+      });
     }
   };
 
@@ -738,9 +841,9 @@ export default function HighCourtAdvocateSearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={isLoading || isFetching}
+                disabled={advocateQuery.isLoading || advocateQuery.isFetching}
               >
-                {isLoading || isFetching ? (
+                {advocateQuery.isLoading || advocateQuery.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -758,30 +861,26 @@ export default function HighCourtAdvocateSearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {advocateQuery.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
               <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
-                {error instanceof Error
-                  ? error.message
-                  : "An error occurred while searching"}
-              </p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{advocateQuery.error instanceof Error ? advocateQuery.error.message : "An error occurred while searching"}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Success Message */}
-      {!isLoading && !isFetching && searchResults.length > 0 && (
+      {!advocateQuery.isLoading && !advocateQuery.isFetching && filteredResults.length > 0 && (
         <div className="mt-4 p-4 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900 rounded-md">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
             <p className="text-green-700 dark:text-emerald-300">
-              Found {searchResults.length} case
-              {searchResults.length !== 1 ? "s" : ""} matching your search
+              Found {filteredResults.length} case
+              {filteredResults.length !== 1 ? "s" : ""} matching your search
               criteria.
             </p>
           </div>
@@ -789,25 +888,27 @@ export default function HighCourtAdvocateSearch() {
       )}
 
       {/* Results Section */}
-      {!isLoading && !isFetching && searchResults.length > 0 && (
+      {!advocateQuery.isLoading && !advocateQuery.isFetching && filteredResults.length > 0 && (
         <div className="mt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-medium">Search Results</h3>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Data..."
-                className="w-64 border border-black dark:border-zinc-700 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900 dark:text-zinc-300" />
+          <div className="flex flex-col gap-3 mb-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Search Results</h3>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  className="w-64 border border-gray-300 bg-white text-gray-900 rounded-md pl-8 p-2 focus:outline-none"
+                />
+                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                  <Search size={16} className="text-gray-600" />
+                </div>
               </div>
             </div>
           </div>
 
-          {filteredResults.length === 0 ? (
+          {currentPageResults.length === 0 ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
               <div className="flex items-center space-x-2">
                 <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
@@ -832,130 +933,119 @@ export default function HighCourtAdvocateSearch() {
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
-                <table className="min-w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900">
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
-                        CNR
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
-                        CASE NUMBER
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[200px]">
-                        TITLE
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
-                        TYPE
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[120px]">
-                        DECISION DATE
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[80px]">
-                        FOLLOW
-                      </th>
-                      <th className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left min-w-[100px]">
-                        ACTIONS
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="border-y-4 border-white dark:border-zinc-900">
-                    {filteredResults.map(
-                      (result: HighCourtResult, index: number) => {
-                        const caseId = result.cino || result.case_no;
-                        return (
-                          <tr
-                            key={caseId}
-                            className={`transition-colors hover:bg-blue-50 dark:hover:bg-zinc-800 ${
-                              index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-blue-50 dark:bg-zinc-950"
-                            } border-b-2 border-gray-100 dark:border-zinc-800 last:border-b-0`}
+            <div className="w-full overflow-x-auto border border-gray-200 rounded-md bg-white">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-100">
+                    <TableHead className="px-3 py-2 text-xs">CNR</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">CASE NUMBER</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">TITLE</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">TYPE</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">DECISION DATE</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">FOLLOW</TableHead>
+                    <TableHead className="px-3 py-2 text-xs">ACTIONS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentPageResults.map((result: HighCourtResult) => {
+                    const caseId = result.cino || result.case_no;
+                    return (
+                      <TableRow key={caseId}>
+                        <TableCell className="px-3 py-2 text-xs">{result.cino || "N/A"}</TableCell>
+                        <TableCell className="px-3 py-2 text-xs font-medium">{result.case_no || "N/A"}</TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          <div className="max-w-[220px] truncate" title={`${result.pet_name || ""} vs ${result.res_name || ""}`}>
+                            {result.pet_name && result.res_name
+                              ? `${result.pet_name} vs ${result.res_name}`
+                              : result.pet_name || result.res_name || "N/A"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">{result.type_name || "N/A"}</TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          {result.date_of_decision
+                            ? new Date(result.date_of_decision).toLocaleDateString("en-IN")
+                            : "N/A"}
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          <button
+                            className={`border border-gray-300 rounded px-2 py-1 ${
+                              followedCases.has(caseId)
+                                ? "bg-gray-200 text-gray-800"
+                                : "bg-white text-gray-800"
+                            }`}
+                            onClick={() => handleFollowCase(result)}
+                            disabled={followMutation.isPending || unfollowMutation.isPending}
                           >
-                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                              {result.cino || "N/A"}
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
-                              {result.case_no || "N/A"}
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                              <div
-                                className="max-w-[200px] truncate"
-                                title={`${result.pet_name || ""} vs ${result.res_name || ""}`}
-                              >
-                                {result.pet_name && result.res_name
-                                  ? `${result.pet_name} vs ${result.res_name}`
-                                  : result.pet_name || result.res_name || "N/A"}
+                            {followMutation.isPending || unfollowMutation.isPending ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Star size={12} className={followedCases.has(caseId) ? "text-black" : "text-gray-600"} />
+                                <span className="hidden sm:inline">{followedCases.has(caseId) ? "Following" : "Follow"}</span>
                               </div>
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                              {result.type_name || "N/A"}
-                            </td>
-                            <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                              {result.date_of_decision
-                                ? new Date(
-                                    result.date_of_decision
-                                  ).toLocaleDateString("en-IN")
-                                : "N/A"}
-                            </td>
-                            <td className="px-3 py-3">
-                              <button
-                                className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                  followedCases.has(caseId)
-                                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                    : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
-                                }`}
-                                onClick={() => handleFollowCase(result)}
-                                disabled={
-                                  followMutation.isPending ||
-                                  unfollowMutation.isPending
-                                }
-                              >
-                                {followMutation.isPending ||
-                                unfollowMutation.isPending ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Star
-                                      size={12}
-                                      className={
-                                        followedCases.has(caseId)
-                                          ? "text-yellow-600 fill-yellow-500"
-                                          : ""
-                                      }
-                                    />
-                                    <span className="hidden sm:inline">
-                                      {followedCases.has(caseId)
-                                        ? "Following"
-                                        : "Follow"}
-                                    </span>
-                                  </>
-                                )}
-                              </button>
-                            </td>
-                            <td className="px-3 py-3">
-                              <button
-                                className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
-                                onClick={() => handleViewDetails(result)}
-                                disabled={loadingDetails === caseId}
-                              >
-                                {loadingDetails === caseId ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Eye className="w-3 h-3" />
-                                )}
-                                <span className="hidden sm:inline">
-                                  {loadingDetails === caseId
-                                    ? "Loading..."
-                                    : "Details"}
-                                </span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      }
-                    )}
-                  </tbody>
-                </table>
+                            )}
+                          </button>
+                        </TableCell>
+                        <TableCell className="px-3 py-2 text-xs">
+                          <button
+                            className="border border-gray-300 rounded px-2 py-1"
+                            onClick={() => handleViewDetails(result)}
+                            disabled={loadingDetails === caseId}
+                          >
+                            {loadingDetails === caseId ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                <span className="hidden sm:inline">Details</span>
+                              </div>
+                            )}
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          {/* Footer Pagination */}
+          {currentPageResults.length > 0 && (
+            <div className="mt-3 flex items-center justify-between text-sm text-gray-700">
+              <div>
+                Showing {total === 0 ? 0 : startIndex + 1}-{endIndex} of {total}
+              </div>
+              <div className="flex items-center gap-2">
+                <span>Rows per page</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(parseInt(e.target.value));
+                    setPage(1);
+                  }}
+                  className="border border-gray-300 rounded p-1"
+                >
+                  {[10, 20, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <div className="ml-2 flex items-center gap-1">
+                  <button
+                    className="border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    Prev
+                  </button>
+                  <span className="px-2">{page} / {totalPages}</span>
+                  <button
+                    className="border border-gray-300 rounded px-2 py-1 disabled:opacity-50"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -963,10 +1053,10 @@ export default function HighCourtAdvocateSearch() {
       )}
 
       {/* No Data Found State */}
-      {!isLoading &&
-        !isFetching &&
-        searchResults.length === 0 &&
-        !error &&
+      {!advocateQuery.isLoading &&
+        !advocateQuery.isFetching &&
+        filteredResults.length === 0 &&
+        !advocateQuery.error &&
         searchParams && (
           <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
@@ -984,10 +1074,10 @@ export default function HighCourtAdvocateSearch() {
         )}
 
       {/* No Search Performed State */}
-      {!isLoading &&
-        !isFetching &&
-        searchResults.length === 0 &&
-        !error &&
+      {!advocateQuery.isLoading &&
+        !advocateQuery.isFetching &&
+        filteredResults.length === 0 &&
+        !advocateQuery.error &&
         !searchParams && (
           <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">

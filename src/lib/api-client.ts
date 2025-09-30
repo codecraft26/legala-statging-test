@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from "@/lib/utils";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -27,10 +27,10 @@ export async function apiRequest<TResponse = unknown, TBody = unknown>(
   const requestHeaders: HeadersInit = new Headers();
   Object.entries(headers).forEach(([k, v]) => requestHeaders.set(k, v));
 
-  // Attach token from localStorage if available (client-side only)
+  // Attach token from cookie if available (client-side only)
   if (typeof window !== "undefined") {
     try {
-      const token = localStorage.getItem("token");
+      const token = getCookie("token");
       if (token) requestHeaders.set("Authorization", `Bearer ${token}`);
     } catch {}
   }

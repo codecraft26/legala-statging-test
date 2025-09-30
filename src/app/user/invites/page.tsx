@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Api } from "@/lib/api-client";
+import { getCookie } from "@/lib/utils";
 
 interface Invite {
   id: string;
@@ -36,8 +37,7 @@ export default function InvitesPage() {
   };
 
   useEffect(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined" ? getCookie("token") : null;
     if (!token) {
       window.location.href = "/login";
       return;

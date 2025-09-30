@@ -1,10 +1,19 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Search, Star, Eye, Loader2, X, Download } from "lucide-react";
-import { useResearchAPI } from "@/hooks/use-research";
+import {
+  useDistrictByParty,
+  useDistrictDetail,
+  useFollowResearch,
+  useUnfollowResearch,
+} from "@/hooks/use-research";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import { districtId } from "../utils/districtId";
+import { useDistrictsIndex } from "@/hooks/use-districts";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { useEstCodes } from "@/hooks/use-est-codes";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface DistrictCourtResult {
   cino: string;
@@ -466,7 +475,39 @@ const CaseDetailsModal = ({
 };
 
 export default function DistrictCourtSearch() {
+  const [stateName, setStateName] = useState("");
+  const [stateSearch, setStateSearch] = useState("");
   const [districtName, setDistrictName] = useState("srinagar");
+  const districtsQuery = useDistrictsIndex();
+  const states = useMemo(
+    () => (districtsQuery.data?.data || []).map((d) => d.state),
+    [districtsQuery.data]
+  );
+  const filteredStates = useMemo(
+    () =>
+      states.filter((s) =>
+        s.toLowerCase().includes(stateSearch.trim().toLowerCase())
+      ),
+    [states, stateSearch]
+  );
+  const apiDistricts = useMemo(() => {
+    const entry = (districtsQuery.data?.data || []).find(
+      (d) => d.state === stateName
+    );
+    return entry?.districts || [];
+  }, [districtsQuery.data, stateName]);
+
+  useEffect(() => {
+    if (!stateName && states.length > 0) {
+      setStateName(states[0]);
+    }
+  }, [states, stateName]);
+
+  useEffect(() => {
+    if (apiDistricts.length > 0) {
+      setDistrictName((prev) => (prev ? prev : apiDistricts[0]));
+    }
+  }, [apiDistricts]);
   const [litigantName, setLitigantName] = useState("");
   const [regYear, setRegYear] = useState(new Date().getFullYear().toString());
   const [caseStatus, setCaseStatus] = useState("P");
@@ -482,15 +523,23 @@ export default function DistrictCourtSearch() {
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(20);
+  const [pageByCourt, setPageByCourt] = useState<Record<string, number>>({});
+  const [estMenuOpen, setEstMenuOpen] = useState(false);
 
-  const {
-    loading,
-    error,
-    searchDistrictCourtByParty,
-    getDistrictCourtCaseDetail,
-    followResearch,
-    unfollowResearch,
-  } = useResearchAPI();
+  const [partyParams, setPartyParams] = useState<
+    | {
+        district_name: string;
+        litigant_name: string;
+        reg_year: number;
+        case_status: string;
+        est_code: string;
+      }
+    | null
+  >(null);
+  const partyQuery = useDistrictByParty(partyParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   const {
     getEstCodeOptionsForDistrict,
@@ -502,16 +551,90 @@ export default function DistrictCourtSearch() {
     return districtName ? getEstCodeOptionsForDistrict(districtName) : [];
   }, [districtName, getEstCodeOptionsForDistrict]);
 
+  // Parse query response into grouped results when data arrives (supports HTML and JSON)
+  React.useEffect(() => {
+    const raw = partyQuery.data as any;
+    if (!raw) return;
+
+    // Case 1: HTML string payload (existing flow)
+    let html: string | null = null;
+    if (typeof raw === "string") html = raw;
+    else if (typeof raw?.data === "string") html = raw.data;
+    else if (typeof raw?.data?.data === "string") html = raw.data.data;
+    if (html) {
+      const parsed = parseDistrictCourtHTML(html);
+      setSearchResults(parsed);
+      return;
+    }
+
+    // Case 2: JSON array payload from API
+    const arrayData: any[] | undefined = Array.isArray(raw)
+      ? (raw as any[])
+      : Array.isArray(raw?.data)
+      ? (raw.data as any[])
+      : undefined;
+    if (arrayData && arrayData.length > 0) {
+      const mapped: DistrictCourtResult[] = arrayData.map((row: any) => {
+        const serial = String(row["Serial Number"] ?? row.serial_number ?? "").trim();
+        const caseCombo = String(row["Case Type/Case Number/Case Year"] ?? "").trim();
+        const party = String(row["Petitioner versus Respondent"] ?? "").trim();
+        const view = String(row["View"] ?? row.cino ?? "").trim();
+
+        let case_type = "";
+        let case_number = "";
+        let case_year = "";
+        if (caseCombo) {
+          const parts = caseCombo.split("/");
+          case_type = (parts[0] || "").trim();
+          case_number = (parts[1] || "").trim();
+          case_year = (parts[2] || "").trim();
+        }
+
+        let petitioner = "";
+        let respondent = "";
+        if (party) {
+          const lower = party.toLowerCase();
+          const idx = lower.indexOf("versus");
+          if (idx >= 0) {
+            petitioner = party.slice(0, idx).trim();
+            respondent = party.slice(idx + "versus".length).trim();
+          } else {
+            petitioner = party;
+          }
+        }
+
+        return {
+          cino: view,
+          district_name: districtName,
+          litigant_name: litigantName,
+          case_status: caseStatus,
+          petitioner_name: petitioner,
+          respondent_name: respondent,
+          case_type,
+          case_number,
+          case_year,
+          serial_number: serial,
+          court_name: "Search Results",
+          est_code: "",
+        } as DistrictCourtResult;
+      });
+      setSearchResults({ "Search Results": mapped });
+      return;
+    }
+
+    // Default: clear
+    setSearchResults({});
+  }, [partyQuery.data, districtName, litigantName, caseStatus]);
+
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 30 }, (_, i) =>
     (currentYear - i).toString()
   );
 
-  // Get unique district names for dropdown
-  const uniqueDistricts = Array.from(
-    new Set(districtId.map((d) => d.name.toLowerCase()))
-  ).sort();
+  // Fallback: unique districts from static map (used if API not loaded yet)
+  const uniqueDistricts = useMemo(() =>
+    Array.from(new Set(districtId.map((d) => d.name.toLowerCase()))).sort(), []);
 
   // Filter search results based on searchQuery
   const filteredResults = useMemo(() => {
@@ -533,6 +656,17 @@ export default function DistrictCourtSearch() {
 
     return filtered;
   }, [searchResults, searchQuery]);
+
+  // Ensure pagination state exists for each court and stays in range
+  useEffect(() => {
+    const nextPages: Record<string, number> = {};
+    Object.entries(filteredResults).forEach(([courtName, cases]) => {
+      const totalPages = Math.max(1, Math.ceil(cases.length / pageSize));
+      const current = pageByCourt[courtName] || 1;
+      nextPages[courtName] = Math.min(Math.max(1, current), totalPages);
+    });
+    setPageByCourt(nextPages);
+  }, [filteredResults, pageSize]);
 
   // Handle EST code selection
   const handleEstCodeToggle = (estCode: string) => {
@@ -855,25 +989,13 @@ export default function DistrictCourtSearch() {
       return;
     }
 
-    try {
-      const response = await searchDistrictCourtByParty({
-        district_name: districtName.toLowerCase(),
-        litigant_name: litigantName,
-        reg_year: parseInt(regYear),
-        case_status: caseStatus,
-        est_code: selectedEstCodes.join(","),
-      });
-
-      // Parse the HTML response
-      if (response?.data?.data) {
-        const parsedResults = parseDistrictCourtHTML(response.data.data);
-        setSearchResults(parsedResults);
-      } else {
-        setSearchResults({});
-      }
-    } catch (err) {
-      console.error("Search failed:", err);
-    }
+    setPartyParams({
+      district_name: districtName.toLowerCase(),
+      litigant_name: litigantName,
+      reg_year: parseInt(regYear),
+      case_status: caseStatus,
+      est_code: selectedEstCodes.join(","),
+    });
   };
 
   const handleViewDetails = async (result: DistrictCourtResult) => {
@@ -881,61 +1003,28 @@ export default function DistrictCourtSearch() {
     setDetailsLoading(caseId);
 
     try {
-      const response = await getDistrictCourtCaseDetail({
-        cino: result.cino,
-        district_name: result.district_name,
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(`${base}/research/district-court/case-detail`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          cino: result.cino,
+          district_name: result.district_name,
+        }),
       });
-
-      // Parse the HTML response - handle the specific API response structure
-      let htmlData = null;
-
-      // Based on your API response structure: { status: 200, data: "{\"success\":true,\"data\":\"<html>\"}" }
-      if (response?.data) {
-        // Check if data is a stringified JSON (which it should be based on your response)
-        if (typeof response.data === "string") {
-          try {
-            const parsedData = JSON.parse(response.data);
-
-            // Check if the parsed data has the expected structure
-            if (parsedData.success && parsedData.data) {
-              htmlData = parsedData.data;
-            } else {
-              htmlData = response.data; // Fallback to original data
-            }
-          } catch (e) {
-            htmlData = response.data; // Fallback to original data
-          }
-        } else {
-          // If data is already an object
-          htmlData = response.data;
-        }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const payload = typeof json?.data === "string" ? json.data : json;
+      const parsedDetails = parseCaseDetailsHTML(payload);
+      if (parsedDetails) {
+        setSelectedCase(parsedDetails);
+        setShowCaseDetails(true);
       } else {
-        console.error("No data field in response");
-        console.error("Full response object:", response);
-        alert(
-          "No case details data received from the server. Please check the console for more details."
-        );
-        return;
-      }
-
-      if (htmlData) {
-        const parsedDetails = parseCaseDetailsHTML(htmlData);
-
-        if (parsedDetails) {
-          setSelectedCase(parsedDetails);
-          setShowCaseDetails(true);
-        } else {
-          console.error("Failed to parse case details HTML");
-          alert(
-            "Failed to parse case details. The response format may be invalid."
-          );
-        }
-      } else {
-        console.error("No HTML data found after parsing");
-        console.error("Full response object:", response);
-        alert(
-          "No case details data received from the server. Please check the console for more details."
-        );
+        alert("Failed to parse case details. The response format may be invalid.");
       }
     } catch (err) {
       console.error("Failed to fetch case details:", err);
@@ -951,17 +1040,17 @@ export default function DistrictCourtSearch() {
 
     try {
       if (followedCases.has(caseId)) {
-        await unfollowResearch(caseId);
+        await unfollowMutation.mutateAsync(caseId);
         setFollowedCases((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(caseId);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(caseId);
+          return next;
         });
       } else {
-        await followResearch({
+        await followMutation.mutateAsync({
           court: "District_Court",
           followed: caseData,
-          workspaceId: "current-workspace", // Replace with actual workspace ID
+          workspaceId: "current-workspace",
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }
@@ -983,6 +1072,30 @@ export default function DistrictCourtSearch() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+                State
+              </label>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="w-full text-left border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md px-3 py-2">
+                  {stateName || "Select state"}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 max-h-72 overflow-y-auto">
+                  {districtsQuery.isLoading ? (
+                    <DropdownMenuItem>Loading…</DropdownMenuItem>
+                  ) : districtsQuery.error ? (
+                    <DropdownMenuItem>Error loading</DropdownMenuItem>
+                  ) : (
+                    states.map((s) => (
+                      <DropdownMenuItem key={s} onClick={() => setStateName(s)}>
+                        {s}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 District Name *
               </label>
               <select
@@ -990,15 +1103,16 @@ export default function DistrictCourtSearch() {
                 onChange={(e) => setDistrictName(e.target.value)}
                 className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
                 required
+                disabled={districtsQuery.isLoading || (!!stateName && apiDistricts.length === 0)}
               >
-                {uniqueDistricts.map((district) => (
+                {(stateName && apiDistricts.length > 0 ? apiDistricts : uniqueDistricts).map((district) => (
                   <option key={district} value={district}>
                     {district.charAt(0).toUpperCase() + district.slice(1)}
                   </option>
                 ))}
               </select>
               <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
-                Example: srinagar
+                {stateName ? `From ${stateName}` : "Example: srinagar"}
               </div>
             </div>
 
@@ -1053,114 +1167,55 @@ export default function DistrictCourtSearch() {
               <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
                 Establishment Code *
               </label>
-
-              {/* EST Code Selection Controls */}
               <div className="flex gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={handleSelectAllEstCodes}
-                  className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
-                  disabled={estLoading || estCodeOptions.length === 0}
-                >
-                  Select All
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearAllEstCodes}
-                  className="px-3 py-1 text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 rounded hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-                  disabled={estLoading}
-                >
-                  Clear All
-                </button>
+                <DropdownMenu open={estMenuOpen} onOpenChange={setEstMenuOpen}>
+                  <DropdownMenuTrigger className="px-3 py-2 text-sm border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md">
+                    {selectedEstCodes.length > 0 ? `${selectedEstCodes.length} selected` : "Select EST codes"}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-96 max-h-72 overflow-y-auto">
+                    {estLoading ? (
+                      <div className="flex items-center justify-center py-2 px-2 text-sm text-gray-500">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading EST codes...
+                      </div>
+                    ) : estError ? (
+                      <div className="py-2 px-2 text-sm text-red-600">Error loading EST codes: {estError}</div>
+                    ) : estCodeOptions.length > 0 ? (
+                      <>
+                        <DropdownMenuItem onSelect={(e)=>e.preventDefault()} onClick={handleSelectAllEstCodes} className="text-xs">Select All</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e)=>e.preventDefault()} onClick={handleClearAllEstCodes} className="text-xs">Clear All</DropdownMenuItem>
+                        <div className="h-px my-1 bg-gray-200" />
+                        {estCodeOptions.map((option, index) => (
+                          <DropdownMenuCheckboxItem
+                            key={index}
+                            checked={selectedEstCodes.includes(option.code)}
+                            onSelect={(e)=>e.preventDefault()}
+                            onCheckedChange={() => handleEstCodeToggle(option.code)}
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium">{option.code}</span>
+                              <span className="text-xs text-gray-500">{option.description}</span>
+                            </div>
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </>
+                    ) : (
+                      <div className="py-2 px-2 text-sm text-gray-500">No EST codes available for {districtName}</div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <span className="text-xs text-gray-500 dark:text-zinc-400 self-center">
                   {selectedEstCodes.length} selected
                 </span>
               </div>
-
-              {/* EST Code Checkboxes */}
-              <div className="max-h-40 overflow-y-auto border border-gray-200 dark:border-zinc-800 rounded-md p-3 bg-gray-50 dark:bg-zinc-950">
-                {estLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    <span className="text-sm text-gray-500 dark:text-zinc-400">
-                      Loading EST codes...
-                    </span>
-                  </div>
-                ) : estError ? (
-                  <div className="text-sm text-red-500 dark:text-red-400">
-                    Error loading EST codes: {estError}
-                  </div>
-                ) : estCodeOptions.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    {estCodeOptions.map((option, index) => (
-                      <label
-                        key={index}
-                        className="flex items-center space-x-2 cursor-pointer hover:bg-white dark:hover:bg-zinc-800 p-1 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedEstCodes.includes(option.code)}
-                          onChange={() => handleEstCodeToggle(option.code)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900 dark:text-zinc-200">
-                            {option.code}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-zinc-400 ml-2">
-                            {option.description}
-                          </span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500 dark:text-zinc-400 text-center py-2">
-                    No EST codes available for {districtName}
-                  </div>
-                )}
-              </div>
-
-              {/* Selected EST Codes Display */}
-              {selectedEstCodes.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-xs text-gray-600 dark:text-zinc-400 mb-1">
-                    Selected EST codes:
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedEstCodes.map((code) => (
-                      <span
-                        key={code}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
-                      >
-                        {code}
-                        <button
-                          type="button"
-                          onClick={() => handleEstCodeToggle(code)}
-                          className="ml-1 text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200"
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {estCodeOptions.length > 0 && (
-                <div className="text-sm text-gray-500 mt-1">
-                  {estCodeOptions.length} EST codes available for {districtName}
-                </div>
-              )}
             </div>
 
             <div className="md:col-span-2 md:flex md:justify-end">
               <button
                 type="submit"
                 className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                disabled={loading}
+                disabled={partyQuery.isLoading || partyQuery.isFetching}
               >
-                {loading ? (
+                {partyQuery.isLoading || partyQuery.isFetching ? (
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Searching...</span>
@@ -1178,14 +1233,14 @@ export default function DistrictCourtSearch() {
       </div>
 
       {/* Error Display */}
-      {error && (
+      {partyQuery.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
-          <p className="text-red-700 dark:text-red-400">{error}</p>
+          <p className="text-red-700 dark:text-red-400">{partyQuery.error instanceof Error ? partyQuery.error.message : "An error occurred while searching"}</p>
         </div>
       )}
 
       {/* Results Section */}
-      {!loading && Object.keys(searchResults).length > 0 && (
+      {!partyQuery.isLoading && !partyQuery.isFetching && Object.keys(searchResults).length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
@@ -1209,149 +1264,158 @@ export default function DistrictCourtSearch() {
             </div>
           ) : (
             <div className="space-y-6">
-              {Object.entries(filteredResults).map(([courtName, cases]) => (
-                <div
-                  key={courtName}
-                  className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900"
-                >
-                  {/* Court Header */}
-                  <div className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900 px-4 py-3">
-                    <h4 className="text-lg font-semibold text-black dark:text-zinc-200">
-                      {courtName}
-                    </h4>
-                  </div>
+              {Object.entries(filteredResults).map(([courtName, cases]) => {
+                const page = pageByCourt[courtName] || 1;
+                const total = cases.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                const startIndex = (page - 1) * pageSize;
+                const endIndex = Math.min(page * pageSize, total);
+                const currentCases = cases.slice(startIndex, endIndex);
 
-                  {/* Court Table */}
-                  <div className="w-full overflow-x-auto">
-                    <table className="min-w-full border-collapse table-fixed">
-                      <thead>
-                        <tr className="bg-gradient-to-r from-gray-300 to-gray-300 dark:from-zinc-800 dark:to-zinc-800 border-b-4 border-white dark:border-zinc-900">
-                          <th
-                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
-                            style={{ minWidth: "100px" }}
-                          >
-                            SERIAL NUMBER
-                          </th>
-                          <th
-                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
-                            style={{ minWidth: "150px" }}
-                          >
-                            CASE TYPE/CASE NUMBER/CASE YEAR
-                          </th>
-                          <th
-                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
-                            style={{ minWidth: "200px" }}
-                          >
-                            PETITIONER VERSUS RESPONDENT
-                          </th>
-                          <th
-                            className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left"
-                            style={{ minWidth: "100px" }}
-                          >
-                            VIEW
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="border-y-4 border-white dark:border-zinc-900">
-                        {cases.map((result, index) => {
-                          const caseId = result.cino;
-                          return (
-                            <tr
-                              key={caseId}
-                              className={`transition-colors hover:bg-blue-50 dark:hover:bg-zinc-800 ${
-                                index % 2 === 0 ? "bg-white dark:bg-zinc-900" : "bg-blue-50 dark:bg-zinc-950"
-                              } border-b-2 border-gray-100 dark:border-zinc-800 last:border-b-0`}
-                            >
-                              <td className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
-                                {result.serial_number || "N/A"}
-                              </td>
-                              <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                                <div
-                                  className="max-w-[150px] truncate"
-                                  title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}
-                                >
-                                  {result.case_type || "N/A"}/
-                                  {result.case_number || "N/A"}/
-                                  {result.case_year || "N/A"}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                                <div className="max-w-[200px]">
-                                  <div
-                                    className="truncate"
-                                    title={result.petitioner_name || ""}
-                                  >
-                                    <strong>Petitioner:</strong>{" "}
-                                    {result.petitioner_name || "N/A"}
+                return (
+                  <div
+                    key={courtName}
+                    className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-zinc-800"
+                  >
+                    {/* Court Header */}
+                    <div className="bg-gray-100 dark:bg-zinc-800 border-b border-gray-200 dark:border-zinc-800 px-4 py-3">
+                      <h4 className="text-lg font-semibold text-black dark:text-zinc-200">
+                        {courtName}
+                      </h4>
+                    </div>
+
+                    {/* Court Table */}
+                    <div className="w-full overflow-x-auto">
+                      <Table className="table-fixed">
+                        <TableHeader>
+                          <TableRow className="bg-gray-100 dark:bg-zinc-800">
+                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "100px" }}>SERIAL NUMBER</TableHead>
+                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "150px" }}>CASE TYPE/CASE NUMBER/CASE YEAR</TableHead>
+                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "200px" }}>PETITIONER VERSUS RESPONDENT</TableHead>
+                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "100px" }}>VIEW</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {currentCases.map((result) => {
+                            const caseId = result.cino;
+                            return (
+                              <TableRow key={caseId} className="hover:bg-gray-50 dark:hover:bg-zinc-800 border-b border-gray-100 dark:border-zinc-800">
+                                <TableCell className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
+                                  {result.serial_number || "N/A"}
+                                </TableCell>
+                                <TableCell className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
+                                  <div className="max-w-[150px] truncate" title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}>
+                                    {result.case_type || "N/A"}/{result.case_number || "N/A"}/{result.case_year || "N/A"}
                                   </div>
-                                  {result.respondent_name && (
-                                    <div
-                                      className="truncate mt-1"
-                                      title={result.respondent_name}
-                                    >
-                                      <strong>Respondent:</strong>{" "}
-                                      {result.respondent_name}
+                                </TableCell>
+                                <TableCell className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
+                                  <div className="max-w-[200px]">
+                                    <div className="truncate" title={result.petitioner_name || ""}>
+                                      <strong>Petitioner:</strong> {result.petitioner_name || "N/A"}
                                     </div>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3">
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                                      followedCases.has(caseId)
-                                        ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                        : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
-                                    }`}
-                                    onClick={() => handleFollowCase(result)}
-                                    disabled={followLoading === caseId}
-                                  >
-                                    {followLoading === caseId ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <Star
-                                          size={12}
-                                          className={
-                                            followedCases.has(caseId)
-                                              ? "text-yellow-600 fill-yellow-500"
-                                              : ""
-                                          }
-                                        />
-                                        <span className="hidden sm:inline">
-                                          {followedCases.has(caseId)
-                                            ? "Following"
-                                            : "Follow"}
-                                        </span>
-                                      </>
+                                    {result.respondent_name && (
+                                      <div className="truncate mt-1" title={result.respondent_name}>
+                                        <strong>Respondent:</strong> {result.respondent_name}
+                                      </div>
                                     )}
-                                  </button>
-                                  <button
-                                    className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
-                                    onClick={() => handleViewDetails(result)}
-                                    disabled={detailsLoading === caseId}
-                                  >
-                                    {detailsLoading === caseId ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                    ) : (
-                                      <>
-                                        <Eye className="w-3 h-3" />
-                                        <span className="hidden sm:inline">
-                                          Details
-                                        </span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="px-3 py-3">
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                        followedCases.has(caseId)
+                                          ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                          : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                                      }`}
+                                      onClick={() => handleFollowCase(result)}
+                                      disabled={followLoading === caseId}
+                                    >
+                                      {followLoading === caseId ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Star
+                                            size={12}
+                                            className={
+                                              followedCases.has(caseId)
+                                                ? "text-yellow-600 fill-yellow-500"
+                                                : ""
+                                            }
+                                          />
+                                          <span className="hidden sm:inline">
+                                            {followedCases.has(caseId) ? "Following" : "Follow"}
+                                          </span>
+                                        </>
+                                      )}
+                                    </button>
+                                    <button
+                                      className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-black rounded hover:bg-gray-800 transition-colors"
+                                      onClick={() => handleViewDetails(result)}
+                                      disabled={detailsLoading === caseId}
+                                    >
+                                      {detailsLoading === caseId ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Eye className="w-3 h-3" />
+                                          <span className="hidden sm:inline">Details</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="px-4 py-3 flex items-center justify-between text-sm text-gray-700 dark:text-zinc-300 border-t border-gray-200 dark:border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <span>Rows per page</span>
+                        <select
+                          value={pageSize}
+                          onChange={(e) => {
+                            const next = parseInt(e.target.value);
+                            setPageSize(next);
+                            setPageByCourt((prev) => ({ ...prev, [courtName]: 1 }));
+                          }}
+                          className="border border-black dark:border-zinc-600 rounded px-2 py-1 bg-white dark:bg-zinc-950"
+                        >
+                          {[10, 20, 50, 100].map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
+                        <span>
+                          {total === 0 ? 0 : startIndex + 1}-{endIndex} of {total}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="border border-black rounded px-2 py-1 disabled:opacity-50"
+                          onClick={() => setPageByCourt((prev) => ({ ...prev, [courtName]: Math.max(1, page - 1) }))}
+                          disabled={page <= 1}
+                        >
+                          Prev
+                        </button>
+                        <span>
+                          Page {page} of {totalPages}
+                        </span>
+                        <button
+                          className="border border-black rounded px-2 py-1 disabled:opacity-50"
+                          onClick={() => setPageByCourt((prev) => ({ ...prev, [courtName]: Math.min(totalPages, page + 1) }))}
+                          disabled={page >= totalPages}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

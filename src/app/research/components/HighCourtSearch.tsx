@@ -2,7 +2,14 @@
 
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X } from "lucide-react";
-import { useResearchAPI } from "@/hooks/use-research";
+import {
+  useHighByAdvocate,
+  useHighByFilingNumber,
+  useHighDetail,
+  useFollowResearch,
+  useUnfollowResearch,
+} from "@/hooks/use-research";
+import { getApiBaseUrl } from "@/lib/utils";
 import { hcBench } from "../utils/hcBench";
 import {
   stateCodeMapping,
@@ -92,15 +99,43 @@ export default function HighCourtSearch() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const {
-    loading,
-    error,
-    searchHighCourtByAdvocate,
-    searchHighCourtByFilingNumber,
-    getHighCourtCaseDetail,
-    followResearch,
-    unfollowResearch,
-  } = useResearchAPI();
+  const [advocateParams, setAdvocateParams] = useState<
+    | {
+        court_code: number;
+        state_code: number;
+        court_complex_code: number;
+        advocate_name: string;
+        f: "P" | "R" | "Both";
+      }
+    | null
+  >(null);
+  const [filingParams, setFilingParams] = useState<
+    | {
+        court_code: number;
+        state_code: number;
+        court_complex_code: number;
+        case_no: number;
+        rgyear: number;
+      }
+    | null
+  >(null);
+  const [detailParams, setDetailParams] = useState<
+    | {
+        case_no: number;
+        state_code: number;
+        cino: string;
+        court_code: number;
+        national_court_code: string;
+        dist_cd: number;
+      }
+    | null
+  >(null);
+
+  const advocateQuery = useHighByAdvocate(advocateParams);
+  const filingQuery = useHighByFilingNumber(filingParams);
+  const detailQuery = useHighDetail(detailParams);
+  const followMutation = useFollowResearch();
+  const unfollowMutation = useUnfollowResearch();
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -108,40 +143,26 @@ export default function HighCourtSearch() {
     (currentYear - i).toString()
   );
 
-  // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result) =>
-    Object.values(result).some((value) =>
-      String(value).toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  // Filtered results will be computed from query data below
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    try {
-      let data;
-
-      if (searchType === "advocate") {
-        data = await searchHighCourtByAdvocate({
-          court_code: parseInt(courtCode),
-          state_code: parseInt(stateCode),
-          court_complex_code: parseInt(courtComplexCode),
-          advocate_name: advocateName,
-          f: filterType,
-        });
-      } else {
-        data = await searchHighCourtByFilingNumber({
-          court_code: parseInt(courtCode),
-          state_code: parseInt(stateCode),
-          court_complex_code: parseInt(courtComplexCode),
-          case_no: parseInt(caseNo),
-          rgyear: parseInt(rgYear),
-        });
-      }
-
-      setSearchResults(data?.results || []);
-    } catch (err) {
-      console.error("Search failed:", err);
+    if (searchType === "advocate") {
+      setAdvocateParams({
+        court_code: parseInt(courtCode),
+        state_code: parseInt(stateCode),
+        court_complex_code: parseInt(courtComplexCode),
+        advocate_name: advocateName,
+        f: filterType,
+      });
+    } else {
+      setFilingParams({
+        court_code: parseInt(courtCode),
+        state_code: parseInt(stateCode),
+        court_complex_code: parseInt(courtComplexCode),
+        case_no: parseInt(caseNo),
+        rgyear: parseInt(rgYear),
+      });
     }
   };
 
@@ -150,16 +171,22 @@ export default function HighCourtSearch() {
     setDetailsLoading(caseId);
 
     try {
-      const details = await getHighCourtCaseDetail({
-        case_no: result.case_no,
-        state_code: result.state_code,
-        cino: result.cino,
-        court_code: result.court_code,
-        national_court_code: result.national_court_code,
-        dist_cd: result.dist_cd,
+      const base = getApiBaseUrl();
+      const res = await fetch(`${base}/research/high-court/case-detail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          case_no: result.case_no,
+          state_code: result.state_code,
+          cino: result.cino,
+          court_code: result.court_code,
+          national_court_code: result.national_court_code,
+          dist_cd: result.dist_cd,
+        }),
       });
-
-      setSelectedCase(details);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setSelectedCase(json);
       setShowCaseDetails(true);
     } catch (err) {
       console.error("Failed to fetch case details:", err);
@@ -174,17 +201,17 @@ export default function HighCourtSearch() {
 
     try {
       if (followedCases.has(caseId)) {
-        await unfollowResearch(caseId);
+        await unfollowMutation.mutateAsync(caseId);
         setFollowedCases((prev) => {
           const newSet = new Set(prev);
           newSet.delete(caseId);
           return newSet;
         });
       } else {
-        await followResearch({
+        await followMutation.mutateAsync({
           court: "High_Court",
           followed: caseData,
-          workspaceId: "current-workspace", // Replace with actual workspace ID
+          workspaceId: "current-workspace",
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }
@@ -194,6 +221,25 @@ export default function HighCourtSearch() {
       setFollowLoading(null);
     }
   };
+
+  const activeQuery = searchType === "advocate" ? advocateQuery : filingQuery;
+  const rawResults: HighCourtResult[] = Array.isArray(activeQuery.data)
+    ? (activeQuery.data as any)
+    : Array.isArray((activeQuery.data as any)?.results)
+    ? ((activeQuery.data as any).results as any)
+    : Array.isArray((activeQuery.data as any)?.data)
+    ? ((activeQuery.data as any).data as any)
+    : Array.isArray((activeQuery.data as any)?.cases)
+    ? ((activeQuery.data as any).cases as any)
+    : [];
+
+  const loading = activeQuery.isLoading || activeQuery.isFetching;
+  const error = activeQuery.error as any;
+  const filteredResults = rawResults.filter((result: any) =>
+    Object.values(result).some((value: any) =>
+      String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
 
   return (
     <div className="p-6">
@@ -377,12 +423,12 @@ export default function HighCourtSearch() {
       {/* Error Display */}
       {error && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700">{error instanceof Error ? error.message : String(error)}</p>
         </div>
       )}
 
       {/* Results Section */}
-      {!loading && searchResults.length > 0 && (
+      {!loading && filteredResults.length > 0 && (
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>

@@ -19,6 +19,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { logout } from "@/store/slices/authSlice";
+import { getCookie, deleteCookie } from "@/lib/utils";
 
 const NavItem = ({
   href,
@@ -76,7 +77,7 @@ export default function Sidebar() {
                   : u.role || "Member";
           setLsRole(normalizedRole);
         }
-        const token = localStorage.getItem("token");
+        const token = getCookie("token");
         if (token) {
           const parts = token.split(".");
           if (parts.length === 3) {
@@ -200,7 +201,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={() => {
-            if (typeof window !== "undefined") localStorage.removeItem("token");
+            if (typeof window !== "undefined") deleteCookie("token");
             dispatch(logout());
             router.push("/login");
           }}
