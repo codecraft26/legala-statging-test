@@ -11,6 +11,11 @@ import {
   courtComplexMapping,
   courtCodeMapping,
 } from "../utils/courtMappings";
+import SearchBar from "./common/SearchBar";
+import Pagination from "./common/Pagination";
+import FollowButton from "./common/FollowButton";
+import StatusPill from "./common/StatusPill";
+import ResultsTable, { ColumnDef } from "./common/ResultsTable";
 
 interface HighCourtResult {
   orderurlpath?: string;
@@ -173,19 +178,6 @@ function parseHighCourtHtml(html: string): any {
   }
 }
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: string }) => {
-  const bgColor =
-    status === "COMPLETED" || status === "DISPOSED"
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
-
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-      {status}
-    </span>
-  );
-};
 
 // Case Details Modal - exactly like old React code
 const CaseDetailsModal = ({
@@ -515,31 +507,11 @@ const CaseDetailsModal = ({
                   caseData.details?.respondent_and_advocate?.[0] || "Unknown"
                 }`}
               </h2>
-              <button
-                className={`flex items-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                  followedCases.has(caseData.cino || caseData.case_no)
-                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                    : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                }`}
+              <FollowButton
+                isFollowing={followedCases.has(caseData.cino || caseData.case_no)}
+                loading={followMutation.isPending || unfollowMutation.isPending}
                 onClick={() => handleFollowCase(caseData)}
-                disabled={
-                  followMutation.isPending || unfollowMutation.isPending
-                }
-              >
-                <Star
-                  size={16}
-                  className={
-                    followedCases.has(caseData.cino || caseData.case_no)
-                      ? "text-yellow-600 fill-yellow-500"
-                      : ""
-                  }
-                />
-                <span>
-                  {followedCases.has(caseData.cino || caseData.case_no)
-                    ? "Following"
-                    : "Follow"}
-                </span>
-              </button>
+              />
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-black text-sm font-medium">
@@ -555,7 +527,7 @@ const CaseDetailsModal = ({
                   "N/A"}
               </span>
               <span className="text-black text-sm mx-2 font-medium">|</span>
-              <StatusBadge
+              <StatusPill
                 status={
                   caseData.details?.case_status?.stage_of_case || "PENDING"
                 }
@@ -887,18 +859,12 @@ export default function HighCourtAdvocateSearch() {
           <div className="flex flex-col gap-3 mb-3">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Search Results</h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search"
-                  className="w-64 border border-border bg-background text-foreground rounded-md pl-8 p-2 focus:outline-none"
-                />
-                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                  <Search size={16} className="text-muted-foreground" />
-                </div>
-              </div>
+              <SearchBar 
+                value={searchQuery} 
+                onChange={setSearchQuery} 
+                placeholder="Search cases..."
+                className="w-64"
+              />
             </div>
           </div>
 
@@ -927,121 +893,73 @@ export default function HighCourtAdvocateSearch() {
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto border border-border rounded-md bg-card text-card-foreground">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted">
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">CNR</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">CASE NUMBER</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">TITLE</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">TYPE</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">DECISION DATE</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">FOLLOW</TableHead>
-                    <TableHead className="px-3 py-2 text-xs text-muted-foreground">ACTIONS</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentPageResults.map((result: HighCourtResult) => {
-                    const caseId = result.cino || result.case_no;
-                    return (
-                      <TableRow key={caseId} className="hover:bg-muted/50">
-                        <TableCell className="px-3 py-2 text-xs text-foreground">{result.cino || "N/A"}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs font-medium text-foreground">{result.case_no || "N/A"}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs text-foreground">
-                          <div className="max-w-[220px] truncate" title={`${result.pet_name || ""} vs ${result.res_name || ""}`}>
-                            {result.pet_name && result.res_name
-                              ? `${result.pet_name} vs ${result.res_name}`
-                              : result.pet_name || result.res_name || "N/A"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs text-foreground">{result.type_name || "N/A"}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs text-foreground">
-                          {result.date_of_decision
-                            ? new Date(result.date_of_decision).toLocaleDateString("en-IN")
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          <button
-                            className={`border border-border rounded px-2 py-1 ${
-                              followedCases.has(caseId)
-                                ? "bg-muted text-foreground"
-                                : "bg-background text-foreground"
-                            }`}
-                            onClick={() => handleFollowCase(result)}
-                            disabled={followMutation.isPending || unfollowMutation.isPending}
-                          >
-                            {followMutation.isPending || unfollowMutation.isPending ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <Star size={12} className={followedCases.has(caseId) ? "text-foreground" : "text-muted-foreground"} />
-                                <span className="hidden sm:inline">{followedCases.has(caseId) ? "Following" : "Follow"}</span>
-                              </div>
-                            )}
-                          </button>
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          <button
-                            className="border border-border rounded px-2 py-1 bg-background text-foreground"
-                            onClick={() => handleViewDetails(result)}
-                            disabled={loadingDetails === caseId}
-                          >
-                            {loadingDetails === caseId ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <Eye className="w-3 h-3" />
-                                <span className="hidden sm:inline">Details</span>
-                              </div>
-                            )}
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+            (() => {
+              const columns: ColumnDef<HighCourtResult>[] = [
+                { key: "cino", header: "CNR", width: 160, render: (r) => r.cino || "N/A" },
+                { key: "case_no", header: "CASE NUMBER", width: 140, render: (r) => r.case_no || "N/A" },
+                { key: "title", header: "TITLE", width: 240, render: (r) => (
+                  <div className="max-w-[220px] truncate" title={`${r.pet_name || ""} vs ${r.res_name || ""}`}>
+                    {r.pet_name && r.res_name ? `${r.pet_name} vs ${r.res_name}` : r.pet_name || r.res_name || "N/A"}
+                  </div>
+                ) },
+                { key: "type_name", header: "TYPE", width: 120, render: (r) => r.type_name || "N/A" },
+                { key: "date_of_decision", header: "DECISION DATE", width: 140, render: (r) => (
+                  r.date_of_decision ? new Date(r.date_of_decision).toLocaleDateString("en-IN") : "N/A"
+                ) },
+                { key: "follow", header: "FOLLOW", width: 120, render: (r) => (
+                  <FollowButton
+                    isFollowing={followedCases.has(r.cino || r.case_no)}
+                    loading={followMutation.isPending || unfollowMutation.isPending}
+                    onClick={() => handleFollowCase(r)}
+                    compact
+                  />
+                ) },
+                { key: "actions", header: "ACTIONS", width: 140, render: (r) => {
+                  const caseId = r.cino || r.case_no;
+                  return (
+                    <button
+                      className="border border-border rounded px-2 py-1 bg-background text-foreground"
+                      onClick={() => handleViewDetails(r)}
+                      disabled={loadingDetails === caseId}
+                    >
+                      {loadingDetails === caseId ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="hidden sm:inline">Details</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                } },
+              ];
+
+              return (
+                <div className="w-full overflow-x-auto border border-border rounded-md bg-card text-card-foreground">
+                  <ResultsTable
+                    columns={columns}
+                    rows={currentPageResults}
+                    rowKey={(row) => row.cino || row.case_no}
+                    tableClassName="min-w-full"
+                    headerRowClassName="bg-muted"
+                  />
+                </div>
+              );
+            })()
           )}
           {/* Footer Pagination */}
           {currentPageResults.length > 0 && (
-            <div className="mt-3 flex items-center justify-between text-sm text-foreground">
-              <div>
-                Showing {total === 0 ? 0 : startIndex + 1}-{endIndex} of {total}
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Rows per page</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(parseInt(e.target.value));
-                    setPage(1);
-                  }}
-                  className="border border-border rounded p-1 bg-background"
-                >
-                  {[10, 20, 50, 100].map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-                <div className="ml-2 flex items-center gap-1">
-                  <button
-                    className="border border-border rounded px-2 py-1 disabled:opacity-50"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                  >
-                    Prev
-                  </button>
-                  <span className="px-2">{page} / {totalPages}</span>
-                  <button
-                    className="border border-border rounded px-2 py-1 disabled:opacity-50"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(newPageSize) => {
+                setPageSize(newPageSize);
+                setPage(1);
+              }}
+            />
           )}
         </div>
       )}

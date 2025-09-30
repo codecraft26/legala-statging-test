@@ -2,6 +2,10 @@
 
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X } from "lucide-react";
+import SearchBar from "./common/SearchBar";
+import FollowButton from "./common/FollowButton";
+import ResultsTable, { ColumnDef } from "./common/ResultsTable";
+import Pagination from "./common/Pagination";
 import {
   useHighByAdvocate,
   useHighByFilingNumber,
@@ -33,19 +37,7 @@ interface CaseDetails {
   [key: string]: any;
 }
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: string }) => {
-  const bgColor =
-    status === "COMPLETED" || status === "DISPOSED"
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
-
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-      {status}
-    </span>
-  );
-};
+// (status pill not required in this simplified modal)
 
 // Case Details Modal
 const CaseDetailsModal = ({
@@ -91,13 +83,14 @@ export default function HighCourtSearch() {
   const [stateCode, setStateCode] = useState("26");
   const [courtComplexCode, setCourtComplexCode] = useState("1");
   const [filterType, setFilterType] = useState<"P" | "R" | "Both">("Both");
-  const [searchResults, setSearchResults] = useState<HighCourtResult[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const [advocateParams, setAdvocateParams] = useState<
     | {
@@ -137,6 +130,29 @@ export default function HighCourtSearch() {
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
 
+  // Handle detail query response
+  React.useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = String(detailParams.cino || detailParams.case_no);
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setDetailsLoading(null);
+      return;
+    }
+    const raw: any = detailQuery.data;
+    if (!raw) return;
+    const details = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : raw;
+    setSelectedCase(details);
+    setShowCaseDetails(true);
+    setDetailsLoading(null);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setPage(1);
+  }, [advocateQuery.isFetching, filingQuery.isFetching, searchQuery]);
+
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 30 }, (_, i) =>
@@ -166,33 +182,17 @@ export default function HighCourtSearch() {
     }
   };
 
-  const handleViewDetails = async (result: HighCourtResult) => {
+  const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no.toString();
     setDetailsLoading(caseId);
-
-    try {
-      const base = getApiBaseUrl();
-      const res = await fetch(`${base}/research/high-court/case-detail`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          case_no: result.case_no,
-          state_code: result.state_code,
-          cino: result.cino,
-          court_code: result.court_code,
-          national_court_code: result.national_court_code,
-          dist_cd: result.dist_cd,
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setSelectedCase(json);
-      setShowCaseDetails(true);
-    } catch (err) {
-      console.error("Failed to fetch case details:", err);
-    } finally {
-      setDetailsLoading(null);
-    }
+    setDetailParams({
+      case_no: result.case_no,
+      state_code: result.state_code,
+      cino: result.cino,
+      court_code: result.court_code,
+      national_court_code: result.national_court_code,
+      dist_cd: result.dist_cd,
+    });
   };
 
   const handleFollowCase = async (caseData: HighCourtResult) => {
@@ -240,6 +240,13 @@ export default function HighCourtSearch() {
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  // Pagination
+  const total = filteredResults.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, total);
+  const currentPageResults = filteredResults.slice(startIndex, endIndex);
 
   return (
     <div className="p-6">
@@ -432,18 +439,7 @@ export default function HighCourtSearch() {
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Data..."
-                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900" />
-              </div>
-            </div>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search Data..." />
           </div>
 
           {filteredResults.length === 0 ? (
@@ -451,137 +447,61 @@ export default function HighCourtSearch() {
               No results found for your search criteria.
             </div>
           ) : (
-            <div className="w-full overflow-x-auto">
-              <div className="inline-block min-w-full bg-white rounded-xl shadow-lg overflow-hidden border-4 border-white">
-                <table className="min-w-full border-collapse table-fixed">
-                  <thead>
-                    <tr className="bg-gradient-to-r from-gray-300 to-gray-300 border-b-4 border-white">
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        CASE NO.
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        CINO
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "100px" }}
-                      >
-                        STATE CODE
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "100px" }}
-                      >
-                        COURT CODE
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "150px" }}
-                      >
-                        NATIONAL COURT CODE
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        FOLLOW
-                      </th>
-                      <th
-                        className="px-6 py-4 text-sm font-semibold text-black text-left"
-                        style={{ minWidth: "120px" }}
-                      >
-                        ACTIONS
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="border-y-4 border-white">
-                    {filteredResults.map((result, index) => {
-                      const caseId = result.cino || result.case_no.toString();
-                      return (
-                        <tr
-                          key={caseId}
-                          className={`transition-colors hover:bg-blue-50 ${
-                            index % 2 === 0 ? "bg-white" : "bg-blue-50"
-                          } border-b-4 border-white last:border-b-0`}
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-800 font-medium">
-                            {result.case_no}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {result.cino}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {result.state_code}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {result.court_code}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {result.national_court_code}
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              className={`flex items-center justify-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                                followedCases.has(caseId)
-                                  ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                  : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                              }`}
-                              onClick={() => handleFollowCase(result)}
-                              disabled={followLoading === caseId}
-                            >
-                              {followLoading === caseId ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Star
-                                    size={16}
-                                    className={
-                                      followedCases.has(caseId)
-                                        ? "text-yellow-600 fill-yellow-500"
-                                        : ""
-                                    }
-                                  />
-                                  <span>
-                                    {followedCases.has(caseId)
-                                      ? "Following"
-                                      : "Follow"}
-                                  </span>
-                                </>
-                              )}
-                            </button>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              className="flex items-center justify-center w-32 space-x-2 px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                              onClick={() => handleViewDetails(result)}
-                              disabled={detailsLoading === caseId}
-                            >
-                              {detailsLoading === caseId ? (
-                                <div className="flex items-center space-x-2">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  <span>Loading...</span>
-                                </div>
-                              ) : (
-                                <>
-                                  <Eye className="w-4 h-4" />
-                                  <span>Details</span>
-                                </>
-                              )}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            (() => {
+              const columns: ColumnDef<HighCourtResult>[] = [
+                { key: "case_no", header: "CASE NO.", width: 120, render: (r) => r.case_no },
+                { key: "cino", header: "CINO", width: 120, render: (r) => r.cino },
+                { key: "state_code", header: "STATE CODE", width: 100, render: (r) => r.state_code },
+                { key: "court_code", header: "COURT CODE", width: 100, render: (r) => r.court_code },
+                { key: "national_court_code", header: "NATIONAL COURT CODE", width: 150, render: (r) => r.national_court_code },
+                { key: "follow", header: "FOLLOW", width: 120, render: (r) => {
+                  const caseId = r.cino || String(r.case_no);
+                  return (
+                    <FollowButton
+                      isFollowing={followedCases.has(caseId)}
+                      loading={followLoading === caseId}
+                      onClick={() => handleFollowCase(r)}
+                      compact
+                    />
+                  );
+                } },
+                { key: "actions", header: "ACTIONS", width: 120, render: (r) => {
+                  const caseId = r.cino || String(r.case_no);
+                  return (
+                    <button
+                      className="border border-gray-300 rounded px-2 py-1"
+                      onClick={() => handleViewDetails(r)}
+                      disabled={detailsLoading === caseId}
+                    >
+                      {detailsLoading === caseId ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="hidden sm:inline">Details</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                } },
+              ];
+              return (
+                <div className="w-full overflow-x-auto">
+                  <ResultsTable columns={columns} rows={currentPageResults} rowKey={(r) => r.cino || String(r.case_no)} />
+                </div>
+              );
+            })()
+          )}
+
+          {/* Footer Pagination */}
+          {filteredResults.length > 0 && (
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+            />
           )}
         </div>
       )}

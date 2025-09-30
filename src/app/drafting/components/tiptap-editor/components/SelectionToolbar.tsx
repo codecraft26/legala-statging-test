@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Editor } from "@tiptap/react";
 import { X, Copy, Replace, Loader2, Edit3, Send } from "lucide-react";
-import { RefineApi } from "@/lib/refine-api";
+import { useRefineText } from "@/hooks/use-refine";
 
 type Props = {
   editor: Editor | null;
@@ -19,23 +19,21 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [selectedText, setSelectedText] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [resultText, setResultText] = useState("");
   const [improvements, setImprovements] = useState<string[]>([]);
   const lastSelectionRef = useRef<{ from: number; to: number } | null>(null);
-  const [error, setError] = useState("");
   const [isInteracting, setIsInteracting] = useState(false);
   const [hasSelectedText, setHasSelectedText] = useState(false);
-  const [usage, setUsage] = useState<{
-    input_tokens: number;
-    output_tokens: number;
-  } | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
   const [replaceSuccess, setReplaceSuccess] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Use the refine hook
+  const refineMutation = useRefineText();
+  const { mutateAsync: refineText, isPending: isProcessing, error: refineError, data: refineData } = refineMutation;
 
   useEffect(() => {
     if (!editor) return;
@@ -161,13 +159,10 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const handleRefine = async () => {
     if (!selectedText.trim() || !editor || !customPrompt.trim()) return;
 
-    setIsProcessing(true);
-    setError("");
     setResultText("");
-    setUsage(null);
 
     try {
-      const result = await RefineApi.refineText({
+      const result = await refineText({
         text: selectedText,
         instruction: customPrompt,
       });
@@ -175,7 +170,6 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       const refined = (result.refined_text || "").trim();
       if (refined) {
         setResultText(refined);
-        setUsage(result.usage || null);
         setShowResult(true);
         setImprovements(computeImprovements(selectedText, refined));
       }
@@ -189,14 +183,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       }
     } catch (error) {
       console.error("Error refining text:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to refine text. Please try again."
-      );
       setShowResult(false);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -248,8 +235,6 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
     setIsVisible(false);
     setShowResult(false);
     setResultText("");
-    setError("");
-    setUsage(null);
     setIsInteracting(false);
     setHasSelectedText(false);
     setCustomPrompt("");
@@ -260,8 +245,6 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
   const handleCloseResult = () => {
     setShowResult(false);
     setResultText("");
-    setError("");
-    setUsage(null);
     setReplaceSuccess(false);
   };
 
@@ -466,10 +449,10 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
         </div>
       )}
 
-              {usage && (
+              {refineData?.usage && (
                 <div className="pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
-                    Tokens: {usage.input_tokens} in, {usage.output_tokens} out
+                    Tokens: {refineData.usage.input_tokens} in, {refineData.usage.output_tokens} out
                   </p>
                 </div>
               )}
@@ -478,11 +461,13 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
         </div>
       </div>
 
-      {error && (
+      {refineError && (
         <div className="bg-white border border-red-200 rounded-lg shadow-lg p-3 mt-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
           <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
             <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span className="leading-relaxed">{error}</span>
+            <span className="leading-relaxed">
+              {refineError instanceof Error ? refineError.message : "Failed to refine text. Please try again."}
+            </span>
           </div>
         </div>
       )}

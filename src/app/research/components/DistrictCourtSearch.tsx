@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, Star, Eye, Loader2, X, Download } from "lucide-react";
+import SearchBar from "./common/SearchBar";
+import Pagination from "./common/Pagination";
 import {
   useDistrictByParty,
   useDistrictDetail,
@@ -12,7 +14,7 @@ import { districtId } from "../utils/districtId";
 import { useDistrictsIndex } from "@/hooks/use-districts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { useEstCodes } from "@/hooks/use-est-codes";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ResultsTable, { ColumnDef } from "./common/ResultsTable";
 
 interface DistrictCourtResult {
   cino: string;
@@ -1236,18 +1238,7 @@ export default function DistrictCourtSearch() {
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Data..."
-                className="w-64 border border-black dark:border-zinc-700 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900 dark:text-zinc-300" />
-              </div>
-            </div>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
           </div>
 
           {Object.keys(filteredResults).length === 0 ? (
@@ -1277,134 +1268,95 @@ export default function DistrictCourtSearch() {
                     </div>
 
                     {/* Court Table */}
-                    <div className="w-full overflow-x-auto">
-                      <Table className="table-fixed">
-                        <TableHeader>
-                          <TableRow className="bg-gray-100 dark:bg-zinc-800">
-                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "100px" }}>SERIAL NUMBER</TableHead>
-                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "150px" }}>CASE TYPE/CASE NUMBER/CASE YEAR</TableHead>
-                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "200px" }}>PETITIONER VERSUS RESPONDENT</TableHead>
-                            <TableHead className="px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left" style={{ minWidth: "100px" }}>VIEW</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {currentCases.map((result) => {
-                            const caseId = result.cino;
-                            return (
-                              <TableRow key={caseId} className="hover:bg-gray-50 dark:hover:bg-zinc-800 border-b border-gray-100 dark:border-zinc-800">
-                                <TableCell className="px-3 py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
-                                  {result.serial_number || "N/A"}
-                                </TableCell>
-                                <TableCell className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                                  <div className="max-w-[150px] truncate" title={`${result.case_type || ""}/${result.case_number || ""}/${result.case_year || ""}`}>
-                                    {result.case_type || "N/A"}/{result.case_number || "N/A"}/{result.case_year || "N/A"}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
-                                  <div className="max-w-[200px]">
-                                    <div className="truncate" title={result.petitioner_name || ""}>
-                                      <strong>Petitioner:</strong> {result.petitioner_name || "N/A"}
-                                    </div>
-                                    {result.respondent_name && (
-                                      <div className="truncate mt-1" title={result.respondent_name}>
-                                        <strong>Respondent:</strong> {result.respondent_name}
-                                      </div>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="px-3 py-3">
-                                  <div className="flex items-center space-x-2">
-                                    <button
-                                      className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    {(() => {
+                      const columns: ColumnDef<DistrictCourtResult>[] = [
+                        { key: "serial_number", header: "SERIAL NUMBER", width: 100, render: (r) => (
+                          <span className="text-gray-800 dark:text-zinc-200 font-medium">{r.serial_number || "N/A"}</span>
+                        ) },
+                        { key: "case_combo", header: "CASE TYPE/CASE NUMBER/CASE YEAR", width: 150, render: (r) => (
+                          <div className="max-w-[150px] truncate" title={`${r.case_type || ""}/${r.case_number || ""}/${r.case_year || ""}`}>
+                            {(r.case_type || "N/A") + "/" + (r.case_number || "N/A") + "/" + (r.case_year || "N/A")}
+                          </div>
+                        ) },
+                        { key: "party", header: "PETITIONER VERSUS RESPONDENT", width: 200, render: (r) => (
+                          <div className="max-w-[200px]">
+                            <div className="truncate" title={r.petitioner_name || ""}>
+                              <strong>Petitioner:</strong> {r.petitioner_name || "N/A"}
+                            </div>
+                            {r.respondent_name ? (
+                              <div className="truncate mt-1" title={r.respondent_name}>
+                                <strong>Respondent:</strong> {r.respondent_name}
+                              </div>
+                            ) : null}
+                          </div>
+                        ) },
+                        { key: "actions", header: "VIEW", width: 100, render: (r) => {
+                          const caseId = r.cino;
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <button
+                                className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                                  followedCases.has(caseId)
+                                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                    : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                                }`}
+                                onClick={() => handleFollowCase(r)}
+                                disabled={followLoading === caseId}
+                              >
+                                {followLoading === caseId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Star
+                                      size={12}
+                                      className={
                                         followedCases.has(caseId)
-                                          ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                          : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
-                                      }`}
-                                      onClick={() => handleFollowCase(result)}
-                                      disabled={followLoading === caseId}
-                                    >
-                                      {followLoading === caseId ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <Star
-                                            size={12}
-                                            className={
-                                              followedCases.has(caseId)
-                                                ? "text-yellow-600 fill-yellow-500"
-                                                : ""
-                                            }
-                                          />
-                                          <span className="hidden sm:inline">
-                                            {followedCases.has(caseId) ? "Following" : "Follow"}
-                                          </span>
-                                        </>
-                                      )}
-                                    </button>
-                                    <button
-                                      className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-black rounded hover:bg-gray-800 transition-colors"
-                                      onClick={() => handleViewDetails(result)}
-                                      disabled={detailsLoading === caseId}
-                                    >
-                                      {detailsLoading === caseId ? (
-                                        <Loader2 className="h-3 w-3 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <Eye className="w-3 h-3" />
-                                          <span className="hidden sm:inline">Details</span>
-                                        </>
-                                      )}
-                                    </button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
+                                          ? "text-yellow-600 fill-yellow-500"
+                                          : ""
+                                      }
+                                    />
+                                    <span className="hidden sm:inline">
+                                      {followedCases.has(caseId) ? "Following" : "Follow"}
+                                    </span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-black rounded hover:bg-gray-800 transition-colors"
+                                onClick={() => handleViewDetails(r)}
+                                disabled={detailsLoading === caseId}
+                              >
+                                {detailsLoading === caseId ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Eye className="w-3 h-3" />
+                                    <span className="hidden sm:inline">Details</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        } },
+                      ];
+
+                      return (
+                        <ResultsTable
+                          columns={columns}
+                          rows={currentCases}
+                          rowKey={(r) => r.cino}
+                        />
+                      );
+                    })()}
 
                     {/* Pagination */}
-                    <div className="px-4 py-3 flex items-center justify-between text-sm text-gray-700 dark:text-zinc-300 border-t border-gray-200 dark:border-zinc-800">
-                      <div className="flex items-center gap-2">
-                        <span>Rows per page</span>
-                        <select
-                          value={pageSize}
-                          onChange={(e) => {
-                            const next = parseInt(e.target.value);
-                            setPageSize(next);
-                            setPageByCourt((prev) => ({ ...prev, [courtName]: 1 }));
-                          }}
-                          className="border border-black dark:border-zinc-600 rounded px-2 py-1 bg-white dark:bg-zinc-950"
-                        >
-                          {[10, 20, 50, 100].map((n) => (
-                            <option key={n} value={n}>{n}</option>
-                          ))}
-                        </select>
-                        <span>
-                          {total === 0 ? 0 : startIndex + 1}-{endIndex} of {total}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="border border-black rounded px-2 py-1 disabled:opacity-50"
-                          onClick={() => setPageByCourt((prev) => ({ ...prev, [courtName]: Math.max(1, page - 1) }))}
-                          disabled={page <= 1}
-                        >
-                          Prev
-                        </button>
-                        <span>
-                          Page {page} of {totalPages}
-                        </span>
-                        <button
-                          className="border border-black rounded px-2 py-1 disabled:opacity-50"
-                          onClick={() => setPageByCourt((prev) => ({ ...prev, [courtName]: Math.min(totalPages, page + 1) }))}
-                          disabled={page >= totalPages}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
+                    <Pagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={total}
+                      onPageChange={(p) => setPageByCourt((prev) => ({ ...prev, [courtName]: p }))}
+                      onPageSizeChange={(n) => { setPageSize(n); setPageByCourt((prev) => ({ ...prev, [courtName]: 1 })); }}
+                    />
                   </div>
                 );
               })}

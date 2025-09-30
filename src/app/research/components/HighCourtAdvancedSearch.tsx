@@ -2,12 +2,16 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Api } from "@/lib/api-client";
 import {
   stateCodeMapping,
   courtComplexMapping,
   courtCodeMapping,
 } from "../utils/courtMappings";
+import {
+  useHighByAdvocate,
+  useHighByFilingNumber,
+  useHighDetail,
+} from "@/hooks/use-research";
 
 type Result = unknown;
 
@@ -27,56 +31,61 @@ export default function HighCourtAdvancedSearch() {
   const [detailNatCourtCode, setDetailNatCourtCode] = useState<string>("");
   const [detailDistCd, setDetailDistCd] = useState<string>("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<Result | null>(null);
+  // Query parameters for each tab
+  const advocateParams = courtCode && stateCode && courtComplexCode && advocateName ? {
+    court_code: Number(courtCode),
+    state_code: Number(stateCode),
+    court_complex_code: Number(courtComplexCode),
+    advocate_name: advocateName,
+    f: f as "P" | "R" | "Both",
+  } : null;
 
-  const callApi = async (path: string, body: any) => {
-    setLoading(true);
-    setError(null);
-    setData(null);
-    try {
-      const res = await Api.post<Result, any>(path, body);
-      setData(res);
-    } catch (err: any) {
-      setError(err?.message ?? "Request failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filingParams = courtCode && stateCode && courtComplexCode && caseNo && rgYear ? {
+    court_code: Number(courtCode),
+    state_code: Number(stateCode),
+    court_complex_code: Number(courtComplexCode),
+    case_no: Number(caseNo),
+    rgyear: Number(rgYear),
+  } : null;
+
+  const detailParams = caseNo && stateCode && detailCino && courtCode && detailNatCourtCode && detailDistCd ? {
+    case_no: Number(caseNo),
+    state_code: Number(stateCode),
+    cino: detailCino,
+    court_code: Number(courtCode),
+    national_court_code: detailNatCourtCode,
+    dist_cd: Number(detailDistCd),
+  } : null;
+
+  // TanStack Query hooks
+  const advocateQuery = useHighByAdvocate(advocateParams);
+  const filingQuery = useHighByFilingNumber(filingParams);
+  const detailQuery = useHighDetail(detailParams);
+
+  // Get current query based on active tab
+  const currentQuery = tab === "advocate" ? advocateQuery : 
+                      tab === "filing" ? filingQuery : 
+                      detailQuery;
 
   const onSubmitAdvocate = (e: React.FormEvent) => {
     e.preventDefault();
-    callApi("/research/high-court/search-advocate", {
-      court_code: Number(courtCode) || undefined,
-      state_code: Number(stateCode) || undefined,
-      court_complex_code: Number(courtComplexCode) || undefined,
-      advocate_name: advocateName,
-      f,
-    });
+    if (advocateParams) {
+      advocateQuery.refetch();
+    }
   };
 
   const onSubmitFiling = (e: React.FormEvent) => {
     e.preventDefault();
-    callApi("/research/high-court/search-filing-number", {
-      court_code: Number(courtCode) || undefined,
-      state_code: Number(stateCode) || undefined,
-      court_complex_code: Number(courtComplexCode) || undefined,
-      case_no: Number(caseNo) || undefined,
-      rgyear: Number(rgYear) || undefined,
-    });
+    if (filingParams) {
+      filingQuery.refetch();
+    }
   };
 
   const onSubmitDetail = (e: React.FormEvent) => {
     e.preventDefault();
-    callApi("/research/high-court/case-detail", {
-      case_no: Number(caseNo) || undefined,
-      state_code: Number(stateCode) || undefined,
-      cino: detailCino,
-      court_code: Number(courtCode) || undefined,
-      national_court_code: detailNatCourtCode,
-      dist_cd: Number(detailDistCd) || undefined,
-    });
+    if (detailParams) {
+      detailQuery.refetch();
+    }
   };
 
   return (
@@ -226,13 +235,19 @@ export default function HighCourtAdvancedSearch() {
         </form>
       )}
 
-      {loading ? (
+      {currentQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
       ) : null}
-      {error ? <div className="text-sm text-red-600">{error}</div> : null}
-      {data ? (
+      {currentQuery.error ? (
+        <div className="text-sm text-red-600">
+          {currentQuery.error instanceof Error 
+            ? currentQuery.error.message 
+            : "An error occurred"}
+        </div>
+      ) : null}
+      {currentQuery.data ? (
         <pre className="rounded-md border p-3 text-xs overflow-auto bg-card">
-          {JSON.stringify(data, null, 2)}
+          {JSON.stringify(currentQuery.data, null, 2)}
         </pre>
       ) : null}
     </div>
