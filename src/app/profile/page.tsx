@@ -1,17 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { useAuth } from "@/hooks/use-auth";
 import { Api } from "@/lib/api-client";
-import { setUser } from "@/store/slices/authSlice";
 import { getCookie } from "@/lib/utils";
 import { CreditApi, type CreditDetail } from "@/lib/credit-api";
 // Pie chart removed per request
 
 export default function ProfilePage() {
-  const dispatch = useDispatch();
-  const user = useSelector((s: RootState) => s.auth.user);
+  const { user, refetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credit, setCredit] = useState<CreditDetail | null>(null);
@@ -30,7 +27,8 @@ export default function ProfilePage() {
         const detailResponse: any = await Api.get("/user/detail");
         const userData = (detailResponse &&
           (detailResponse.data ?? detailResponse)) as any;
-        if (userData) dispatch(setUser(userData));
+        // auth is queried elsewhere; no global dispatch
+        if (!user) await refetch();
         // If admin/owner, also load credit detail
         const role = String((userData || {}).role || "").toLowerCase();
         if (role === "owner" || role === "admin") {
@@ -47,7 +45,7 @@ export default function ProfilePage() {
         setLoading(false);
       }
     })();
-  }, [dispatch]);
+  }, [refetch, user]);
 
   if (!user || loading) {
     return (

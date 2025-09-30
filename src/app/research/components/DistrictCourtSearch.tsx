@@ -8,7 +8,6 @@ import {
   useFollowResearch,
   useUnfollowResearch,
 } from "@/hooks/use-research";
-import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import { districtId } from "../utils/districtId";
 import { useDistrictsIndex } from "@/hooks/use-districts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
@@ -526,6 +525,7 @@ export default function DistrictCourtSearch() {
   const [pageSize, setPageSize] = useState(20);
   const [pageByCourt, setPageByCourt] = useState<Record<string, number>>({});
   const [estMenuOpen, setEstMenuOpen] = useState(false);
+  const [detailParams, setDetailParams] = useState<{ cino: string; district_name: string } | null>(null);
 
   const [partyParams, setPartyParams] = useState<
     | {
@@ -998,40 +998,32 @@ export default function DistrictCourtSearch() {
     });
   };
 
-  const handleViewDetails = async (result: DistrictCourtResult) => {
+  const detailQuery = useDistrictDetail(detailParams);
+
+  React.useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = detailParams.cino;
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setDetailsLoading(null);
+      return;
+    }
+    const data: any = detailQuery.data;
+    if (!data) return;
+    const payload = typeof data?.data === "string" ? data.data : typeof data === "string" ? data : data;
+    const parsedDetails = parseCaseDetailsHTML(payload);
+    if (parsedDetails) {
+      setSelectedCase(parsedDetails);
+      setShowCaseDetails(true);
+    }
+    setDetailsLoading(null);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+
+  const handleViewDetails = (result: DistrictCourtResult) => {
     const caseId = result.cino;
     setDetailsLoading(caseId);
-
-    try {
-      const base = getApiBaseUrl();
-      const token = getCookie("token") || "";
-      const res = await fetch(`${base}/research/district-court/case-detail`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          cino: result.cino,
-          district_name: result.district_name,
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const payload = typeof json?.data === "string" ? json.data : json;
-      const parsedDetails = parseCaseDetailsHTML(payload);
-      if (parsedDetails) {
-        setSelectedCase(parsedDetails);
-        setShowCaseDetails(true);
-      } else {
-        alert("Failed to parse case details. The response format may be invalid.");
-      }
-    } catch (err) {
-      console.error("Failed to fetch case details:", err);
-      alert("Failed to fetch case details. Please try again.");
-    } finally {
-      setDetailsLoading(null);
-    }
+    setDetailParams({ cino: result.cino, district_name: result.district_name });
   };
 
   const handleFollowCase = async (caseData: DistrictCourtResult) => {

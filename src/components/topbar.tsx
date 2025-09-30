@@ -3,9 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "@/store";
-import { logout, setCredentials } from "@/store/slices/authSlice";
+import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   ChevronDown,
@@ -15,8 +13,7 @@ import {
   Bell,
 } from "lucide-react";
 import WorkspaceSelector from "@/components/workspace-selector";
-import { Api } from "@/lib/api-client";
-import { deleteCookie, getCookie } from "@/lib/utils";
+import { getCookie } from "@/lib/utils";
 
 function RoleBadge({ role }: { role?: string }) {
   if (!role) return null;
@@ -35,11 +32,10 @@ function RoleBadge({ role }: { role?: string }) {
 }
 
 export default function Topbar() {
-  const { user, token } = useSelector((s: RootState) => s.auth);
+  const { user, token, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch();
   const router = useRouter();
 
   const initials = (user?.email || "U").charAt(0).toUpperCase();
@@ -47,50 +43,16 @@ export default function Topbar() {
     user || token || (typeof window !== "undefined" && getCookie("token"))
   );
 
-  // Ensure user is loaded when token exists (after refresh)
   useEffect(() => {
     setMounted(true);
-    const lsToken = typeof window !== "undefined" ? getCookie("token") : null;
-    if (!user && lsToken) {
-      (async () => {
-        try {
-          const detailResponse = await Api.get<any>("/user/detail");
-          const detail = (detailResponse as any).data || detailResponse;
-          // Normalize role before storing
-          const normalizedDetail = {
-            ...detail,
-            role:
-              detail.role?.toLowerCase() === "owner"
-                ? "Owner"
-                : detail.role?.toLowerCase() === "admin"
-                  ? "Admin"
-                  : detail.role?.toLowerCase() === "member"
-                    ? "Member"
-                    : detail.role || "Member",
-          };
-          dispatch(
-            setCredentials({ token: lsToken, user: normalizedDetail } as any)
-          );
-          try {
-            // keep only in redux/state; avoid duplicating in localStorage
-          } catch {}
-        } catch (_) {
-          // ignore; fall back to login button
-        }
-      })();
-    }
-  }, [user, dispatch]);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-zinc-900/60">
       <div className="mx-auto flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="logo" className="h-6 w-6" />
-            <span className="hidden sm:block text-sm font-semibold text-foreground">
-              InfraHive
-            </span>
+            <span className="sr-only">Dashboard</span>
           </Link>
         </div>
         <div className="flex items-center gap-2">
@@ -213,10 +175,7 @@ export default function Topbar() {
                     className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                     onClick={() => {
                       setOpen(false);
-                      if (typeof window !== "undefined") {
-                        deleteCookie("token");
-                      }
-                      dispatch(logout());
+                      signOut();
                       router.push("/login");
                     }}
                   >

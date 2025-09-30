@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { useAuth } from "@/hooks/use-auth";
 import { Api } from "@/lib/api-client";
 import { getCookie } from "@/lib/utils";
 
@@ -18,7 +17,7 @@ export default function MembersPage() {
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const user = useSelector((s: RootState) => s.auth.user);
+  const { user } = useAuth();
 
   const getDisplayRole = (role?: string) => {
     switch (role?.toLowerCase()) {

@@ -16,9 +16,7 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { logout } from "@/store/slices/authSlice";
+import { useAuth } from "@/hooks/use-auth";
 import { getCookie, deleteCookie } from "@/lib/utils";
 
 const NavItem = ({
@@ -53,9 +51,8 @@ const NavItem = ({
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const dispatch = useDispatch();
+  const { signOut, user } = useAuth();
   const router = useRouter();
-  const user = useSelector((s: RootState) => s.auth.user);
   const [mounted, setMounted] = useState(false);
   const [lsRole, setLsRole] = useState<string | undefined>(undefined);
   const [tokenRole, setTokenRole] = useState<string | undefined>(undefined);
@@ -109,7 +106,7 @@ export default function Sidebar() {
   return (
     <aside
       className={`sticky top-0 h-svh shrink-0 border-r bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 transition-[width] ${
-        collapsed ? "w-[64px]" : "w-[240px]"
+        collapsed ? "w-[64px]" : "w-[200px]"
       }`}
     >
       <div className="mb-4 flex items-center justify-between">
@@ -202,7 +199,7 @@ export default function Sidebar() {
           type="button"
           onClick={() => {
             if (typeof window !== "undefined") deleteCookie("token");
-            dispatch(logout());
+            signOut();
             router.push("/login");
           }}
           className={`mt-2 w-full inline-flex items-center ${

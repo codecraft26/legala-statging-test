@@ -3,9 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { getCookie } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { logout } from "@/store/slices/authSlice";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {
@@ -24,8 +22,7 @@ import {
 
 export default function DashboardPage() {
   const [authed, setAuthed] = useState(false);
-  const user = useSelector((s: RootState) => s.auth.user);
-  const dispatch = useDispatch();
+  const { user } = useAuth();
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => {

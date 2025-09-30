@@ -1,13 +1,19 @@
 "use client";
 
 import React from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { getCookie as getCookieUtil } from "@/lib/utils";
 import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
 import { Button } from "@/components/ui/button";
 
 export default function DraftingPage() {
-  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+  const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
+  const [workspaceName, setWorkspaceName] = React.useState<string>("");
+  React.useEffect(() => {
+    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    setWorkspaceId(id);
+    setWorkspaceName("");
+  }, []);
+  const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName || "" } as any) : null;
 
   return (
     <main className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
@@ -15,12 +21,10 @@ export default function DraftingPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold">AutoDraft Pro</h1>
-            {currentWorkspace && (
-              <p className="text-sm text-muted-foreground">
-                Workspace:{" "}
-                <span className="font-medium">{currentWorkspace.name}</span>
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Workspace:{" "}
+              <span className="font-medium">{currentWorkspace?.name || ""}</span>
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline">Import</Button>

@@ -4,7 +4,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import TanStackProvider from "@/provider/tanstack";
 import ThemeProvider from "@/provider/theme";
-import ReduxProvider from "@/provider/redux";
 import AppShell from "@/components/app-shell";
 
 const geistSans = Geist({
@@ -37,13 +36,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ReduxProvider>
-          <ThemeProvider>
-            <TanStackProvider>
-              <AppShell>{children}</AppShell>
-            </TanStackProvider>
-          </ThemeProvider>
-        </ReduxProvider>
+        <ThemeProvider>
+          <TanStackProvider>
+            <AppShell>{children}</AppShell>
+          </TanStackProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import React, { useMemo, useState } from "react";
+import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,7 +25,11 @@ import {
 import { useRouter } from "next/navigation";
 
 export default function ExtractionsListPage() {
-  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+  const currentWorkspace = useMemo(() => {
+    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    if (!id) return undefined as any;
+    return { id, name: "Workspace" } as any;
+  }, []);
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Api } from "@/lib/api-client";
 import AutoDraft from "./components/AutoDraft";
 import { Trash2, Plus, Upload, Search, X } from "lucide-react";
@@ -21,7 +20,11 @@ type Item = {
 };
 
 export default function DocumentsPage() {
-  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+  const currentWorkspace = React.useMemo(() => {
+    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    if (!id) return undefined as any;
+    return { id, name: "Workspace" } as any;
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [items, setItems] = useState<Item[]>([]);

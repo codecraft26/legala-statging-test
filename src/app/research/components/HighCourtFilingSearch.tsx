@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch } from "@/hooks/use-research";
+import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch, useHighDetail } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -474,6 +474,14 @@ export default function HighCourtFilingSearch() {
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [detailParams, setDetailParams] = useState<{
+    case_no: number;
+    state_code: number;
+    cino: string;
+    court_code: number;
+    national_court_code: string;
+    dist_cd: number;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [searchParams, setSearchParams] = useState<{
@@ -537,49 +545,39 @@ export default function HighCourtFilingSearch() {
     });
   };
 
-  const handleViewDetails = async (result: HighCourtResult) => {
+  const detailQuery = useHighDetail(detailParams);
+
+  React.useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = String(detailParams.cino || detailParams.case_no);
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setLoadingDetails(null);
+      return;
+    }
+    const raw: any = detailQuery.data;
+    if (!raw) return;
+    const details = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : raw;
+    setSelectedCase({
+      ...(currentPageResults.find((r) => String(r.cino || r.case_no) === caseId) || ({} as any)),
+      details,
+    } as any);
+    setShowCaseDetails(true);
+    setLoadingDetails(null);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+
+  const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
     setLoadingDetails(caseId);
-
-    try {
-      const base = getApiBaseUrl();
-      const token = getCookie("token") || "";
-      const response = await fetch(`${base}/research/high-court/case-detail`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          case_no: Number(result.case_no),
-          state_code: Number(result.state_cd),
-          cino: result.cino,
-          court_code: Number(result.court_code),
-          national_court_code: "DLHC01",
-          dist_cd: 1,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const caseDetails = await response.json();
-
-      // Set the detailed case data
-      setSelectedCase({
-        ...result,
-        details: caseDetails,
-      });
-      setShowCaseDetails(true);
-    } catch (err) {
-      console.error("Failed to fetch case details:", err);
-      // Fallback to showing basic case info if API fails
-      setSelectedCase(result);
-      setShowCaseDetails(true);
-    } finally {
-      setLoadingDetails(null);
-    }
+    setDetailParams({
+      case_no: Number(result.case_no),
+      state_code: Number(result.state_cd),
+      cino: result.cino,
+      court_code: Number(result.court_code),
+      national_court_code: "DLHC01",
+      dist_cd: 1,
+    });
   };
 
   // TanStack Query mutations for follow/unfollow
