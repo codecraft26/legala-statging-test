@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Api } from "@/lib/api-client";
 import { getCookie } from "@/lib/utils";
-import { CreditApi, type CreditDetail } from "@/lib/credit-api";
+import { type CreditDetail } from "@/lib/credit-api";
+import { useCreditDetail, useProfileDetail } from "@/hooks/use-profile";
 // Pie chart removed per request
 
 export default function ProfilePage() {
@@ -13,39 +13,24 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [credit, setCredit] = useState<CreditDetail | null>(null);
 
+  const token = typeof window !== "undefined" ? getCookie("token") : null;
+  const profileQuery = useProfileDetail();
+  const role = String((profileQuery.data || {})?.role || "").toLowerCase();
+  const creditQuery = useCreditDetail(role === "owner" || role === "admin");
+
   useEffect(() => {
-    const token = typeof window !== "undefined" ? getCookie("token") : null;
     if (!token) {
       window.location.href = "/login";
       return;
     }
-    // Fetch latest user detail if missing or to refresh workspaces
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const detailResponse: any = await Api.get("/user/detail");
-        const userData = (detailResponse &&
-          (detailResponse.data ?? detailResponse)) as any;
-        // auth is queried elsewhere; no global dispatch
-        if (!user) await refetch();
-        // If admin/owner, also load credit detail
-        const role = String((userData || {}).role || "").toLowerCase();
-        if (role === "owner" || role === "admin") {
-          try {
-            const c = await CreditApi.getDetail();
-            setCredit(c || null);
-          } catch (e) {
-            // surface as non-blocking
-          }
-        }
-      } catch (e: any) {
-        setError(e?.message || "Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [refetch, user]);
+    if (!user) refetch();
+  }, [token, user, refetch]);
+
+  useEffect(() => {
+    setLoading(profileQuery.isLoading || creditQuery.isLoading);
+    setError(profileQuery.error ? (profileQuery.error as any)?.message ?? null : null);
+    setCredit(creditQuery.data || null);
+  }, [profileQuery.isLoading, creditQuery.isLoading, profileQuery.error, creditQuery.data]);
 
   if (!user || loading) {
     return (

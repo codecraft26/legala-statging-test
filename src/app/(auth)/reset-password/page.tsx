@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { Api } from "@/lib/api-client";
+import { useResetPassword } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ function ResetPasswordInner() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [passwordReset, setPasswordReset] = useState(false);
+  const resetMutation = useResetPassword();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -83,14 +84,9 @@ function ResetPasswordInner() {
     }
 
     try {
-      const response = await Api.post<{ message: string }>(
-        "/user/reset-password",
-        {
-          password,
-          token,
-        }
-      );
-      setMessage(response.message || "Password updated successfully");
+      const response = await resetMutation.mutateAsync({ password, token: token! });
+      // @ts-expect-error string optional
+      setMessage(response?.message || "Password updated successfully");
       setPasswordReset(true);
     } catch (err: any) {
       setError(err?.message ?? "Failed to reset password");

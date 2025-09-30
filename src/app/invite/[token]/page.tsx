@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Api } from "@/lib/api-client";
+import { useAcceptInvite } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ export default function AcceptInvitePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const acceptMutation = useAcceptInvite();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ email?: string; workspace?: string } | null>(null);
@@ -71,10 +72,7 @@ export default function AcceptInvitePage() {
     }
 
     try {
-      const response = await Api.post<{ message: string }>("/user/accept-invite", { 
-        token,
-        password 
-      });
+      await acceptMutation.mutateAsync({ token, password });
       setSuccess(true);
     } catch (err: any) {
       // Enhanced error handling for different types of API errors

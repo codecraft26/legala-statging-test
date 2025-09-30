@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Api } from "@/lib/api-client";
+import { useForgotPassword } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
+  const forgotMutation = useForgotPassword();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,11 +22,9 @@ export default function ForgotPasswordPage() {
     setMessage(null);
     setError(null);
     try {
-      const response = await Api.post<{ message: string; token?: string }>(
-        "/user/forgot-password",
-        { email }
-      );
-      setMessage(response.message || "Reset email sent");
+      const response = await forgotMutation.mutateAsync({ email });
+ 
+      setMessage(response?.message || "Reset email sent");
       setEmailSent(true);
     } catch (err: any) {
       setError(err?.message ?? "Failed to send reset email");

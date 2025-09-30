@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Api } from "@/lib/api-client";
+import { useAcceptInvite } from "@/hooks/use-auth";
 
 function AcceptInviteContent() {
   const params = useSearchParams();
@@ -11,13 +11,14 @@ function AcceptInviteContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const acceptMutation = useAcceptInvite();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await Api.post("/user/accept-invite", { token, password });
+      await acceptMutation.mutateAsync({ token, password });
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message ?? "Failed to accept invite");

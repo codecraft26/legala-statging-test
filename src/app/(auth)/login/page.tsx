@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Api } from "@/lib/api-client";
 import { Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useLogin } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie } from "@/lib/utils";
 
@@ -24,16 +23,15 @@ export default function LoginPage() {
     }
   }, [token, router]);
 
+  const loginMutation = useLogin();
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const res = await Api.post<{ token: string }>("/user/login", {
-        email,
-        password,
-      });
-      const token = res.token;
+      const res = await loginMutation.mutateAsync({ email, password });
+      const token = (res as any)?.token;
       if (typeof window !== "undefined") {
         setCookie("token", token, 7, { sameSite: "lax", secure: true });
       }
