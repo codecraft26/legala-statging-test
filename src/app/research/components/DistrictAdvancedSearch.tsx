@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Api } from "@/lib/api-client";
 import { districtId, districtIndex } from "../utils/districtId";
 import { useEstCodes } from "@/hooks/use-est-codes";
+import ResearchTabs from "./common/ResearchTabs";
+import EstCodeField from "./common/EstCodeField";
+import ResultPanel from "./common/ResultPanel";
 
 type Result = unknown;
 
@@ -80,20 +83,14 @@ export default function DistrictAdvancedSearch() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          variant={tab === "party" ? "default" : "outline"}
-          onClick={() => setTab("party")}
-        >
-          Search Party
-        </Button>
-        <Button
-          variant={tab === "detail" ? "default" : "outline"}
-          onClick={() => setTab("detail")}
-        >
-          Case Detail
-        </Button>
-      </div>
+      <ResearchTabs
+        tabs={[
+          { id: "party", label: "Search Party" },
+          { id: "detail", label: "Case Detail" },
+        ]}
+        active={tab}
+        onChange={(t) => setTab(t as any)}
+      />
 
       {tab === "party" && (
         <>
@@ -120,39 +117,16 @@ export default function DistrictAdvancedSearch() {
                 </option>
               ))}
             </select>
-            <div className="relative">
-              <input
-                className="rounded-md border px-3 py-2 text-sm w-full"
-                placeholder="EST code (e.g., JKSG02,JKSG01)"
-                value={estCode}
-                onChange={(e) => setEstCode(e.target.value)}
-                list="estCodeDatalist"
-                disabled={!district || estLoading}
-              />
-              <datalist id="estCodeDatalist">
-                {estCodeOptions.map((option, index) => (
-                  <option key={index} value={option.code}>
-                    {option.description}
-                  </option>
-                ))}
-              </datalist>
-              {!district && (
-                <div className="text-xs text-red-500 mt-1">
-                  Select a district first to see EST codes.
-                </div>
-              )}
-              {estError && (
-                <div className="text-xs text-red-500 mt-1">
-                  Error loading EST codes: {estError}
-                </div>
-              )}
-              {district && estCodeOptions.length > 0 && (
-                <div className="text-xs text-gray-500 mt-1">
-                  {estCodeOptions.length} EST codes available. Type to search or
-                  click dropdown arrow.
-                </div>
-              )}
-            </div>
+            <EstCodeField
+              value={estCode}
+              onChange={setEstCode}
+              options={estCodeOptions}
+              disabled={!district || estLoading}
+              errorText={!district ? "Select a district first to see EST codes." : estError || null}
+              helper={district && estCodeOptions.length > 0 ? (
+                <>{estCodeOptions.length} EST codes available. Type to search or click dropdown arrow.</>
+              ) : undefined}
+            />
           </div>
           <form
             onSubmit={onSubmitParty}
@@ -208,15 +182,7 @@ export default function DistrictAdvancedSearch() {
         </form>
       )}
 
-      {loading ? (
-        <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : null}
-      {error ? <div className="text-sm text-red-600">{error}</div> : null}
-      {data ? (
-        <pre className="rounded-md border p-3 text-xs overflow-auto bg-card">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      ) : null}
+      <ResultPanel loading={loading} error={error} data={data} />
     </div>
   );
 }

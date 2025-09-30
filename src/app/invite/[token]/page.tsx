@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAcceptInvite } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, UserPlus, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, UserPlus, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import PasswordField from "../components/PasswordField";
+import { validateInvitePassword } from "../utils";
 
 export default function AcceptInvitePage() {
   const params = useParams();
@@ -20,8 +20,6 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const acceptMutation = useAcceptInvite();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ email?: string; workspace?: string } | null>(null);
 
   useEffect(() => {
@@ -30,21 +28,7 @@ export default function AcceptInvitePage() {
     }
   }, [token]);
 
-  const validatePassword = (password: string) => {
-    if (password.length < 8) {
-      return "Password must be at least 8 characters long";
-    }
-    if (!/(?=.*[a-z])/.test(password)) {
-      return "Password must contain at least one lowercase letter";
-    }
-    if (!/(?=.*[A-Z])/.test(password)) {
-      return "Password must contain at least one uppercase letter";
-    }
-    if (!/(?=.*\d)/.test(password)) {
-      return "Password must contain at least one number";
-    }
-    return null;
-  };
+  // using shared validator in ../utils
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +36,7 @@ export default function AcceptInvitePage() {
     setError(null);
 
     // Validate passwords
-    const passwordError = validatePassword(password);
+    const passwordError = validateInvitePassword(password);
     if (passwordError) {
       setError(passwordError);
       setLoading(false);
@@ -201,53 +185,23 @@ export default function AcceptInvitePage() {
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="password">New password</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter new password"
-                required
-                disabled={loading}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={loading}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
+          <PasswordField
+            id="password"
+            label="New password"
+            value={password}
+            onChange={setPassword}
+            placeholder="Enter new password"
+            disabled={loading}
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm new password</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                required
-                disabled={loading}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={loading}
-              >
-                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
+          <PasswordField
+            id="confirmPassword"
+            label="Confirm new password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            placeholder="Confirm new password"
+            disabled={loading}
+          />
 
           <div className="text-xs text-muted-foreground space-y-1">
             <p>Password requirements:</p>

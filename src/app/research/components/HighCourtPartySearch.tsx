@@ -9,6 +9,11 @@ import {
   useUnfollowResearch,
 } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
+import SearchBar from "./common/SearchBar";
+import ResultsTable, { ColumnDef } from "./common/ResultsTable";
+import Pagination from "./common/Pagination";
+import FollowButton from "./common/FollowButton";
+import StatusPill from "./common/StatusPill";
 
 interface HighCourtPartyResult {
   case_no: number;
@@ -24,19 +29,6 @@ interface CaseDetails {
   [key: string]: any;
 }
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: string }) => {
-  const bgColor =
-    status === "COMPLETED" || status === "DISPOSED"
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
-
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-      {status}
-    </span>
-  );
-};
 
 // Case Details Modal
 const CaseDetailsModal = ({
@@ -84,15 +76,20 @@ export default function HighCourtPartySearch() {
   const courtInputRef = useRef<HTMLDivElement>(null);
   const [selectedBench, setSelectedBench] = useState("");
   const [benches, setBenches] = useState<string[]>([]);
-  const [searchResults, setSearchResults] = useState<HighCourtPartyResult[]>(
-    []
-  );
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
+  const [detailParams, setDetailParams] = useState<{
+    case_no: number;
+    state_code: number;
+    cino: string;
+    court_code: number;
+    national_court_code: string;
+    dist_cd: number;
+  } | null>(null);
 
   const [searchParams, setSearchParams] = useState<
     | {
@@ -115,12 +112,36 @@ export default function HighCourtPartySearch() {
     (currentYear - i).toString()
   );
 
+  // Normalize results from query data
+  const rawResults: HighCourtPartyResult[] = Array.isArray(partyQuery.data)
+    ? (partyQuery.data as any)
+    : Array.isArray((partyQuery.data as any)?.results)
+    ? ((partyQuery.data as any).results as any)
+    : Array.isArray((partyQuery.data as any)?.data)
+    ? ((partyQuery.data as any).data as any)
+    : Array.isArray((partyQuery.data as any)?.cases)
+    ? ((partyQuery.data as any).cases as any)
+    : [];
+
   // Filter search results based on searchQuery
-  const filteredResults = searchResults.filter((result) =>
-    Object.values(result).some((value) =>
+  const filteredResults = rawResults.filter((result: any) =>
+    Object.values(result).some((value: any) =>
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const total = filteredResults.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, total);
+  const currentPageResults = filteredResults.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setPage(1);
+  }, [partyQuery.isFetching, searchQuery, JSON.stringify(searchParams)]);
 
   // Handle click outside to close court dropdown
   useEffect(() => {
@@ -211,37 +232,36 @@ export default function HighCourtPartySearch() {
     } as any);
   };
 
-  const handleViewDetails = async (result: HighCourtPartyResult) => {
+  const detailQuery = useHighDetail(detailParams);
+
+  useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = String(detailParams.cino || detailParams.case_no);
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setDetailsLoading(null);
+      return;
+    }
+    const raw: any = detailQuery.data;
+    if (!raw) return;
+    const details = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : raw;
+    setSelectedCase(details);
+    setShowCaseDetails(true);
+    setDetailsLoading(null);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+
+  const handleViewDetails = (result: HighCourtPartyResult) => {
     const caseId = result.cino || result.case_no.toString();
     setDetailsLoading(caseId);
-
-    try {
-      const base = getApiBaseUrl();
-      const token = getCookie("token") || "";
-      const response = await fetch(`${base}/research/high-court/case-detail`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          case_no: Number(result.case_no),
-          state_code: Number(result.state_cd),
-          cino: result.cino,
-          court_code: Number(result.court_code),
-          national_court_code: (result.cino || "").substring(0, 6),
-          dist_cd: 1,
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const details = await response.json();
-      setSelectedCase(details);
-      setShowCaseDetails(true);
-    } catch (err) {
-      console.error("Failed to fetch case details:", err);
-    } finally {
-      setDetailsLoading(null);
-    }
+    setDetailParams({
+      case_no: Number(result.case_no),
+      state_code: Number((result as any).state_cd),
+      cino: result.cino,
+      court_code: Number(result.court_code),
+      national_court_code: (result.cino || "").substring(0, 6),
+      dist_cd: 1,
+    });
   };
 
   const handleFollowCase = async (caseData: HighCourtPartyResult) => {
@@ -479,18 +499,7 @@ export default function HighCourtPartySearch() {
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Data..."
-                className="w-64 border border-black shadow-md rounded-md pl-10 p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-gray-900" />
-              </div>
-            </div>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search Data..." />
           </div>
 
           {filteredResults.length === 0 ? (
@@ -498,116 +507,60 @@ export default function HighCourtPartySearch() {
               No results found for your search criteria.
             </div>
           ) : (
-            <div className="w-full bg-white rounded-lg shadow-sm overflow-hidden border-4 border-white">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white bg-gray-300">
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      CNR
-                    </th>
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      CASE NUMBER
-                    </th>
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      TITLE
-                    </th>
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      DECISION DATE
-                    </th>
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      FOLLOW
-                    </th>
-                    <th className="px-6 py-4 text-sm font-medium text-black text-left">
-                      ACTIONS
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(Array.isArray(partyQuery.data)
-                    ? (partyQuery.data as any[])
-                    : (partyQuery.data as any)?.results || [])
-                    .filter((result: any) =>
-                      Object.values(result).some((value: any) =>
-                        String(value)
-                          .toLowerCase()
-                          .includes(searchQuery.toLowerCase())
-                      )
-                    )
-                    .map((result: any, index: number) => {
-                    const caseId = result.cino || result.case_no.toString();
-                    return (
-                      <tr
-                        key={index}
-                        className="border-b hover:bg-gray-50 last:border-b-0"
-                      >
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.cino}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {`${result.type_name || ""} ${result.case_no || ""}`}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {result.res_name || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {formatDate(result.date_of_decision)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            className={`flex items-center justify-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                              followedCases.has(caseId)
-                                ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                            }`}
-                            onClick={() => handleFollowCase(result)}
-                            disabled={followLoading === caseId}
-                          >
-                            {followLoading === caseId ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Star
-                                  size={16}
-                                  className={
-                                    followedCases.has(caseId)
-                                      ? "text-yellow-600 fill-yellow-500"
-                                      : ""
-                                  }
-                                />
-                                <span>
-                                  {followedCases.has(caseId)
-                                    ? "Following"
-                                    : "Follow"}
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            className="flex items-center justify-center w-32 h-10 space-x-2 px-5 py-2 text-sm text-blue-600 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
-                            onClick={() => handleViewDetails(result)}
-                            disabled={detailsLoading === caseId}
-                          >
-                            {detailsLoading === caseId ? (
-                              <div className="flex items-center space-x-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Loading...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                <span>Details</span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            (() => {
+              const columns: ColumnDef<HighCourtPartyResult>[] = [
+                { key: "cino", header: "CNR", width: 160, render: (r) => r.cino },
+                { key: "case_no", header: "CASE NUMBER", width: 160, render: (r) => `${r.type_name || ""} ${r.case_no || ""}` },
+                { key: "title", header: "TITLE", width: 220, render: (r) => r.res_name || "N/A" },
+                { key: "date_of_decision", header: "DECISION DATE", width: 140, render: (r) => formatDate(r.date_of_decision) },
+                { key: "follow", header: "FOLLOW", width: 120, render: (r) => {
+                  const caseId = r.cino || r.case_no.toString();
+                  return (
+                    <FollowButton
+                      isFollowing={followedCases.has(caseId)}
+                      loading={followLoading === caseId}
+                      onClick={() => handleFollowCase(r)}
+                      compact
+                    />
+                  );
+                } },
+                { key: "actions", header: "ACTIONS", width: 140, render: (r) => {
+                  const caseId = r.cino || r.case_no.toString();
+                  return (
+                    <button
+                      className="border border-gray-300 rounded px-2 py-1"
+                      onClick={() => handleViewDetails(r)}
+                      disabled={detailsLoading === caseId}
+                    >
+                      {detailsLoading === caseId ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="hidden sm:inline">Details</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                } },
+              ];
+              return (
+                <div className="w-full bg-white rounded-lg shadow-sm overflow-hidden border-4 border-white">
+                  <ResultsTable columns={columns} rows={currentPageResults} rowKey={(r) => r.cino || r.case_no} />
+                </div>
+              );
+            })()
+          )}
+
+          {/* Footer Pagination */}
+          {filteredResults.length > 0 && (
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+            />
           )}
         </div>
       )}

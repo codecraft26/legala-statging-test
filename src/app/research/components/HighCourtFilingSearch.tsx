@@ -5,7 +5,11 @@ import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch, useHighDetail } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ResultsTable, { ColumnDef } from "./common/ResultsTable";
+import SearchBar from "./common/SearchBar";
+import Pagination from "./common/Pagination";
+import FollowButton from "./common/FollowButton";
+import StatusPill from "./common/StatusPill";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             import {
   stateCodeMapping,
@@ -36,19 +40,6 @@ interface CaseDetails {
   [key: string]: any;
 }
 
-// Status Badge Component
-const StatusBadge = ({ status }: { status: string }) => {
-  const bgColor =
-    status === "COMPLETED" || status === "DISPOSED"
-      ? "bg-green-100 text-green-800"
-      : "bg-yellow-100 text-yellow-800";
-
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${bgColor}`}>
-      {status}
-    </span>
-  );
-};
 
 // Case Details Modal - exactly like old React code
 const CaseDetailsModal = ({
@@ -382,31 +373,11 @@ const CaseDetailsModal = ({
                   "Unknown"
                 }`}
               </h2>
-              <button
-                className={`flex items-center space-x-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm ${
-                  followedCases.has(caseData.cino || caseData.case_no)
-                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-                    : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                }`}
+              <FollowButton
+                isFollowing={followedCases.has(caseData.cino || caseData.case_no)}
+                loading={followMutation.isPending || unfollowMutation.isPending}
                 onClick={() => handleFollowCase(caseData)}
-                disabled={
-                  followMutation.isPending || unfollowMutation.isPending
-                }
-              >
-                <Star
-                  size={16}
-                  className={
-                    followedCases.has(caseData.cino || caseData.case_no)
-                      ? "text-yellow-600 fill-yellow-500"
-                      : ""
-                  }
-                />
-                <span>
-                  {followedCases.has(caseData.cino || caseData.case_no)
-                    ? "Following"
-                    : "Follow"}
-                </span>
-              </button>
+              />
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-black text-sm font-medium">
@@ -422,7 +393,7 @@ const CaseDetailsModal = ({
                   "N/A"}
               </span>
               <span className="text-black text-sm mx-2 font-medium">|</span>
-              <StatusBadge
+              <StatusPill
                 status={
                   caseData.details?.case_status?.stage_of_case || "PENDING"
                 }
@@ -746,18 +717,7 @@ export default function HighCourtFilingSearch() {
           <div className="flex flex-col gap-3 mb-3">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Search Results</h3>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search"
-                  className="w-64 border border-gray-300 bg-white text-gray-900 rounded-md pl-8 p-2 focus:outline-none"
-                />
-                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                  <Search size={16} className="text-gray-600" />
-                </div>
-              </div>
+              <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search" />
             </div>
           </div>
 
@@ -786,99 +746,78 @@ export default function HighCourtFilingSearch() {
               </div>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto border border-gray-200 rounded-md bg-white">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-100">
-                    <TableHead className="px-3 py-2 text-xs">CNR</TableHead>
-                    <TableHead className="px-3 py-2 text-xs">CASE TITLE</TableHead>
-                    <TableHead className="px-3 py-2 text-xs">CASE NUMBER</TableHead>
-                    <TableHead className="px-3 py-2 text-xs">TYPE</TableHead>
-                    <TableHead className="px-3 py-2 text-xs">FOLLOW</TableHead>
-                    <TableHead className="px-3 py-2 text-xs">ACTIONS</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentPageResults.map((result: HighCourtResult) => {
-                    const caseId = result.cino || result.case_no;
-                    return (
-                      <TableRow key={caseId}>
-                        <TableCell className="px-3 py-2 text-xs">{result.cino || "N/A"}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          <div className="max-w-[220px] truncate" title={`${result.pet_name || ""} vs ${result.res_name || ""}`}>
-                            {result.pet_name && result.res_name
-                              ? `${result.pet_name} vs ${result.res_name}`
-                              : result.pet_name || result.res_name || "N/A"}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs font-medium">{result.case_no}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs">{result.type_name || "N/A"}</TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          <button
-                            className={`border border-gray-300 rounded px-2 py-1 ${
-                              followedCases.has(caseId)
-                                ? "bg-gray-200 text-gray-800"
-                                : "bg-white text-gray-800"
-                            }`}
-                            onClick={() => handleFollowCase(result)}
-                            disabled={followMutation.isPending || unfollowMutation.isPending}
-                          >
-                            {followMutation.isPending || unfollowMutation.isPending ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <Star size={12} className={followedCases.has(caseId) ? "text-black" : "text-gray-600"} />
-                                <span className="hidden sm:inline">{followedCases.has(caseId) ? "Following" : "Follow"}</span>
-                              </div>
-                            )}
-                          </button>
-                        </TableCell>
-                        <TableCell className="px-3 py-2 text-xs">
-                          <button
-                            className="border border-gray-300 rounded px-2 py-1"
-                            onClick={() => handleViewDetails(result)}
-                            disabled={loadingDetails === caseId}
-                          >
-                            {loadingDetails === caseId ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <div className="flex items-center gap-1">
-                                <Eye className="w-3 h-3" />
-                                <span className="hidden sm:inline">Details</span>
-                              </div>
-                            )}
-                          </button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-          {/* Footer Pagination */}
-          {filteredResults.length > 0 && (
-            <div className="mt-3 flex items-center justify-between text-sm text-gray-700">
-              <div>
-                Showing {total === 0 ? 0 : startIndex + 1}-{endIndex} of {total}
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Rows per page</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}
-                  className="border border-gray-300 rounded p-1"
-                >
-                  {[10,20,50,100].map((n) => (<option key={n} value={n}>{n}</option>))}
-                </select>
-                <div className="ml-2 flex items-center gap-1">
-                  <button className="border border-gray-300 rounded px-2 py-1 disabled:opacity-50" onClick={() => setPage((p)=>Math.max(1,p-1))} disabled={page<=1}>Prev</button>
-                  <span className="px-2">{page} / {totalPages}</span>
-                  <button className="border border-gray-300 rounded px-2 py-1 disabled:opacity-50" onClick={() => setPage((p)=>Math.min(totalPages,p+1))} disabled={page>=totalPages}>Next</button>
+            (() => {
+              const columns: ColumnDef<HighCourtResult>[] = [
+                { key: "cino", header: "CNR", width: 120, render: (r) => r.cino || "N/A" },
+                { key: "case_title", header: "CASE TITLE", width: 220, render: (r) => (
+                  <div className="max-w-[220px] truncate" title={`${r.pet_name || ""} vs ${r.res_name || ""}`}>
+                    {r.pet_name && r.res_name ? `${r.pet_name} vs ${r.res_name}` : r.pet_name || r.res_name || "N/A"}
+                  </div>
+                ) },
+                { key: "case_no", header: "CASE NUMBER", width: 120, render: (r) => (
+                  <span className="font-medium">{r.case_no}</span>
+                ) },
+                { key: "type_name", header: "TYPE", width: 120, render: (r) => r.type_name || "N/A" },
+                { key: "follow", header: "FOLLOW", width: 120, render: (r) => {
+                  const caseId = r.cino || r.case_no;
+                  return (
+                    <button
+                      className={`border border-gray-300 rounded px-2 py-1 ${
+                        followedCases.has(caseId)
+                          ? "bg-gray-200 text-gray-800"
+                          : "bg-white text-gray-800"
+                      }`}
+                      onClick={() => handleFollowCase(r)}
+                      disabled={followMutation.isPending || unfollowMutation.isPending}
+                    >
+                      {followMutation.isPending || unfollowMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Star size={12} className={followedCases.has(caseId) ? "text-black" : "text-gray-600"} />
+                          <span className="hidden sm:inline">{followedCases.has(caseId) ? "Following" : "Follow"}</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                } },
+                { key: "actions", header: "ACTIONS", width: 120, render: (r) => {
+                  const caseId = r.cino || r.case_no;
+                  return (
+                    <button
+                      className="border border-gray-300 rounded px-2 py-1"
+                      onClick={() => handleViewDetails(r)}
+                      disabled={loadingDetails === caseId}
+                    >
+                      {loadingDetails === caseId ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          <span className="hidden sm:inline">Details</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                } },
+              ];
+              return (
+                <div className="w-full overflow-x-auto border border-gray-200 rounded-md bg-white">
+                  <ResultsTable columns={columns} rows={currentPageResults} rowKey={(r) => r.cino || r.case_no} />
                 </div>
-              </div>
-            </div>
+              );
+            })()
           )}
+        {/* Footer Pagination */}
+        {filteredResults.length > 0 && (
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+          />
+        )}
         </div>
       )}
 

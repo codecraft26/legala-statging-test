@@ -2,26 +2,24 @@
 
 import React from "react";
 import { BubbleMenu, Editor } from "@tiptap/react";
-import { Api } from "@/lib/api-client";
+import { useRefineText } from "@/hooks/use-refine";
 
 type Props = {
   editor: Editor;
 };
 
 export default function SelectionRefineMenu({ editor }: Props) {
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<string | null>(null);
   const [instruction, setInstruction] = React.useState(
     "Improve clarity and grammar"
   );
 
   const hasSelection = editor?.state.selection && !editor.state.selection.empty;
+  const refineMutation = useRefineText();
+  const { mutateAsync: refineText, isPending: loading, error: refineError } = refineMutation;
 
   const handleRefine = async () => {
     try {
-      setLoading(true);
-      setError(null);
       setResult(null);
       const selectedText = editor.state.doc.textBetween(
         editor.state.selection.from,
@@ -30,26 +28,20 @@ export default function SelectionRefineMenu({ editor }: Props) {
       );
 
       if (!selectedText || selectedText.trim() === "") {
-        setError("Select some text to refine.");
-        setLoading(false);
         return;
       }
 
-      const res = await Api.post<{ refined: string }>("/refine", {
+      const res = await refineText({
         text: selectedText,
         instruction,
       });
 
-      const refined = (res as any)?.refined ?? (res as any)?.data?.refined ?? "";
-      if (!refined) {
-        setError("No result from API.");
-      } else {
+      const refined = res?.refined_text || "";
+      if (refined) {
         setResult(refined);
       }
     } catch (e: any) {
-      setError(e?.message || "Refine failed");
-    } finally {
-      setLoading(false);
+      // Error is handled by the hook
     }
   };
 
@@ -85,10 +77,12 @@ export default function SelectionRefineMenu({ editor }: Props) {
         </button>
       </div>
 
-      {(error || result) && (
+      {(refineError || result) && (
         <div className="mt-2 rounded-md border bg-white p-2 shadow-md max-w-[420px]">
-          {error ? (
-            <div className="text-xs text-red-600">{error}</div>
+          {refineError ? (
+            <div className="text-xs text-red-600">
+              {refineError instanceof Error ? refineError.message : "Refine failed"}
+            </div>
           ) : (
             <div className="space-y-2">
               <div className="text-xs text-gray-500">Preview</div>
