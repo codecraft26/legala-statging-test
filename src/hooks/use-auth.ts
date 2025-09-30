@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Api } from "@/lib/api-client";
 import { getCookie, deleteCookie } from "@/lib/utils";
 
@@ -45,6 +45,47 @@ export function useAuth() {
     refetch: query.refetch,
     signOut,
   } as const;
+}
+
+export function useAcceptInvite() {
+  return useMutation({
+    mutationFn: async (args: { token: string; password: string }) => {
+      const { token, password } = args;
+      return await Api.post("/user/accept-invite", { token, password });
+    },
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (args: { email: string }) => {
+      return await Api.post<{ message: string; token?: string }>("/user/forgot-password", args);
+    },
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (args: { token: string; password: string }) => {
+      return await Api.post("/user/reset-password", args);
+    },
+  });
+}
+
+export function useSignup() {
+  return useMutation({
+    mutationFn: async (args: { name: string; email: string; password: string }) => {
+      return await Api.post("/user/signup", args);
+    },
+  });
+}
+
+export function useLogin() {
+  return useMutation({
+    mutationFn: async (args: { email: string; password: string }) => {
+      return await Api.post<{ token: string }>("/user/login", args);
+    },
+  });
 }
 
 

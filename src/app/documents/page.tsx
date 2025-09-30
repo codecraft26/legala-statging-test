@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Api } from "@/lib/api-client";
 import AutoDraft from "./components/AutoDraft";
-import { Trash2, Plus, Upload, Search, X } from "lucide-react";
+import { Trash2, Plus, Upload, Search, X, Pencil } from "lucide-react";
+import { useCreateFolder, useDeleteDocument, useDocuments, useRenameFolder, useUploadDocuments } from "@/hooks/use-documents";
 
 type Item = {
   id: string;
@@ -39,6 +40,12 @@ export default function DocumentsPage() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameFolderMutation = useRenameFolder();
+  const uploadMutation = useUploadDocuments();
+  const createFolderMutation = useCreateFolder();
+  const deleteMutation = useDeleteDocument();
 
   const filtered = useMemo(
     () =>
@@ -48,76 +55,31 @@ export default function DocumentsPage() {
     [items, search]
   );
 
-  const fetchItems = async (folderId: string | null = null) => {
-    if (!currentWorkspace) return;
-    setIsFetching(true);
-    try {
-      const query: string[] = [
-        `workspaceId=${encodeURIComponent(currentWorkspace.id)}`,
-      ];
-      if (folderId) {
-        // Send both to be compatible with different backends expecting either param
-        const enc = encodeURIComponent(folderId);
-        query.push(`parentId=${enc}`);
-        query.push(`folderId=${enc}`);
-      }
-      const res = await Api.get<any>(
-        `/document?${query.join("&")}`,
-        "no-store"
-      );
-      const rawList: any[] = Array.isArray(res)
-        ? res
-        : Array.isArray(res?.data)
-          ? res.data
-          : [];
-      const list: Item[] = rawList.map((d: any) => ({
-        id: String(d?.id ?? ""),
-        type:
-          String(d?.type ?? "file").toLowerCase() === "folder"
-            ? "folder"
-            : "file",
-        filename: String(d?.name ?? d?.filename ?? ""),
-        parent_folder_id: d?.parentId ?? d?.parent_folder_id ?? null,
-        user: d?.user ? {
-          name: d.user.name,
-          email: d.user.email,
-          role: d.user.role,
-        } : undefined,
-        createdAt: d?.createdAt,
-      }));
-      setItems(list);
-    } catch (e) {
-      // noop for now
-    } finally {
-      setIsFetching(false);
-    }
-  };
+  const { data: docsData, isLoading: docsLoading } = useDocuments(currentWorkspace?.id, currentFolderId);
+  useEffect(() => {
+    if (docsData) setItems(docsData as any);
+  }, [docsData]);
 
   useEffect(() => {
     setFolderPath([]);
     setCurrentFolderId(null);
-    fetchItems(null);
+    // handled by useDocuments
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace]);
 
   // Fetch items whenever the current folder changes (navigate into/out of subfolders)
   useEffect(() => {
     if (!currentWorkspace) return;
-    fetchItems(currentFolderId);
+    // handled by useDocuments
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFolderId]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !currentWorkspace) return;
-    const form = new FormData();
-    Array.from(files).forEach((f) => form.append("files", f));
-    form.append("workspaceId", currentWorkspace.id);
-    if (currentFolderId) form.append("parentId", currentFolderId);
     setIsUploading(true);
     try {
-      await Api.post("/document/upload/files", form, true);
+      await uploadMutation.mutateAsync({ files: Array.from(files), workspaceId: currentWorkspace.id, parentId: currentFolderId });
       setShowUploadArea(false);
-      fetchItems(currentFolderId);
     } catch (e) {
       // noop
     } finally {
@@ -130,14 +92,9 @@ export default function DocumentsPage() {
     const name = newFolderName.trim();
     if (!name) return;
     try {
-      await Api.post("/document", {
-        name,
-        workspaceId: currentWorkspace.id,
-        parentId: currentFolderId || undefined,
-      });
+      await createFolderMutation.mutateAsync({ name, workspaceId: currentWorkspace.id, parentId: currentFolderId });
       setNewFolderName("");
       setShowCreateFolderModal(false);
-      fetchItems(currentFolderId);
     } catch {}
   };
 
@@ -166,8 +123,7 @@ export default function DocumentsPage() {
     if (!window.confirm(`Delete this ${item.type}? This cannot be undone.`))
       return;
     try {
-      await Api.delete(`/document?id=${encodeURIComponent(item.id)}`);
-      fetchItems(currentFolderId);
+      await deleteMutation.mutateAsync({ id: item.id });
     } catch {}
   };
 
@@ -346,6 +302,19 @@ export default function DocumentsPage() {
                             </div>
                           )}
                         </div>
+                        {it.type === "folder" ? (
+                          <button
+                            className="text-xs inline-flex items-center gap-2 ml-2 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRenamingId(it.id);
+                              setRenameValue(it.filename);
+                            }}
+                            title="Rename"
+                          >
+                            <Pencil className="h-3 w-3" /> Rename
+                          </button>
+                        ) : null}
                         <button
                           className="text-red-600 hover:underline text-xs inline-flex items-center gap-1 ml-2 shrink-0"
                           onClick={(e) => {
@@ -401,6 +370,50 @@ export default function DocumentsPage() {
                 className="rounded-md border px-3 py-2 text-sm hover:bg-accent"
               >
                 Create
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {renamingId ? (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+          <div className="bg-background rounded-lg p-6 w-full max-w-md border">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Rename File</h3>
+              <button onClick={() => setRenamingId(null)} className="text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  if (!renameValue.trim()) return;
+                  try {
+                    await renameFolderMutation.mutateAsync({ id: renamingId!, name: renameValue.trim() });
+                    setRenamingId(null);
+                  } catch {}
+                }
+              }}
+              className="w-full rounded-md border px-3 py-2 text-sm mb-3"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={() => setRenamingId(null)} className="rounded-md border px-3 py-2 text-sm">Cancel</button>
+              <button
+                onClick={async () => {
+                  if (!renameValue.trim()) return;
+                  try {
+                    await renameFolderMutation.mutateAsync({ id: renamingId!, name: renameValue.trim() });
+                    setRenamingId(null);
+                  } catch {}
+                }}
+                disabled={renameFolderMutation.isPending}
+                className="rounded-md border px-3 py-2 text-sm hover:bg-accent"
+              >
+                {renameFolderMutation.isPending ? "Renaming…" : "Rename"}
               </button>
             </div>
           </div>

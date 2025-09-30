@@ -20,9 +20,13 @@ export const metadata: Metadata = {
   title: "Infrahive Legal",
   description: "Infrahive Legal Platform",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/logo.png", rel: "icon" },
+      { url: "/logo.png", rel: "shortcut icon" },
+    ],
+    apple: [
+      { url: "/logo.png", rel: "apple-touch-icon" },
+    ],
   },
 };
 

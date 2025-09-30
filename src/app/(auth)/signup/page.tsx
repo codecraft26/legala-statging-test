@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Api } from "@/lib/api-client";
+import { useSignup } from "@/hooks/use-auth";
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -11,18 +11,14 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const signupMutation = useSignup();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await Api.post("/user/register/owner", {
-        name,
-        email,
-        password,
-        invite: invite ? Number(invite) : undefined,
-      });
+      await signupMutation.mutateAsync({ name, email, password });
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message ?? "Sign up failed");
