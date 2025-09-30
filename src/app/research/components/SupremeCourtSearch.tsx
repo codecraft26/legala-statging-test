@@ -8,7 +8,7 @@ import {
   useFollowResearch,
   useUnfollowResearch,
 } from "@/hooks/use-research";
-import { getApiBaseUrl } from "@/lib/utils";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface CaseResult {
@@ -778,11 +778,15 @@ export default function SupremeCourtSearch() {
     try {
       // Prefer our backend API using env base URL
       const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
       const response = await fetch(
         `${base}/research/supreme-court/case-detail`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({
             diary_no: parseInt(diaryNumber),
             diary_year: parseInt(diaryYear),

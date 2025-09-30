@@ -8,7 +8,7 @@ import {
   useFollowResearch,
   useUnfollowResearch,
 } from "@/hooks/use-research";
-import { getApiBaseUrl } from "@/lib/utils";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 
 interface HighCourtPartyResult {
   case_no: number;
@@ -217,9 +217,13 @@ export default function HighCourtPartySearch() {
 
     try {
       const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
       const response = await fetch(`${base}/research/high-court/case-detail`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           case_no: Number(result.case_no),
           state_code: Number(result.state_cd),
