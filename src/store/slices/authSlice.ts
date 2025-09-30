@@ -76,6 +76,9 @@ const authSlice = createSlice({
     setCurrentWorkspace(state, action: PayloadAction<Workspace | null>) {
       state.currentWorkspace = action.payload;
     },
+    addWorkspace(state, action: PayloadAction<Workspace>) {
+      state.workspaces.push(action.payload);
+    },
     logout(state) {
       state.token = null;
       state.user = null;
@@ -91,6 +94,7 @@ export const {
   setUser,
   setWorkspaces,
   setCurrentWorkspace,
+  addWorkspace,
   logout,
 } = authSlice.actions;
 export const authReducer = authSlice.reducer;
