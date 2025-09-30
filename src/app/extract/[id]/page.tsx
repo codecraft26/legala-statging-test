@@ -219,63 +219,61 @@ export default function ExtractionDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold text-gray-900">
-              {extraction.name}
-            </h1>
-            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                Created {new Date(extraction.createdAt).toLocaleString()}
+      <div className="rounded-xl border bg-card text-card-foreground p-4 md:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 p-2 h-8"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold leading-tight">{extraction.name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  {new Date(extraction.createdAt).toLocaleString()}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                  <FileText className="w-3.5 h-3.5" />
+                  {(extraction.extraction_result?.length || 0)} docs
+                </span>
+                {extraction.user ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                    <User className="w-3.5 h-3.5" />
+                    {extraction.user.name}
+                  </span>
+                ) : null}
               </div>
-              <div className="flex items-center gap-1">
-                <FileText className="w-4 h-4" />
-                {extraction.extraction_result?.length || 0} document(s)
-              </div>
-              {extraction.user && (
-                <div className="flex items-center gap-1">
-                  <User className="w-4 h-4" />
-                  {extraction.user.name}
-                </div>
-              )}
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {getStatusBadge(extraction.status)}
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={downloadAsJson}>
-              <Download className="w-4 h-4 mr-2" />
-              JSON
+            {getStatusBadge(extraction.status)}
+            <Button variant="outline" size="sm" onClick={downloadAsJson}>
+              <Download className="w-4 h-4 mr-1.5" /> JSON
             </Button>
-            <Button variant="outline" onClick={downloadAsCsv}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
+            <Button variant="outline" size="sm" onClick={downloadAsCsv}>
+              <Download className="w-4 h-4 mr-1.5" /> CSV
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => handleCopy(extraction)}
-              className="text-gray-600"
             >
               {copied ? (
-                <Check className="w-4 h-4 mr-2 text-green-500" />
+                <>
+                  <Check className="w-4 h-4 mr-1.5 text-green-500" /> Copied
+                </>
               ) : (
-                <Copy className="w-4 h-4 mr-2" />
+                <>
+                  <Copy className="w-4 h-4 mr-1.5" /> Copy
+                </>
               )}
-              {copied ? "Copied!" : "Copy"}
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
               Delete
             </Button>
           </div>
@@ -283,35 +281,35 @@ export default function ExtractionDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg border">
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
+      <div className="rounded-xl border bg-card text-card-foreground">
+        <div className="border-b">
+          <nav className="flex -mb-px px-2">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-5 py-3 text-sm font-medium border-b-2 ${
                 activeTab === "overview"
                   ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab("results")}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-5 py-3 text-sm font-medium border-b-2 ${
                 activeTab === "results"
                   ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               Results ({extraction.extraction_result?.length || 0})
             </button>
             <button
               onClick={() => setActiveTab("metadata")}
-              className={`px-6 py-3 text-sm font-medium border-b-2 ${
+              className={`px-5 py-3 text-sm font-medium border-b-2 ${
                 activeTab === "metadata"
                   ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
               Metadata
@@ -319,19 +317,19 @@ export default function ExtractionDetailPage() {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-5 md:p-6">
           {/* Overview Tab */}
           {activeTab === "overview" && (
             <div className="space-y-6">
               {/* Status and Progress */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="text-sm font-medium text-gray-500 mb-1">
                     Status
                   </div>
                   <div>{getStatusBadge(extraction.status)}</div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="text-sm font-medium text-gray-500 mb-1">
                     Documents
                   </div>
@@ -339,7 +337,7 @@ export default function ExtractionDetailPage() {
                     {extraction.extraction_result?.length || 0}
                   </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="text-sm font-medium text-gray-500 mb-1">
                     Usage
                   </div>
@@ -361,7 +359,7 @@ export default function ExtractionDetailPage() {
                       extraction.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                          className="inline-flex items-center px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200"
                         >
                           {tag}
                         </span>
@@ -382,7 +380,7 @@ export default function ExtractionDetailPage() {
                     <MessageSquare className="w-5 h-5" />
                     Instructions
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-muted rounded-lg p-4">
                     <p className="whitespace-pre-wrap text-gray-700">
                       {extraction.instruction}
                     </p>
@@ -415,13 +413,13 @@ export default function ExtractionDetailPage() {
                   {extraction.extraction_result.map((result, index) => (
                     <div
                       key={result.id}
-                      className="border border-gray-200 rounded-lg"
+                      className="rounded-xl border bg-background"
                     >
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                      <div className="px-4 py-3 border-b bg-muted/50 rounded-t-xl">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-gray-500" />
-                            <h4 className="font-medium text-gray-900">
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                            <h4 className="font-medium">
                               {result.file}
                             </h4>
                           </div>
@@ -436,20 +434,17 @@ export default function ExtractionDetailPage() {
                       </div>
                       <div className="p-4">
                         {result.data && Object.keys(result.data).length > 0 ? (
-                          <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {Object.entries(result.data).map(([key, value]) => (
-                              <div
-                                key={key}
-                                className="border-b border-gray-100 pb-3 last:border-b-0"
-                              >
-                                <div className="text-sm font-medium text-gray-700 mb-1">
+                              <div key={key} className="rounded-lg border p-3">
+                                <div className="text-xs font-medium text-muted-foreground mb-1">
                                   {key
                                     .replace(/_/g, " ")
                                     .replace(/([A-Z])/g, " $1")
                                     .toLowerCase()}
                                 </div>
-                                <div className="text-sm text-gray-900">
-                                  <pre className="whitespace-pre-wrap font-sans">
+                                <div className="text-sm">
+                                  <pre className="whitespace-pre-wrap font-sans leading-relaxed">
                                     {formatValue(value, key)}
                                   </pre>
                                 </div>
@@ -457,7 +452,7 @@ export default function ExtractionDetailPage() {
                             ))}
                           </div>
                         ) : (
-                          <p className="text-gray-500 text-sm">
+                          <p className="text-muted-foreground text-sm">
                             No data extracted from this document.
                           </p>
                         )}
@@ -466,8 +461,8 @@ export default function ExtractionDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <div className="text-center py-10 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>No results available yet.</p>
                   {extraction.status === "PROCESSING" && (
                     <p className="text-sm mt-2">
@@ -483,8 +478,8 @@ export default function ExtractionDetailPage() {
           {activeTab === "metadata" && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-medium mb-3">
                     Extraction Details
                   </h4>
                   <div className="space-y-2 text-sm">
@@ -511,8 +506,8 @@ export default function ExtractionDetailPage() {
                 </div>
 
                 {extraction.user && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-3">
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-medium mb-3">
                       User Information
                     </h4>
                     <div className="space-y-2 text-sm">
@@ -534,11 +529,11 @@ export default function ExtractionDetailPage() {
               </div>
 
               {extraction.usage && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-medium mb-3">
                     Usage Statistics
                   </h4>
-                  <pre className="text-sm text-gray-700 overflow-x-auto">
+                  <pre className="text-sm overflow-x-auto">
                     {JSON.stringify(extraction.usage, null, 2)}
                   </pre>
                 </div>

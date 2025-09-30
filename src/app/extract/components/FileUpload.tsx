@@ -12,8 +12,7 @@ import {
   ChevronRight,
   ArrowLeft,
 } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Api } from "@/lib/api-client";
 
 interface FileUploadProps {
@@ -34,7 +33,11 @@ export default function FileUpload({
   setFiles,
   onNext,
 }: FileUploadProps) {
-  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+  const currentWorkspace = React.useMemo(() => {
+    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    if (!id) return undefined as any;
+    return { id, name: "Workspace" } as any;
+  }, []);
   const [isDragging, setIsDragging] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentFiles, setDocumentFiles] = useState<DocumentItem[]>([]);

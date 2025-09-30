@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +63,16 @@ const DUMMY: Extraction[] = [
 
 export default function ExtractPage() {
   const router = useRouter();
-  const { currentWorkspace } = useSelector((s: RootState) => s.auth);
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const [workspaceName, setWorkspaceName] = useState<string>("");
+  useEffect(() => {
+    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    setWorkspaceId(id);
+    // Best-effort name retrieval (optional future improvement: fetch workspace meta)
+    // Keep empty string for stable markup; text can fill later without structural change
+    setWorkspaceName("");
+  }, []);
+  const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName || "" } as any) : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<{ file: File }[]>([]);
   const [extractedData, setExtractedData] = useState<any[]>([]);
@@ -191,11 +199,9 @@ export default function ExtractPage() {
                       : "Analyze extracted data"
                   : "Browse your latest extraction jobs"}
               </p>
-              {currentWorkspace && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                  {currentWorkspace.name}
-                </span>
-              )}
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                {currentWorkspace?.name || ""}
+              </span>
             </div>
           </div>
         </div>

@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "@/store";
+import React, { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api-client";
-import {
-  setWorkspaces,
-  setCurrentWorkspace,
-  addWorkspace,
-  Workspace,
-} from "@/store/slices/authSlice";
 import { getCookie, setCookie } from "@/lib/utils";
+type Workspace = {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,99 +32,85 @@ import { Label } from "@/components/ui/label";
 import { ChevronDownIcon, PlusIcon, Building2Icon, CheckIcon } from "lucide-react";
 
 export default function WorkspaceSelector() {
-  const dispatch = useDispatch();
-  const { workspaces, currentWorkspace } = useSelector(
-    (s: RootState) => s.auth
-  );
+  const queryClient = useQueryClient();
+  const [currentWorkspace, setCurrentWorkspaceState] = useState<Workspace | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const workspacesQuery = useQuery<Workspace[]>({
+    queryKey: ["workspaces"],
+    queryFn: async () => {
+      const res = await Api.get<any>("/workspace", "no-store");
+      const list: Workspace[] = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+      return list;
+    },
+  });
+
+  const workspaces = useMemo(() => workspacesQuery.data || [], [workspacesQuery.data]);
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await Api.get<any>("/workspace", "no-store");
-        const workspaceList: Workspace[] = Array.isArray(res)
-          ? res
-          : Array.isArray(res?.data)
-            ? res.data
-            : [];
+    setLoading(workspacesQuery.isLoading || workspacesQuery.isFetching);
+    setError(workspacesQuery.error ? (workspacesQuery.error as any)?.message ?? "Failed to load workspaces" : null);
+  }, [workspacesQuery.isLoading, workspacesQuery.isFetching, workspacesQuery.error]);
 
-        dispatch(setWorkspaces(workspaceList));
-
-        // Set current workspace from cookie or first available
-        const savedId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
-
-        if (savedId && workspaceList.length) {
-          const savedWorkspace = workspaceList.find((w) => w.id === savedId);
-          if (savedWorkspace) {
-            dispatch(setCurrentWorkspace(savedWorkspace));
-          } else if (workspaceList.length > 0) {
-            dispatch(setCurrentWorkspace(workspaceList[0]));
-            setCookie("workspaceId", workspaceList[0].id, 30, { sameSite: "lax", secure: true });
-          }
-        } else if (workspaceList.length > 0) {
-          dispatch(setCurrentWorkspace(workspaceList[0]));
-          setCookie("workspaceId", workspaceList[0].id, 30, { sameSite: "lax", secure: true });
-        }
-      } catch (err: any) {
-        setError(err?.message ?? "Failed to load workspaces");
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    if (!workspaces || workspaces.length === 0) return;
+    const savedId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
+    if (savedId) {
+      const saved = workspaces.find((w) => w.id === savedId);
+      if (saved) {
+        setCurrentWorkspaceState(saved);
+        return;
       }
-    })();
-  }, [dispatch]);
+    }
+    // default to first
+    setCurrentWorkspaceState(workspaces[0]);
+    setCookie("workspaceId", workspaces[0].id, 30, { sameSite: "lax", secure: true });
+  }, [workspaces]);
 
   const handleWorkspaceChange = (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
-    if (workspace) {
-      dispatch(setCurrentWorkspace(workspace));
-      try {
-        if (typeof window !== "undefined") {
-          setCookie("workspaceId", workspaceId, 30, { sameSite: "lax", secure: true });
-        }
-      } catch {}
-
-      // Force a soft refresh so pages pick up the new workspace and re-fetch
-      try {
-        if (typeof window !== "undefined") {
-          window.location.reload();
-        }
-      } catch {}
-    }
-  };
-
-  const handleCreateWorkspace = async () => {
-    if (!newWorkspaceName.trim()) return;
-    
-    setIsCreating(true);
+    if (!workspace) return;
+    setCurrentWorkspaceState(workspace);
     try {
-      const newWorkspace = await Api.post<Workspace>("/workspace", {
-        name: newWorkspaceName.trim(),
-      });
-      
-      // Update workspaces list
-      dispatch(addWorkspace(newWorkspace));
-      
-      // Set as current workspace
-      dispatch(setCurrentWorkspace(newWorkspace));
-      setCookie("workspaceId", newWorkspace.id, 30, { sameSite: "lax", secure: true });
-      
-      // Reset form
-      setNewWorkspaceName("");
-      setIsDialogOpen(false);
-      
-      // Refresh to pick up new workspace
+      if (typeof window !== "undefined") {
+        setCookie("workspaceId", workspaceId, 30, { sameSite: "lax", secure: true });
+      }
+    } catch {}
+    // consumers should rely on cookie + queries; minimal reload for now
+    try {
       if (typeof window !== "undefined") {
         window.location.reload();
       }
-    } catch (err: any) {
-      console.error("Failed to create workspace:", err);
-      // You might want to show an error toast here
+    } catch {}
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return await Api.post<Workspace>("/workspace", { name });
+    },
+    onSuccess: async (created) => {
+      await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      setCurrentWorkspaceState(created as any);
+      setCookie("workspaceId", (created as any).id, 30, { sameSite: "lax", secure: true });
+      setNewWorkspaceName("");
+      setIsDialogOpen(false);
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    },
+  });
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) return;
+    setIsCreating(true);
+    try {
+      await createMutation.mutateAsync(newWorkspaceName.trim());
+    } catch (err) {
+      // noop
     } finally {
       setIsCreating(false);
     }
