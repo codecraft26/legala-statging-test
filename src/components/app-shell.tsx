@@ -37,13 +37,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh">
+    <div className="flex min-h-svh overflow-x-hidden">
       <div className="hidden md:block">
         <Sidebar />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 overflow-x-hidden">
         <Topbar />
-        <div className="px-3 md:px-6">{children}</div>
+        <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">{children}</div>
       </div>
     </div>
   );

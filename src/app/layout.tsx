@@ -5,6 +5,7 @@ import "./globals.css";
 import TanStackProvider from "@/provider/tanstack";
 import ThemeProvider from "@/provider/theme";
 import AppShell from "@/components/app-shell";
+import { ToastProvider } from "@/components/ui/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,7 +43,9 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <TanStackProvider>
-            <AppShell>{children}</AppShell>
+            <ToastProvider>
+              <AppShell>{children}</AppShell>
+            </ToastProvider>
           </TanStackProvider>
         </ThemeProvider>
       </body>

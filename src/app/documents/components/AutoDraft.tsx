@@ -2,7 +2,8 @@
 
 import React from "react";
 import { Api } from "@/lib/api-client";
-import { useDraftingList, useDeleteDrafting } from "@/hooks/use-drafting";
+import { useDraftingList, useDeleteDrafting, useCreateEmptyDraft } from "@/hooks/use-drafting";
+import { useRouter } from "next/navigation";
 import { getCookie } from "@/lib/utils";
 
 type AutoDraftItem = {
@@ -18,6 +19,8 @@ export default function AutoDraft() {
   const workspaceId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
   const draftingList = useDraftingList(workspaceId);
   const deleteDraft = useDeleteDrafting(workspaceId);
+  const createEmptyDraft = useCreateEmptyDraft(workspaceId);
+  const router = useRouter();
 
   const getDisplayRole = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -58,6 +61,20 @@ export default function AutoDraft() {
       });
     } catch {
       return dateString;
+    }
+  };
+
+  const handleCreateNewDraft = async () => {
+    if (!workspaceId) return;
+    try {
+      const newDraft = await createEmptyDraft.mutateAsync({
+        name: "New Draft",
+        workspaceId: workspaceId,
+      });
+      // Navigate to the drafting page with the new draft
+      router.push("/drafting");
+    } catch (error) {
+      console.error("Error creating new draft:", error);
     }
   };
 
@@ -104,11 +121,8 @@ export default function AutoDraft() {
           const isExpanded = expandedFolders.has(name);
           return (
             <div key={name} className="border-b last:border-b-0">
-              <div
-                className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => toggleFolder(name)}
-              >
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-4 hover:bg-gray-50">
+                <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleFolder(name)}>
                   <div
                     className={`transition-transform ${isExpanded ? "rotate-90" : "rotate-0"}`}
                   >
@@ -132,9 +146,26 @@ export default function AutoDraft() {
                     {files.length} {files.length === 1 ? "file" : "files"}
                   </span>
                 </div>
-                {name === "Drafting" && draftingList.isFetching ? (
-                  <span className="text-xs text-muted-foreground">Refreshing…</span>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {name === "Drafting" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCreateNewDraft();
+                      }}
+                      disabled={!workspaceId || createEmptyDraft.isPending}
+                      className="p-1.5 hover:bg-blue-100 rounded text-blue-600 disabled:text-gray-400 disabled:hover:bg-gray-100 transition-colors"
+                      title="Create new draft"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  )}
+                  {name === "Drafting" && draftingList.isFetching ? (
+                    <span className="text-xs text-muted-foreground">Refreshing…</span>
+                  ) : null}
+                </div>
               </div>
               {isExpanded ? (
                 <div className="bg-white">

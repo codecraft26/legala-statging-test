@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { FileText, Folder, ChevronLeft, Upload } from "lucide-react";
 import { Api } from "@/lib/api-client";
+import { useDraftingList, useDraftingDetail } from "@/hooks/use-drafting";
 
 type Item = {
   id: string;
@@ -18,9 +19,10 @@ type Props = {
     filename: string;
     s3_key_original?: string;
   }) => void;
+  onLoadDraftContent?: (data: { name?: string; content?: string }) => void;
 };
 
-export default function DocumentBrowser({ workspaceId, onImportDocx }: Props) {
+export default function DocumentBrowser({ workspaceId, onImportDocx, onLoadDraftContent }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -28,6 +30,26 @@ export default function DocumentBrowser({ workspaceId, onImportDocx }: Props) {
     Array<{ id: string; name: string }>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const drafting = useDraftingList(workspaceId);
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const draftDetail = useDraftingDetail(selectedDraftId);
+  const [isDraftsOpen, setIsDraftsOpen] = useState(false);
+
+  const handleImportDraft = async () => {
+    if (!selectedDraftId) return;
+    try {
+      let data = draftDetail.data;
+      if (!data) {
+        const res: any = await draftDetail.refetch();
+        data = (res?.data as any) || null;
+      }
+      if (data && onLoadDraftContent) {
+        onLoadDraftContent({ name: data.name, content: data.content || "" });
+      }
+    } catch (e) {
+      // noop
+    }
+  };
 
   const fetchItems = async (folderId: string | null) => {
     if (!workspaceId) return;
@@ -74,6 +96,8 @@ export default function DocumentBrowser({ workspaceId, onImportDocx }: Props) {
     fetchItems(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, workspaceId]);
+
+  // Do not auto-import on select; import happens only on button click
 
   return (
     <div className="p-4 border-b border-gray-200">
@@ -142,7 +166,7 @@ export default function DocumentBrowser({ workspaceId, onImportDocx }: Props) {
                   </button>
                 ) : it.filename.toLowerCase().endsWith(".docx") ? (
                   <button
-                    className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded border text-blue-700 border-blue-300 hover:bg-blue-50"
+                    className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded border text-black border-gray-300 hover:bg-gray-100"
                     onClick={() =>
                       onImportDocx({
                         id: it.id,
@@ -160,8 +184,74 @@ export default function DocumentBrowser({ workspaceId, onImportDocx }: Props) {
               </div>
             ))}
           </div>
+          {/* Drafting list inside dropdown */}
         </div>
       ) : null}
+
+      {/* Separate Drafting section */}
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium text-gray-700">Drafting</label>
+          <button
+            onClick={() => setIsDraftsOpen((v) => !v)}
+            className="text-xs px-2 py-1 rounded border hover:bg-gray-50"
+          >
+            {isDraftsOpen ? "Hide" : "Browse"}
+          </button>
+        </div>
+        {isDraftsOpen ? (
+          <div className="border rounded-md overflow-hidden">
+            <div className="p-2 border-b text-xs text-gray-500">
+              {drafting.isLoading
+                ? "Loading…"
+                : `${(drafting.data || []).length} draft${(drafting.data || []).length !== 1 ? "s" : ""}`}
+            </div>
+            {drafting.isLoading ? (
+              <div className="p-2 text-xs text-gray-500">Loading drafts…</div>
+            ) : !drafting.data || drafting.data.length === 0 ? (
+              <div className="p-2 text-xs text-gray-500">No drafts found</div>
+            ) : (
+              <div className="max-h-64 overflow-auto">
+                {(drafting.data || []).map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => { setSelectedDraftId(d.id); }}
+                    className={`w-full text-left px-3 py-2 text-sm border-b last:border-b-0 hover:bg-gray-50 dark:hover:bg-zinc-800 ${
+                      selectedDraftId === d.id
+                        ? "bg-gray-100 dark:bg-zinc-800"
+                        : "bg-white dark:bg-zinc-900"
+                    }`}
+                    title={d.name || d.instruction}
+                  >
+                    <div className="truncate">{d.name || d.instruction || "Untitled"}</div>
+                    <div className="text-xs text-gray-500 truncate">Uploaded by: {d.user?.name || (d.user?.email || "").split("@")[0] || "Unknown"}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {selectedDraftId ? (
+              <div className="p-2 bg-gray-50 space-y-2">
+                {draftDetail.isLoading ? (
+                  <div className="text-xs text-gray-500">Loading draft…</div>
+                ) : draftDetail.data ? (
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium truncate">{draftDetail.data.name || "Draft"}</div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500">No details</div>
+                )}
+                <button
+                  onClick={handleImportDraft}
+                  className="w-full text-xs px-3 py-2 rounded border bg-white hover:bg-gray-100"
+                  disabled={draftDetail.isLoading}
+                >
+                  {draftDetail.isLoading ? "Importing…" : "Import Document"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

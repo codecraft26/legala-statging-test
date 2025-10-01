@@ -291,7 +291,7 @@ export const SlashCommands = Extension.create({
             header.className = "px-3 py-2 border-b border-gray-100 bg-gray-50/50";
             header.innerHTML = `
               <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div class="w-2 h-2 bg-black rounded-full"></div>
                 <span class="text-xs font-medium text-gray-600">Slash Commands</span>
               </div>
             `;
@@ -326,8 +326,8 @@ export const SlashCommands = Extension.create({
                 el.className = `
                   w-full flex items-center gap-3 px-3 py-2.5 text-left
                   hover:bg-gray-50 transition-colors duration-150
-                  border-l-2 border-transparent hover:border-blue-200
-                  ${selectedIndex === itemIndex ? 'bg-blue-50 border-blue-300' : ''}
+                  border-l-2 border-transparent hover:border-gray-300
+                  ${selectedIndex === itemIndex ? 'bg-gray-100 border-gray-400' : ''}
                 `;
                 
                 // Create icon
@@ -394,14 +394,14 @@ export const SlashCommands = Extension.create({
                 el.addEventListener("click", () => command(item));
                 el.addEventListener("mouseenter", () => {
                   // Remove previous selection
-                  const prevSelected = contentArea.querySelector('.bg-blue-50');
+                  const prevSelected = contentArea.querySelector('.bg-gray-100');
                   if (prevSelected) {
-                    prevSelected.classList.remove('bg-blue-50', 'border-blue-300');
+                    prevSelected.classList.remove('bg-gray-100', 'border-gray-400');
                     prevSelected.classList.add('border-transparent');
                   }
                   // Add selection to current item
                   el.classList.remove('border-transparent');
-                  el.classList.add('bg-blue-50', 'border-blue-300');
+                  el.classList.add('bg-gray-100', 'border-gray-400');
                   selectedIndex = itemIndex;
                 });
                 
@@ -449,11 +449,11 @@ export const SlashCommands = Extension.create({
             function updateSelection() {
               const buttons = contentArea.querySelectorAll('button');
               buttons.forEach((btn, idx) => {
-                btn.classList.remove('bg-blue-50', 'border-blue-300');
+                btn.classList.remove('bg-gray-100', 'border-gray-400');
                 btn.classList.add('border-transparent');
                 if (idx === selectedIndex) {
                   btn.classList.remove('border-transparent');
-                  btn.classList.add('bg-blue-50', 'border-blue-300');
+                  btn.classList.add('bg-gray-100', 'border-gray-400');
                   btn.scrollIntoView({ block: 'nearest' });
                 }
               });
