@@ -17,13 +17,13 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
   const endIndex = Math.min(page * pageSize, total);
 
   return (
-    <div className="px-4 py-3 flex items-center justify-between text-sm text-gray-700 dark:text-zinc-300 border-t border-gray-200 dark:border-zinc-800">
+    <div className="px-4 py-3 flex items-center justify-between text-sm text-muted-foreground border-t border-border bg-background">
       <div className="flex items-center gap-2">
         <span>Rows per page</span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
-          className="border border-black dark:border-zinc-600 rounded px-2 py-1 bg-white dark:bg-zinc-950"
+          className="border border-input bg-background text-foreground rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           {pageSizeOptions.map((n) => (
             <option key={n} value={n}>{n}</option>
@@ -35,7 +35,7 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
       </div>
       <div className="flex items-center gap-2">
         <button
-          className="border border-black rounded px-2 py-1 disabled:opacity-50"
+          className="border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2 py-1 disabled:opacity-50 transition-colors"
           onClick={() => onPageChange(Math.max(1, page - 1))}
           disabled={page <= 1}
         >
@@ -45,7 +45,7 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
           Page {page} of {totalPages}
         </span>
         <button
-          className="border border-black rounded px-2 py-1 disabled:opacity-50"
+          className="border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2 py-1 disabled:opacity-50 transition-colors"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
         >

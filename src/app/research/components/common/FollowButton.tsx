@@ -13,10 +13,10 @@ interface FollowButtonProps {
 export default function FollowButton({ isFollowing, loading, onClick, compact }: FollowButtonProps) {
   return (
     <button
-      className={`flex items-center justify-center ${compact ? "px-2 py-1 text-xs" : "px-4 py-2 text-sm"} font-medium rounded ${
+      className={`flex items-center justify-center ${compact ? "px-2 py-1 text-xs" : "px-4 py-2 text-sm"} font-medium rounded-md border transition-colors ${
         isFollowing
-          ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
-          : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+          ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200 border-yellow-200 dark:text-yellow-300 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
+          : "text-foreground bg-secondary hover:bg-secondary/80 border-border"
       }`}
       onClick={onClick}
       disabled={!!loading}
@@ -25,7 +25,7 @@ export default function FollowButton({ isFollowing, loading, onClick, compact }:
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <>
-          <Star size={compact ? 12 : 16} className={isFollowing ? "text-yellow-600 fill-yellow-500" : ""} />
+          <Star size={compact ? 12 : 16} className={isFollowing ? "text-yellow-600 fill-yellow-500 dark:text-yellow-400 dark:fill-yellow-400" : ""} />
           <span className={compact ? "hidden sm:inline ml-1" : "ml-1"}>{isFollowing ? "Following" : "Follow"}</span>
         </>
       )}

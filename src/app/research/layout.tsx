@@ -7,9 +7,9 @@ import { Scale, Gavel, Building2, Bookmark } from "lucide-react";
 export default function ResearchLayout({ children }: { children: React.ReactNode }) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const courts = [
-    { id: "supreme", name: "Supreme Court", icon: Gavel, color: "text-red-500" },
-    { id: "high", name: "High Court", icon: Scale, color: "text-purple-500" },
-    { id: "district", name: "District Court", icon: Building2, color: "text-green-500" },
+    { id: "supreme", name: "Supreme Court", icon: Gavel, color: "text-black" },
+    { id: "high", name: "High Court", icon: Scale, color: "text-black" },
+    { id: "district", name: "District Court", icon: Building2, color: "text-black" },
   ];
 
   const toggleDropdown = (courtId: string) => {
@@ -19,23 +19,23 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
   const renderCourtDropdownItems = (courtId: string) => {
     if (courtId === "supreme") {
       return (
-        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
-          <Link href="/research/supremecourt/partyname" className="block w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm">Search by Party Name</Link>
+        <div className="bg-muted/50 overflow-hidden ml-2 rounded-lg">
+          <Link href="/research/supremecourt/partyname" className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors">Search by Party Name</Link>
         </div>
       );
     }
     if (courtId === "high") {
       return (
-        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
-          <Link href="/research/highcourt/advocatename" className="block w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm">Search by Advocate Name</Link>
-          <Link href="/research/highcourt/filingnumber" className="block w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm">Search by Filing Number</Link>
+        <div className="bg-muted/50 overflow-hidden ml-2 rounded-lg">
+          <Link href="/research/highcourt/advocatename" className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors">Search by Advocate Name</Link>
+          <Link href="/research/highcourt/filingnumber" className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors">Search by Filing Number</Link>
         </div>
       );
     }
     if (courtId === "district") {
       return (
-        <div className="bg-gray-50 dark:bg-zinc-900 overflow-hidden ml-2">
-          <Link href="/research/district/partyname" className="block w-full px-6 py-3 text-left hover:bg-gray-100 dark:hover:bg-zinc-800 text-sm">Search by Party Name</Link>
+        <div className="bg-muted/50 overflow-hidden ml-2 rounded-lg">
+          <Link href="/research/district/partyname" className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors">Search by Party Name</Link>
         </div>
       );
     }
@@ -45,28 +45,28 @@ export default function ResearchLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-52 bg-card text-card-foreground flex flex-col shadow-md">
-        <div className="p-9 flex items-center justify-center border-b border-border">
-          <h1 className="font-bold text-lg">Legal Research</h1>
+      <div className="w-52 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-foreground flex flex-col shadow-lg border-r border-border p-3">
+        <div className="p-3 flex items-center justify-center border-b border-border">
+          <h1 className="font-bold text-lg text-foreground">Legal Research</h1>
         </div>
 
         <Link
           href="/research/following"
-          className="flex items-center space-x-3 px-6 py-4 hover:bg-accent transition-colors duration-200"
+          className="flex items-center space-x-3 px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors duration-200 rounded-lg"
         >
-          <Bookmark className="h-5 w-5" />
+          <Bookmark className="h-5 w-5 text-muted-foreground" />
           <span className="font-medium">Following</span>
         </Link>
 
-        <div className="mx-4 my-2 border-b border-border"></div>
+        <div className="my-2 border-b border-border"></div>
 
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto">
           {courts.map((court) => {
             const IconComponent = court.icon;
             return (
               <div key={court.id} className="mb-1 overflow-hidden">
                 <button
-                  className={`flex items-center justify-between w-full px-4 py-3 hover:bg-accent text-left transition-colors duration-200 ${
+                  className={`flex items-center justify-between w-full px-3 py-2 hover:bg-accent hover:text-accent-foreground text-left transition-colors duration-200 rounded-lg ${
                     openDropdown === court.id ? "bg-accent text-accent-foreground" : ""
                   }`}
                   onClick={() => toggleDropdown(court.id)}

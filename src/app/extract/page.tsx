@@ -170,7 +170,7 @@ export default function ExtractPage() {
     <main className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
             {currentStep === 1 ? (
               <FileText className="text-white" size={18} />
             ) : currentStep === 2 ? (
