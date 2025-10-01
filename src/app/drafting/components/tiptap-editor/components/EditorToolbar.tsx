@@ -24,6 +24,9 @@ import {
   Minus,
   FilePlus,
   ArrowRightFromLine,
+  Save,
+  Upload,
+  Download,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 
@@ -42,6 +45,8 @@ type Props = {
   setShowLinkModal: (v: boolean) => void;
   setShowCustomFontSizeInput: (v: boolean) => void;
   content?: string;
+  onSave?: () => void;
+  isSaving?: boolean;
 };
 
 export default function EditorToolbar(props: Props) {
@@ -49,6 +54,8 @@ export default function EditorToolbar(props: Props) {
     editor,
     editorState,
     updateEditorState,
+    onSave,
+    isSaving,
     showTableMenu,
     setShowTableMenu,
     tableRows,
@@ -128,9 +135,9 @@ export default function EditorToolbar(props: Props) {
 
   return (
     <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm">
-      <div className="px-6 py-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="px-4 py-3 space-y-3 overflow-x-auto">
+        <div className="flex items-center justify-between min-w-max">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg">
               <ToolbarButton
                 onClick={() => editor.chain().focus().undo().run()}
@@ -337,19 +344,34 @@ export default function EditorToolbar(props: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg">
-            <ToolbarButton
-              onClick={() => editor.chain().focus().unsetAllMarks().run()}
-              title="Clear Formatting"
-            >
-              <Code size={16} />
-            </ToolbarButton>
-            <ToolbarButton
-              onClick={() => editor.chain().focus().setHorizontalRule().run()}
-              title="Horizontal Rule"
-            >
-              <Minus size={16} />
-            </ToolbarButton>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded-lg">
+              <ToolbarButton
+                onClick={() => editor.chain().focus().unsetAllMarks().run()}
+                title="Clear Formatting"
+              >
+                <Code size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                title="Horizontal Rule"
+              >
+                <Minus size={16} />
+              </ToolbarButton>
+            </div>
+            
+            {onSave && (
+              <button
+                onClick={onSave}
+                disabled={isSaving}
+                className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors whitespace-nowrap"
+                title="Save Draft"
+              >
+                <Save size={14} />
+                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+                <span className="sm:hidden">{isSaving ? "..." : ""}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

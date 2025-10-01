@@ -120,6 +120,8 @@ interface TiptapEditorProps {
   onEditorContentChange?: (getContentFn: () => string) => void;
   currentDraftId?: string | null;
   initialTitle?: string;
+  onSave?: () => void;
+  isSaving?: boolean;
 }
 
 // Simple debounce utility
@@ -135,7 +137,9 @@ export default function TiptapEditor({
   onDocumentTitleChange, 
   onEditorContentChange, 
   currentDraftId,
-  initialTitle 
+  initialTitle,
+  onSave,
+  isSaving 
 }: TiptapEditorProps = {}) {
   const [editorState, setEditorState] = useState<Record<string, unknown>>({});
   const [documentTitle, setDocumentTitle] = useState(initialTitle || "Untitled Document");
@@ -836,7 +840,7 @@ export default function TiptapEditor({
   if (!editor) return null;
 
   return (
-    <div className="h-full flex bg-gray-50 overflow-hidden">
+    <div className="h-screen flex bg-gray-50 max-w-full overflow-hidden">
       <style>{`
         .variable-highlight {
           position: relative;
@@ -883,7 +887,7 @@ export default function TiptapEditor({
       <div
         className={`flex-1 min-w-0 ${showVariablesPanel ? "mr-2" : ""} transition-all duration-300`}
       >
-        <div className="h-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col">
+        <div className="h-full bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col max-w-full overflow-hidden">
           <EditorHeader
             documentTitle={documentTitle}
             onDocumentTitleChange={handleDocumentTitleChange}
@@ -908,13 +912,12 @@ export default function TiptapEditor({
             setShowLinkModal={setShowLinkModal}
             setShowCustomFontSizeInput={setShowCustomFontSizeInput}
             content={content}
+            onSave={onSave}
+            isSaving={isSaving}
           />
 
-          <div
-            className="relative bg-white overflow-hidden"
-            style={{ height: "calc(100vh - 200px)" }}
-          >
-            <div className="h-full overflow-y-auto overflow-x-hidden px-6 py-6">
+          <div className="flex-1 relative bg-white overflow-hidden">
+            <div className="h-full overflow-y-auto px-6 py-6">
               <EditorContent editor={editor} key={contentUpdateTrigger} />
               <SelectionToolbar
                 editor={editor}
@@ -940,10 +943,7 @@ export default function TiptapEditor({
       </div>
 
       {showVariablesPanel ? (
-        <div
-          className="flex-shrink-0 overflow-hidden w-56 md:w-60 lg:w-64"
-          style={{ height: "calc(100vh - 120px)" }}
-        >
+        <div className="flex-shrink-0 h-full overflow-hidden w-56 md:w-60 lg:w-64">
           <DocumentBrowser
             workspaceId={currentWorkspaceId || undefined}
             onImportDocx={async ({ id, filename, s3_key_original }) => {
@@ -1092,7 +1092,7 @@ export default function TiptapEditor({
             }}
           /> */}
 
-          <VariablesPanel
+          {/* <VariablesPanel
             variables={variables}
             values={variableValues}
             placeholderStatus={placeholderStatus}
@@ -1121,7 +1121,7 @@ export default function TiptapEditor({
               setPlaceholderStatus({});
               setEditingVariable(null);
             }}
-          />
+          /> */}
         </div>
       ) : null}
     </div>

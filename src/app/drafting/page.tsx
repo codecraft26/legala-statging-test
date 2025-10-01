@@ -3,7 +3,6 @@
 import React, { useCallback } from "react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
-import { Button } from "@/components/ui/button";
 import { useCreateEmptyDraft, useUpdateDraft } from "@/hooks/use-drafting";
 import { useToast } from "@/components/ui/toast";
 
@@ -76,25 +75,14 @@ export default function DraftingPage() {
   }, []);
 
   return (
-    <main className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
-      <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="flex items-center justify-end">
-          <div className="flex items-center gap-2">
-            <Button variant="outline">Import</Button>
-            <Button 
-              onClick={handleSave}
-              disabled={createEmptyDraft.isPending || updateDraft.isPending}
-            >
-              {createEmptyDraft.isPending || updateDraft.isPending ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </div>
-      </div>
+    <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       <div className="flex-1 overflow-hidden">
         <TiptapEditor 
           onDocumentTitleChange={handleDocumentTitleChange}
           onEditorContentChange={handleEditorContentChange}
           currentDraftId={currentDraftId}
+          onSave={handleSave}
+          isSaving={createEmptyDraft.isPending || updateDraft.isPending}
         />
       </div>
     </main>

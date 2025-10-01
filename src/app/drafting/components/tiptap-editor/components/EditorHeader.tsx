@@ -24,9 +24,13 @@ export default function EditorHeader({
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(documentTitle);
+  const [showImportDropdown, setShowImportDropdown] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const wordRef = React.useRef<HTMLInputElement | null>(null);
   const pdfRef = React.useRef<HTMLInputElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTempTitle(documentTitle);
@@ -61,6 +65,65 @@ export default function EditorHeader({
     } else if (e.key === 'Escape') {
       handleTitleCancel();
     }
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (importRef.current && !importRef.current.contains(event.target as Node)) {
+        setShowImportDropdown(false);
+      }
+      if (exportRef.current && !exportRef.current.contains(event.target as Node)) {
+        setShowExportDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleImportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowImportDropdown(!showImportDropdown);
+    setShowExportDropdown(false); // Close export dropdown if open
+  };
+
+  const handleExportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowExportDropdown(!showExportDropdown);
+    setShowImportDropdown(false); // Close import dropdown if open
+  };
+
+  const handleImportWord = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    wordRef.current?.click();
+    setShowImportDropdown(false);
+  };
+
+  const handleImportPDF = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    pdfRef.current?.click();
+    setShowImportDropdown(false);
+  };
+
+  const handleExportPDF = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onExportPDF?.();
+    setShowExportDropdown(false);
+  };
+
+  const handleExportDOCX = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onExportDOCX?.();
+    setShowExportDropdown(false);
   };
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
@@ -103,27 +166,39 @@ export default function EditorHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative group">
+          <div ref={importRef} className="relative">
             <button
               title="Import"
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700"
+              onClick={handleImportClick}
+              className={`p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700 ${
+                showImportDropdown ? 'bg-gray-100' : ''
+              }`}
             >
               <Upload size={16} />
             </button>
-            <div className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <button
-                onClick={() => wordRef.current?.click()}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+            {showImportDropdown && (
+              <div 
+                className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 opacity-100 visible transform scale-100 transition-all duration-200 ease-out pointer-events-auto"
+                style={{ zIndex: 9999 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
-                <FileText size={14} /> Import Word (.docx)
-              </button>
-              <button
-                onClick={() => pdfRef.current?.click()}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <FileType size={14} /> Import PDF (.pdf)
-              </button>
-            </div>
+                <button
+                  onClick={handleImportWord}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 rounded-t-lg transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileText size={14} /> Import Word (.docx)
+                </button>
+                <button
+                  onClick={handleImportPDF}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileType size={14} /> Import PDF (.pdf)
+                </button>
+              </div>
+            )}
             <input
               ref={wordRef}
               type="file"
@@ -148,27 +223,39 @@ export default function EditorHeader({
             />
           </div>
 
-          <div className="relative group">
+          <div ref={exportRef} className="relative">
             <button
               title="Export Options"
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700"
+              onClick={handleExportClick}
+              className={`p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700 ${
+                showExportDropdown ? 'bg-gray-100' : ''
+              }`}
             >
               <Download size={16} />
             </button>
-            <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <button
-                onClick={onExportPDF}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+            {showExportDropdown && (
+              <div 
+                className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 opacity-100 visible transform scale-100 transition-all duration-200 ease-out pointer-events-auto"
+                style={{ zIndex: 9999 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
               >
-                <FileDown size={14} /> Export as PDF
-              </button>
-              <button
-                onClick={onExportDOCX}
-                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2"
-              >
-                <FileText size={14} /> Export as DOCX
-              </button>
-            </div>
+                <button
+                  onClick={handleExportPDF}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100 rounded-t-lg transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileDown size={14} /> Export as PDF
+                </button>
+                <button
+                  onClick={handleExportDOCX}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileText size={14} /> Export as DOCX
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

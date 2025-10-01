@@ -124,20 +124,6 @@ export default function VariablesPanel({
 
   return (
     <div className="h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Document Variables
-        </h3>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onClearAll}
-            className="px-2 py-1 text-xs bg-red-100 text-red-700 border border-red-300 rounded-md hover:bg-red-200"
-          >
-            Delete All
-          </button>
-        </div>
-      </div>
-
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {variables.length === 0 ? (
           <div className="text-sm text-gray-500 text-center">
