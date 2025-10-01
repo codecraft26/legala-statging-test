@@ -1,13 +1,16 @@
 "use client";
 
 import React from "react";
-import { useDraftingList, useDeleteDrafting } from "@/hooks/use-drafting";
+import { useDraftingList, useDeleteDrafting, useCreateEmptyDraft } from "@/hooks/use-drafting";
+import { useRouter } from "next/navigation";
 import { getCookie } from "@/lib/utils";
 
 export default function Drafting() {
   const workspaceId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
   const list = useDraftingList(workspaceId);
   const del = useDeleteDrafting(workspaceId);
+  const createEmptyDraft = useCreateEmptyDraft(workspaceId);
+  const router = useRouter();
   const [expanded, setExpanded] = React.useState<Set<string>>(new Set(["Drafting Jobs"]));
 
   const toggle = (name: string) => {
@@ -26,6 +29,20 @@ export default function Drafting() {
     try { return new Date(d).toLocaleString(); } catch { return d; }
   };
 
+  const handleCreateNewDraft = async () => {
+    if (!workspaceId) return;
+    try {
+      const newDraft = await createEmptyDraft.mutateAsync({
+        name: "New Draft",
+        workspaceId: workspaceId,
+      });
+      // Navigate to the drafting page with the new draft
+      router.push("/drafting");
+    } catch (error) {
+      console.error("Error creating new draft:", error);
+    }
+  };
+
   return (
     <div className="p-1 select-none">
       <div className="bg-background rounded-lg border">
@@ -39,11 +56,8 @@ export default function Drafting() {
           const isExpanded = expanded.has(name);
           return (
             <div key={name} className="border-b last:border-b-0">
-              <div
-                className="flex items-center justify-between p-4 hover:bg-accent cursor-pointer"
-                onClick={() => toggle(name)}
-              >
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between p-4 hover:bg-accent">
+                <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggle(name)}>
                   <div className={`transition-transform ${isExpanded ? "rotate-90" : "rotate-0"}`}>
                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -55,14 +69,38 @@ export default function Drafting() {
                     {(files || []).length} {(files || []).length === 1 ? "file" : "files"}
                   </span>
                 </div>
-                {list.isFetching ? (
-                  <span className="text-xs text-muted-foreground">Refreshing…</span>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCreateNewDraft();
+                    }}
+                    disabled={!workspaceId || createEmptyDraft.isPending}
+                    className="p-1.5 hover:bg-blue-100 rounded text-blue-600 disabled:text-gray-400 disabled:hover:bg-gray-100 transition-colors"
+                    title="Create new draft"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  {list.isFetching ? (
+                    <span className="text-xs text-muted-foreground">Refreshing…</span>
+                  ) : null}
+                </div>
               </div>
               {isExpanded ? (
                 <div className="bg-accent">
                   {(files || []).length === 0 ? (
-                    <div className="p-3 ml-8 border-l text-xs text-muted-foreground">No drafting jobs</div>
+                    <div className="p-3 ml-8 border-l">
+                      <div className="text-xs text-muted-foreground mb-2">No drafting jobs</div>
+                      <button
+                        onClick={handleCreateNewDraft}
+                        disabled={!workspaceId || createEmptyDraft.isPending}
+                        className="text-xs text-blue-600 hover:text-blue-700 disabled:text-gray-400 hover:underline"
+                      >
+                        Create your first draft →
+                      </button>
+                    </div>
                   ) : (
                     files.map((job: any) => (
                       <div key={job.id} className="flex items-center justify-between p-3 ml-8 border-l hover:bg-background">

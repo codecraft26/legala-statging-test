@@ -33,6 +33,7 @@ import { SlashCommands } from "./slash-commands";
 import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
 import DocumentBrowser from "./components/DocumentBrowser";
+import DraftsList from "./components/DraftsList";
 import { Api } from "@/lib/api-client";
 import { DraftingApi } from "@/lib/drafting-api";
 import { useUpdateDraft } from "@/hooks/use-drafting";
@@ -943,73 +944,9 @@ export default function TiptapEditor({
       </div>
 
       {showVariablesPanel ? (
-        <div className="flex-shrink-0 h-full overflow-hidden w-56 md:w-60 lg:w-64">
-          <DocumentBrowser
+        <div className="flex-shrink-0 h-full overflow-hidden w-80">
+          <DraftsList
             workspaceId={currentWorkspaceId || undefined}
-            onImportDocx={async ({ id, filename, s3_key_original }) => {
-              try {
-                // Starting document import
-
-                // Check if s3_key_original is available
-                if (!s3_key_original) {
-                  throw new Error(
-                    `Document "${filename}" cannot be downloaded - missing storage reference. Please re-upload this document.`
-                  );
-                }
-
-                // Try using the Api client first
-                let blob: Blob;
-                try {
-                  const signedUrlResponse = await Api.get<{ url: string }>(
-                    `/get-signed-url?key=${encodeURIComponent(s3_key_original)}`
-                  );
-                  // Signed URL response received
-
-                  const fileResponse = await fetch(signedUrlResponse.url);
-                  if (!fileResponse.ok) {
-                    throw new Error(
-                      `Failed to fetch from signed URL: ${fileResponse.statusText}`
-                    );
-                  }
-                  blob = await fileResponse.blob();
-                  // Document fetched via signed URL
-                } catch (signedUrlError) {
-                  console.error("Failed to download document:", signedUrlError);
-                  throw new Error(
-                    `Cannot download document "${filename}". Please try again or contact support.`
-                  );
-                }
-
-                // Convert DOCX to HTML using mammoth
-                const arrayBuffer = await blob.arrayBuffer();
-                const mammoth = (await import("mammoth")) as any;
-                const result = await mammoth.convertToHtml({ arrayBuffer });
-                const html = result.value || "<p>No content found</p>";
-
-                // Conversion successful
-
-                // Clear existing content and set new content
-                setVariables([]);
-                setVariableValues({});
-                setPlaceholderStatus({});
-
-                // Set content and update editor
-                setContent(html);
-                editor
-                  ?.chain()
-                  .focus()
-                  .clearContent()
-                  .setContent(html, false)
-                  .run();
-                setDocumentTitle(filename.replace(/\.[^.]+$/, ""));
-
-                // Document imported successfully
-              } catch (e: any) {
-                console.error("=== IMPORT DOCUMENT FAILED ===");
-                console.error("Error details:", e);
-                alert(`Failed to import document: ${e?.message || e}`);
-              }
-            }}
             onLoadDraftContent={({ name, content }) => {
               try {
                 if (name) setDocumentTitle(name);
@@ -1034,94 +971,6 @@ export default function TiptapEditor({
               }
             }}
           />
-
-          {/* DataHubSelector removed on drafting page */}
-          {/* <DataHubSelector
-            onApply={async (html, vars, title) => {
-              // console.log("DataHub onApply called with:", { html, vars, title });
-              if (!editor) {
-                // console.log("Editor not available");
-                return;
-              }
-
-              // Clear all existing variables and content first
-              setVariables([]);
-              setVariableValues({});
-              setPlaceholderStatus({});
-
-              // console.log("Setting document title and content");
-              setDocumentTitle(title);
-
-              // Set the content state first
-              setContent(html);
-
-              // Ensure editor updates
-              setTimeout(() => {
-                if (editor) {
-                  editor
-                    .chain()
-                    .focus()
-                    .clearContent()
-                    .setContent(html, false)
-                    .run();
-                  // console.log("Editor content set, current HTML:", editor.getHTML());
-                }
-              }, 50);
-
-              // Set new variables
-              // console.log("=== SETTING VARIABLES ===");
-              // console.log("Variables to set:", vars);
-              setVariables(vars);
-              const vals: Record<string, string> = {};
-              const status: Record<string, string> = {};
-              vars.forEach((v) => {
-                vals[v.unique_id] = "";
-                status[v.unique_id] = html.includes(`{{${v.unique_id}}}`)
-                  ? "Found"
-                  : "Missing";
-              });
-              // console.log("Variable values:", vals);
-              // console.log("Variable status:", status);
-              setVariableValues(vals);
-              setPlaceholderStatus(status);
-
-              // Force editor re-render
-              setContentUpdateTrigger((prev) => prev + 1);
-
-              // console.log("DataHub document applied successfully");
-            }}
-          /> */}
-
-          {/* <VariablesPanel
-            variables={variables}
-            values={variableValues}
-            placeholderStatus={placeholderStatus}
-            editingVariable={editingVariable}
-            highlightedVariable={highlightedVariable}
-            inputRefs={inputRefs}
-            onChangeValue={(id, val) =>
-              setVariableValues((p) => ({ ...p, [id]: val }))
-            }
-            onEditVariable={setEditingVariable}
-            onInsertPlaceholder={(id) => {
-              editor.chain().focus().insertContent(`{{${id}}}`).run();
-              setPlaceholderStatus((prev) => ({
-                ...prev,
-                [id]: "Found",
-              }));
-            }}
-            onApplyAllVariables={handleApplyAllVariables}
-            onSaveDocument={handleSave}
-            onSaveWithVariablesReplaced={handleSaveWithVariablesReplaced}
-            onPreviewFinal={handlePreviewFinal}
-            onSaveDraftToDocument={handleSaveDraftToDocument}
-            onClearAll={() => {
-              setVariables([]);
-              setVariableValues({});
-              setPlaceholderStatus({});
-              setEditingVariable(null);
-            }}
-          /> */}
         </div>
       ) : null}
     </div>
