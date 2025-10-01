@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useDistrictsIndex } from "@/hooks/use-districts";
+import { useDistrictsIndex } from "@/hooks/use-research";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type DistrictsApiResponse = {
