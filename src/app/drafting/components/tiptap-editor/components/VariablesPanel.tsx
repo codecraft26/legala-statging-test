@@ -54,8 +54,8 @@ export default function VariablesPanel({
   onEditVariable,
   onInsertPlaceholder,
   onApplyAllVariables,
-  onSaveDocument,
-  onSaveWithVariablesReplaced,
+  onSaveDocument: _onSaveDocument,
+  onSaveWithVariablesReplaced: _onSaveWithVariablesReplaced,
   onPreviewFinal,
   onSaveDraftToDocument,
   onClearAll,
@@ -117,14 +117,11 @@ export default function VariablesPanel({
   };
 
   // Open save draft modal
-  const openSaveDraftModal = () => {
-    setShowSaveDraftModal(true);
-    fetchWorkspaces();
-  };
+  const openSaveDraftModal = () => {};
 
   return (
     <div className="h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 pb-28 space-y-3">
         {variables.length === 0 ? (
           <div className="text-sm text-gray-500 text-center">
             No variables defined. Import a document to add variables.
@@ -233,179 +230,33 @@ export default function VariablesPanel({
         {variables.length > 0 && (
           <div className="mt-4 space-y-2">
             <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded-md">
-              <strong>Actions:</strong> Apply variables to see changes, Preview
-              to check final result, Save Template to keep variables, Save Final
-              to replace all variables permanently.
+              <strong>Actions:</strong> Preview to check final result, Apply variables to see changes.
             </div>
+            
+            {onPreviewFinal && (
+              <button
+                onClick={onPreviewFinal}
+                className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-2"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Preview</span>
+              </button>
+            )}
+            
             {onApplyAllVariables && (
               <button
                 onClick={onApplyAllVariables}
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center space-x-2"
+                className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Apply All Variables</span>
               </button>
             )}
-
-            <div className="grid grid-cols-2 gap-2">
-              {onPreviewFinal && (
-                <button
-                  onClick={onPreviewFinal}
-                  className="px-3 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-1 text-sm"
-                >
-                  <Eye className="w-3 h-3" />
-                  <span>Preview</span>
-                </button>
-              )}
-              {onSaveDocument && (
-                <button
-                  onClick={onSaveDocument}
-                  className="px-3 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-1 text-sm"
-                >
-                  <Save className="w-3 h-3" />
-                  <span>Save Template</span>
-                </button>
-              )}
-            </div>
-
-            {onSaveWithVariablesReplaced && (
-              <button
-                onClick={onSaveWithVariablesReplaced}
-                className="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 flex items-center justify-center space-x-2 font-semibold"
-              >
-                <Download className="w-4 h-4" />
-                <span>Save Final Document</span>
-              </button>
-            )}
-
-            {/* Save as Draft Button */}
-            <button
-              onClick={openSaveDraftModal}
-              className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-2"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Save as Draft</span>
-            </button>
           </div>
         )}
       </div>
-
-      {/* Save Draft Modal */}
-      {showSaveDraftModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Save as Draft
-              </h3>
-              <button
-                onClick={() => setShowSaveDraftModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* File Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  File Name *
-                </label>
-                <input
-                  type="text"
-                  value={saveDraftForm.fileName}
-                  onChange={(e) =>
-                    setSaveDraftForm((prev) => ({
-                      ...prev,
-                      fileName: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter file name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-              {/* Workspace Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Workspace *
-                </label>
-                <select
-                  value={saveDraftForm.workspaceId}
-                  onChange={(e) =>
-                    setSaveDraftForm((prev) => ({
-                      ...prev,
-                      workspaceId: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Select a workspace</option>
-                  {workspaces.map((workspace) => (
-                    <option key={workspace.id} value={workspace.id}>
-                      {workspace.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* File Format */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  File Format
-                </label>
-                <select
-                  value={saveDraftForm.fileFormat}
-                  onChange={(e) =>
-                    setSaveDraftForm((prev) => ({
-                      ...prev,
-                      fileFormat: e.target.value as "docx" | "pdf" | "txt",
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="docx">DOCX (Word Document)</option>
-                  <option value="pdf">PDF (Portable Document)</option>
-                  <option value="txt">TXT (Plain Text)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowSaveDraftModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-                disabled={isSaving}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveDraftToDocument}
-                disabled={
-                  isSaving ||
-                  !saveDraftForm.fileName.trim() ||
-                  !saveDraftForm.workspaceId
-                }
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-4 h-4" />
-                    <span>Save Draft</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Bottom spacer to prevent last button from being cut off */}
+      <div className="flex-shrink-0 h-4" />
     </div>
   );
 }
