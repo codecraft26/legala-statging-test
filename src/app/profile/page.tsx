@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useProfileDetail } from "@/hooks/use-auth";
 import { getCookie } from "@/lib/utils";
 import { type CreditDetail } from "@/lib/credit-api";
-import { useCreditDetail, useProfileDetail } from "@/hooks/use-profile";
+import { useCreditDetail } from "@/hooks/use-credit";
 // Pie chart removed per request
 
 export default function ProfilePage() {

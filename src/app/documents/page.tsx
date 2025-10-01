@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
-import { Api } from "@/lib/api-client";
 import AutoDraft from "./components/AutoDraft";
 import { Trash2, Plus, Upload } from "lucide-react";
 import { useCreateFolder, useDeleteDocument, useDocuments, useRenameFolder, useUploadDocuments } from "@/hooks/use-documents";
@@ -69,15 +68,13 @@ export default function DocumentsPage() {
   useEffect(() => {
     setFolderPath([]);
     setCurrentFolderId(null);
-    // handled by useDocuments
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [currentWorkspace]);
 
-  // Fetch items whenever the current folder changes (navigate into/out of subfolders)
+
   useEffect(() => {
     if (!currentWorkspace) return;
-    // handled by useDocuments
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [currentFolderId]);
 
   const handleUpload = async (files: FileList | null) => {
@@ -101,7 +98,7 @@ export default function DocumentsPage() {
       await createFolderMutation.mutateAsync({ name, workspaceId: currentWorkspace.id, parentId: currentFolderId });
       setNewFolderName("");
       setShowCreateFolderModal(false);
-    } catch {}
+    } catch { }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,7 +127,7 @@ export default function DocumentsPage() {
       return;
     try {
       await deleteMutation.mutateAsync({ id: item.id });
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -242,7 +239,7 @@ export default function DocumentsPage() {
           try {
             await renameFolderMutation.mutateAsync({ id: renamingId, name: renameValue.trim() });
             setRenamingId(null);
-          } catch {}
+          } catch { }
         }}
       />
 

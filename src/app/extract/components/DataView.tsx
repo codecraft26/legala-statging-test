@@ -28,18 +28,18 @@ interface DataViewProps {
 }
 
 export default function DataView({
-  extractedData = [],
-  uploadedFiles = [],
+  extractedData,
+  uploadedFiles,
   onBack,
 }: DataViewProps) {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   // Format the data to match expected structure
-  const formattedData = extractedData.map((item) => ({
+  const formattedData = extractedData?.map((item) => ({
     fileName: item.fileName,
-    extractedData: item.extractedData || {},
+    extractedData: item.extractedData,
     usage: item.usage,
-  }));
+  })) || [];
 
   // Get all unique keys from extracted data
   const allKeys = [

@@ -394,12 +394,7 @@ export default function Sidebar() {
           icon={<Folder size={16} />}
           label="Documents"
         />
-        <NavItem
-          collapsed={collapsed}
-          href="/settings"
-          icon={<Settings size={16} />}
-          label="Settings"
-        />
+       
       </nav>
 
       <div className="mt-auto pt-4">
@@ -480,7 +475,7 @@ export default function Sidebar() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link
-                      href="/settings"
+                      href="/workspaces"
                       className="flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-accent"
                       onClick={() => setUserDropdownOpen(false)}
                     >
