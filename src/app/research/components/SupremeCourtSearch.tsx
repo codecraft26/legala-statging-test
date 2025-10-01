@@ -820,6 +820,13 @@ export default function SupremeCourtSearch() {
 
   const handleFollowCase = async (caseData: CaseResult) => {
     const caseId = caseData.diary_number;
+    const workspaceId = getCookie("workspaceId");
+    
+    if (!workspaceId) {
+      alert("Please select a workspace to follow cases");
+      return;
+    }
+    
     setFollowLoading(caseId);
 
     try {
@@ -831,10 +838,17 @@ export default function SupremeCourtSearch() {
           return next;
         });
       } else {
+        // Create the followed object in the format expected by the API
+        const followedData = {
+          "Case Number": caseData.case_number || "",
+          "Petitioner versus Respondent": `${caseData.petitioner_name || ""} versus ${caseData.respondent_name || ""}`,
+          "View": caseData.diary_number
+        };
+        
         await followMutation.mutateAsync({
           court: "Supreme_Court",
-          followed: caseData,
-          workspaceId: "current-workspace",
+          followed: followedData,
+          workspaceId: workspaceId,
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }

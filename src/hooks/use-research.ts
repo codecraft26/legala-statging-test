@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import {
   SupremeCourtAPI,
   HighCourtAPI,
@@ -178,6 +179,35 @@ export function useFollowedResearch(workspaceId: string, court: string) {
     queryKey: researchKeys.followed(workspaceId, court),
     queryFn: () => ResearchAPI.getFollowedResearch(workspaceId, court),
     enabled: !!workspaceId && !!court,
+  });
+}
+
+// Districts index (moved from use-districts.ts)
+export type DistrictsApiResponse = {
+  status: number;
+  data: Array<{ state: string; districts: string[] }>;
+};
+
+export function useDistrictsIndex() {
+  return useQuery({
+    queryKey: ["districts-index"],
+    queryFn: async (): Promise<DistrictsApiResponse> => {
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(`${base}/research/district-court/districts`, {
+        cache: "no-store",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as DistrictsApiResponse;
+    },
+    refetchOnWindowFocus: false,
+    refetchOnMount: "always",
+    retry: 1,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 

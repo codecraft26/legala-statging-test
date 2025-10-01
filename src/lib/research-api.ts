@@ -194,19 +194,37 @@ export class HighCourtAPI {
     dist_cd: number;
   }) {
     try {
+      // Format payload according to backend expectations
+      const payload = {
+        case_no: Number(data.case_no),
+        state_code: Number(data.state_code),
+        cino: String(data.cino).trim(),
+        court_code: Number(data.court_code),
+        national_court_code: String(data.national_court_code).trim(),
+        dist_cd: Number(data.dist_cd),
+      };
+
+      // eslint-disable-next-line no-console
+      console.warn("High Court Case Detail API call initiated");
+
       const response = await fetch(`${API_BASE_URL}/high-court/case-detail`, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
+      // eslint-disable-next-line no-console
+      console.warn("High Court API response received");
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("High Court API Error Response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error("Error getting case detail:", error);
+      console.error("Error getting high court case detail:", error);
       throw error;
     }
   }

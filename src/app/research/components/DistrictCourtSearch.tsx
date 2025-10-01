@@ -9,12 +9,14 @@ import {
   useDistrictDetail,
   useFollowResearch,
   useUnfollowResearch,
+  useFollowedResearch,
 } from "@/hooks/use-research";
 import { districtId } from "../utils/districtId";
-import { useDistrictsIndex } from "@/hooks/use-districts";
+import { useDistrictsIndex } from "@/hooks/use-research";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
 import { useEstCodes } from "@/hooks/use-est-codes";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
+import { getCookie } from "@/lib/utils";
 
 interface DistrictCourtResult {
   cino: string;
@@ -476,6 +478,7 @@ const CaseDetailsModal = ({
 };
 
 export default function DistrictCourtSearch() {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [stateName, setStateName] = useState("");
   const [stateSearch, setStateSearch] = useState("");
   const [districtName, setDistrictName] = useState("srinagar");
@@ -542,6 +545,25 @@ export default function DistrictCourtSearch() {
   const partyQuery = useDistrictByParty(partyParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
+  const followedQuery = useFollowedResearch(workspaceId || "", "District_Court");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWorkspaceId(getCookie("workspaceId"));
+    }
+  }, []);
+
+  useEffect(() => {
+    const items = (followedQuery.data as any)?.data || followedQuery.data || [];
+    if (Array.isArray(items)) {
+      const ids = new Set<string>();
+      items.forEach((item: any) => {
+        const cino = item?.followed?.["View"] || item?.followed?.cino || "";
+        if (cino) ids.add(String(cino));
+      });
+      setFollowedCases(ids);
+    }
+  }, [followedQuery.data]);
 
   const {
     getEstCodeOptionsForDistrict,
@@ -991,13 +1013,24 @@ export default function DistrictCourtSearch() {
       return;
     }
 
-    setPartyParams({
+    const nextParams = {
       district_name: districtName.toLowerCase(),
       litigant_name: litigantName,
       reg_year: parseInt(regYear),
       case_status: caseStatus,
       est_code: selectedEstCodes.join(","),
-    });
+    };
+
+    // Reset current results and pagination while new search runs
+    setSearchResults({});
+    setPageByCourt({});
+
+    // If params are unchanged (same key), force a refetch so user doesn't need to refresh
+    if (partyParams && JSON.stringify(partyParams) === JSON.stringify(nextParams)) {
+      partyQuery.refetch();
+    } else {
+      setPartyParams(nextParams);
+    }
   };
 
   const detailQuery = useDistrictDetail(detailParams);
@@ -1030,24 +1063,35 @@ export default function DistrictCourtSearch() {
 
   const handleFollowCase = async (caseData: DistrictCourtResult) => {
     const caseId = caseData.cino;
+    const workspaceId = getCookie("workspaceId");
+    
+    if (!workspaceId) {
+      alert("Please select a workspace to follow cases");
+      return;
+    }
+    
+    // Prevent duplicate follow
+    if (followedCases.has(caseId)) {
+      return;
+    }
+
     setFollowLoading(caseId);
 
     try {
-      if (followedCases.has(caseId)) {
-        await unfollowMutation.mutateAsync(caseId);
-        setFollowedCases((prev) => {
-          const next = new Set(prev);
-          next.delete(caseId);
-          return next;
-        });
-      } else {
-        await followMutation.mutateAsync({
-          court: "District_Court",
-          followed: caseData,
-          workspaceId: "current-workspace",
-        });
-        setFollowedCases((prev) => new Set(prev).add(caseId));
-      }
+      // Create the followed object in the format expected by the API
+      const followedData = {
+        "Serial Number": caseData.serial_number || "",
+        "Case Type/Case Number/Case Year": `${caseData.case_type || ""}/${caseData.case_number || ""}/${caseData.case_year || ""}`,
+        "Petitioner versus Respondent": `${caseData.petitioner_name || ""} Versus ${caseData.respondent_name || ""}`,
+        "View": caseData.cino
+      };
+      
+      await followMutation.mutateAsync({
+        court: "District_Court",
+        followed: followedData,
+        workspaceId: workspaceId,
+      });
+      setFollowedCases((prev) => new Set(prev).add(caseId));
     } catch (err) {
       console.error("Follow/unfollow failed:", err);
     } finally {
@@ -1297,11 +1341,13 @@ export default function DistrictCourtSearch() {
                               <button
                                 className={`flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
                                   followedCases.has(caseId)
-                                    ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200"
+                                    ? "text-green-700 bg-green-100"
                                     : "text-gray-700 dark:text-zinc-200 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700"
                                 }`}
-                                onClick={() => handleFollowCase(r)}
-                                disabled={followLoading === caseId}
+                                onClick={() => {
+                                  if (!followedCases.has(caseId)) handleFollowCase(r);
+                                }}
+                                disabled={followLoading === caseId || followedCases.has(caseId)}
                               >
                                 {followLoading === caseId ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -1311,12 +1357,12 @@ export default function DistrictCourtSearch() {
                                       size={12}
                                       className={
                                         followedCases.has(caseId)
-                                          ? "text-yellow-600 fill-yellow-500"
+                                          ? "text-green-600 fill-green-500"
                                           : ""
                                       }
                                     />
                                     <span className="hidden sm:inline">
-                                      {followedCases.has(caseId) ? "Following" : "Follow"}
+                                      {followedCases.has(caseId) ? "Followed" : "Follow"}
                                     </span>
                                   </>
                                 )}

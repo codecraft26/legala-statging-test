@@ -266,6 +266,13 @@ export default function HighCourtPartySearch() {
 
   const handleFollowCase = async (caseData: HighCourtPartyResult) => {
     const caseId = caseData.cino || caseData.case_no.toString();
+    const workspaceId = getCookie("workspaceId");
+    
+    if (!workspaceId) {
+      alert("Please select a workspace to follow cases");
+      return;
+    }
+    
     setFollowLoading(caseId);
 
     try {
@@ -277,10 +284,33 @@ export default function HighCourtPartySearch() {
           return newSet;
         });
       } else {
+        // Create the followed object in the raw format expected by the API
+        const followedData = {
+          case_year: (caseData as any).case_year || new Date().getFullYear(),
+          case_no2: (caseData as any).case_no2 || caseData.case_no,
+          pet_name: (caseData as any).pet_name || "",
+          res_name: caseData.res_name || "",
+          lpet_name: (caseData as any).lpet_name || null,
+          lres_name: (caseData as any).lres_name || null,
+          party_name1: (caseData as any).party_name1 || "N",
+          party_name2: (caseData as any).party_name2 || "N",
+          adv_name1: (caseData as any).adv_name1 || "",
+          adv_name2: (caseData as any).adv_name2 || null,
+          ladv_name1: (caseData as any).ladv_name1 || null,
+          ladv_name2: (caseData as any).ladv_name2 || null,
+          date_of_decision: caseData.date_of_decision || null,
+          type_name: caseData.type_name || "",
+          state_cd: (caseData as any).state_cd?.toString() || "26",
+          court_code: (caseData as any).court_code?.toString() || "1"
+        };
+        
+        // eslint-disable-next-line no-console
+        console.warn("Following High Court case");
+        
         await followMutation.mutateAsync({
           court: "High_Court",
-          followed: caseData,
-          workspaceId: "current-workspace",
+          followed: followedData,
+          workspaceId: workspaceId,
         });
         setFollowedCases((prev) => new Set(prev).add(caseId));
       }

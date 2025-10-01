@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch, useHighDetail } from "@/hooks/use-research";
+import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch, useHighDetail, useFollowedResearch } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
 import SearchBar from "./common/SearchBar";
@@ -433,6 +433,7 @@ const CaseDetailsModal = ({
 };
 
 export default function HighCourtFilingSearch() {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [caseNo, setCaseNo] = useState("");
   const [rgYear, setRgYear] = useState(new Date().getFullYear().toString());
   const [courtCode, setCourtCode] = useState("1");
@@ -467,6 +468,41 @@ export default function HighCourtFilingSearch() {
   const filingQuery = useHighByFilingNumber(searchParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
+  const followedQuery = useFollowedResearch(workspaceId || "", "High_Court");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWorkspaceId(getCookie("workspaceId"));
+    }
+  }, []);
+
+  // Build followed set using cino and reconstructed case_no (TYPE/NO/YEAR)
+  React.useEffect(() => {
+    const items = (followedQuery.data as any)?.data || followedQuery.data || [];
+    if (Array.isArray(items)) {
+      const ids = new Set<string>();
+      items.forEach((item: any) => {
+        const f = item?.followed || {};
+        const cino = f.cino || f["cino"] || "";
+        if (cino) ids.add(String(cino));
+        const type = f.type_name || "";
+        const no = f.case_no2 != null ? String(f.case_no2) : "";
+        const year = f.case_year != null ? String(f.case_year) : "";
+        const composite = type && no && year ? `${type}/${no}/${year}` : "";
+        if (composite) ids.add(composite);
+      });
+      setFollowedCases(ids);
+    }
+  }, [followedQuery.data]);
+
+  // Helper to check if a result row is already followed
+  const isRowFollowed = (r: HighCourtResult): boolean => {
+    const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
+    const num = r.fil_no || (r.case_no ? String(parseInt(r.case_no)) : "");
+    const composite = r.type_name && num && r.fil_year ? `${r.type_name}/${num}/${r.fil_year}` : "";
+    const byComposite = composite ? followedCases.has(composite) : false;
+    return byCino || byComposite;
+  };
 
   // Generate years for dropdown (last 30 years)
   const currentYear = new Date().getFullYear();
@@ -507,13 +543,23 @@ export default function HighCourtFilingSearch() {
 
     if (!caseNo.trim()) return;
 
-    setSearchParams({
+    const nextParams = {
       court_code: parseInt(courtCode),
       state_code: parseInt(stateCode),
       court_complex_code: parseInt(courtComplexCode),
       case_no: parseInt(caseNo),
       rgyear: parseInt(rgYear),
-    });
+    } as const;
+
+    // If the params did not change, force a refetch so the Search button works repeatedly
+    if (
+      searchParams &&
+      JSON.stringify(searchParams) === JSON.stringify(nextParams)
+    ) {
+      filingQuery.refetch();
+    } else {
+      setSearchParams({ ...nextParams });
+    }
   };
 
   const detailQuery = useHighDetail(detailParams);
@@ -529,7 +575,8 @@ export default function HighCourtFilingSearch() {
     }
     const raw: any = detailQuery.data;
     if (!raw) return;
-    const details = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : raw;
+    const html = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : "";
+    const details = html || raw;
     setSelectedCase({
       ...(currentPageResults.find((r) => String(r.cino || r.case_no) === caseId) || ({} as any)),
       details,
@@ -541,12 +588,20 @@ export default function HighCourtFilingSearch() {
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
     setLoadingDetails(caseId);
+    // Build formatted case number: YYYY + SS + CCCCCCCC + YYYY
+    const year = Number(result.fil_year) || new Date().getFullYear();
+    const state = Number(result.state_cd) || 26;
+    const rawNo = (result.fil_no ? Number(result.fil_no) : (result.case_no ? Number(result.case_no) : 0)) || 0;
+    const formattedCaseNo = Number(
+      `${year}${String(state).padStart(2, "0")}${String(rawNo).padStart(8, "0")}${year}`
+    );
+    const natCode = (result.cino && result.cino.substring(0, 6)) || "DLHC01";
     setDetailParams({
-      case_no: Number(result.case_no),
-      state_code: Number(result.state_cd),
+      case_no: formattedCaseNo,
+      state_code: state,
       cino: result.cino,
-      court_code: Number(result.court_code),
-      national_court_code: "DLHC01",
+      court_code: Number(result.court_code) || 1,
+      national_court_code: natCode,
       dist_cd: 1,
     });
   };
@@ -556,14 +611,23 @@ export default function HighCourtFilingSearch() {
 
   const handleFollowCase = (caseData: HighCourtResult) => {
     const caseId = caseData.cino || caseData.case_no;
+    const workspaceId = getCookie("workspaceId");
+    
+    if (!workspaceId) {
+      alert("Please select a workspace to follow cases");
+      return;
+    }
 
-    if (followedCases.has(caseId)) {
-      unfollowMutation.mutate(caseId);
+    if (isRowFollowed(caseData)) {
+      return;
     } else {
+      // Send the entire row as the followed payload (preserve all fields)
+      const followedData = { ...caseData } as any;
+
       followMutation.mutate({
         court: "High_Court",
-        followed: caseData,
-        workspaceId: "current-workspace",
+        followed: followedData,
+        workspaceId: workspaceId,
       });
     }
   };
@@ -759,23 +823,21 @@ export default function HighCourtFilingSearch() {
                 ) },
                 { key: "type_name", header: "TYPE", width: 120, render: (r) => r.type_name || "N/A" },
                 { key: "follow", header: "FOLLOW", width: 120, render: (r) => {
-                  const caseId = r.cino || r.case_no;
+                  const already = isRowFollowed(r);
                   return (
                     <button
                       className={`border border-gray-300 rounded px-2 py-1 ${
-                        followedCases.has(caseId)
-                          ? "bg-gray-200 text-gray-800"
-                          : "bg-white text-gray-800"
+                        already ? "bg-gray-200 text-gray-800" : "bg-white text-gray-800"
                       }`}
                       onClick={() => handleFollowCase(r)}
-                      disabled={followMutation.isPending || unfollowMutation.isPending}
+                      disabled={followMutation.isPending || unfollowMutation.isPending || already}
                     >
                       {followMutation.isPending || unfollowMutation.isPending ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <div className="flex items-center gap-1">
-                          <Star size={12} className={followedCases.has(caseId) ? "text-black" : "text-gray-600"} />
-                          <span className="hidden sm:inline">{followedCases.has(caseId) ? "Following" : "Follow"}</span>
+                          <Star size={12} className={already ? "text-black" : "text-gray-600"} />
+                          <span className="hidden sm:inline">{already ? "Followed" : "Follow"}</span>
                         </div>
                       )}
                     </button>

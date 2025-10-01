@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Search, Star, Eye, Loader2, X, ExternalLink } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useHighByAdvocate, useFollowResearch, useUnfollowResearch, useHighDetail } from "@/hooks/use-research";
+import { useHighByAdvocate, useFollowResearch, useUnfollowResearch, useHighDetail, useFollowedResearch } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import {
   stateCodeMapping,
@@ -574,6 +574,7 @@ const CaseDetailsModal = ({
 };
 
 export default function HighCourtAdvocateSearch() {
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [advocateName, setAdvocateName] = useState("");
   const [courtCode, setCourtCode] = useState("1");
   const [stateCode, setStateCode] = useState("26");
@@ -608,6 +609,41 @@ export default function HighCourtAdvocateSearch() {
   const advocateQuery = useHighByAdvocate(searchParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
+  const followedQuery = useFollowedResearch(workspaceId || "", "High_Court");
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWorkspaceId(getCookie("workspaceId"));
+    }
+  }, []);
+
+  // Build followed set using cino and reconstructed case_no (TYPE/NO/YEAR)
+  React.useEffect(() => {
+    const items = (followedQuery.data as any)?.data || followedQuery.data || [];
+    if (Array.isArray(items)) {
+      const ids = new Set<string>();
+      items.forEach((item: any) => {
+        const f = item?.followed || {};
+        const cino = f.cino || f["cino"] || "";
+        if (cino) ids.add(String(cino));
+        const type = f.type_name || "";
+        const no = f.case_no2 != null ? String(f.case_no2) : "";
+        const year = f.case_year != null ? String(f.case_year) : "";
+        const composite = type && no && year ? `${type}/${no}/${year}` : "";
+        if (composite) ids.add(composite);
+      });
+      setFollowedCases(ids);
+    }
+  }, [followedQuery.data]);
+
+  // Helper to check if a row is already followed
+  const isRowFollowed = (r: HighCourtResult): boolean => {
+    const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
+    const num = r.case_no2 != null ? String(r.case_no2) : (r.case_no ? String(parseInt(r.case_no)) : "");
+    const composite = r.type_name && num && r.case_year != null ? `${r.type_name}/${num}/${r.case_year}` : "";
+    const byComposite = composite ? followedCases.has(composite) : false;
+    return byCino || byComposite;
+  };
 
   // Filter search results based on searchQuery
   const rawResults: HighCourtResult[] = Array.isArray(advocateQuery.data)
@@ -681,12 +717,20 @@ export default function HighCourtAdvocateSearch() {
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
     setLoadingDetails(caseId);
+    // Build formatted case number: YYYY + SS + CCCCCCCC + YYYY
+    const year = Number(result.case_year) || new Date().getFullYear();
+    const state = Number(result.state_cd) || 26;
+    const rawNo = (result.case_no2 != null ? Number(result.case_no2) : (result.case_no ? Number(result.case_no) : 0)) || 0;
+    const formattedCaseNo = Number(
+      `${year}${String(state).padStart(2, "0")}${String(rawNo).padStart(8, "0")}${year}`
+    );
+    const natCode = (result.cino && result.cino.substring(0, 6)) || "DLHC01";
     setDetailParams({
-      case_no: Number(result.case_no),
-      state_code: Number(result.state_cd),
+      case_no: formattedCaseNo,
+      state_code: state,
       cino: result.cino,
-      court_code: Number(result.court_code),
-      national_court_code: "DLHC01",
+      court_code: Number(result.court_code) || 1,
+      national_court_code: natCode,
       dist_cd: 1,
     });
   };
@@ -696,14 +740,23 @@ export default function HighCourtAdvocateSearch() {
 
   const handleFollowCase = (caseData: HighCourtResult) => {
     const caseId = caseData.cino || caseData.case_no;
+    const workspaceId = getCookie("workspaceId");
+    
+    if (!workspaceId) {
+      alert("Please select a workspace to follow cases");
+      return;
+    }
 
-    if (followedCases.has(caseId)) {
-      unfollowMutation.mutate(caseId);
+    if (isRowFollowed(caseData)) {
+      return;
     } else {
+      // Send the entire row as the followed payload (preserve all fields)
+      const followedData = { ...caseData } as any;
+
       followMutation.mutate({
         court: "High_Court",
-        followed: caseData,
-        workspaceId: "current-workspace",
+        followed: followedData,
+        workspaceId: workspaceId,
       });
     }
   };
@@ -908,7 +961,7 @@ export default function HighCourtAdvocateSearch() {
                 ) },
                 { key: "follow", header: "FOLLOW", width: 120, render: (r) => (
                   <FollowButton
-                    isFollowing={followedCases.has(r.cino || r.case_no)}
+                    isFollowing={isRowFollowed(r)}
                     loading={followMutation.isPending || unfollowMutation.isPending}
                     onClick={() => handleFollowCase(r)}
                     compact
