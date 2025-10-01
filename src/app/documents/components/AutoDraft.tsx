@@ -2,6 +2,8 @@
 
 import React from "react";
 import { Api } from "@/lib/api-client";
+import { useDraftingList, useDeleteDrafting } from "@/hooks/use-drafting";
+import { getCookie } from "@/lib/utils";
 
 type AutoDraftItem = {
   id: string;
@@ -13,6 +15,9 @@ type AutoDraftItem = {
 
 export default function AutoDraft() {
   const [drafting, setDrafting] = React.useState<AutoDraftItem[]>([]);
+  const workspaceId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
+  const draftingList = useDraftingList(workspaceId);
+  const deleteDraft = useDeleteDrafting(workspaceId);
 
   const getDisplayRole = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -32,8 +37,8 @@ export default function AutoDraft() {
     new Set()
   );
 
-  const folders: Array<{ name: string; files: AutoDraftItem[] }> = [
-    { name: "Drafting", files: drafting },
+  const folders: Array<{ name: string; files: any[] }> = [
+    { name: "Drafting", files: draftingList.data || [] },
     { name: "Template", files: template },
   ];
 
@@ -67,22 +72,13 @@ export default function AutoDraft() {
     let mounted = true;
     (async () => {
       try {
-        const [draftingRes, templateRes] = await Promise.all([
-          Api.get<{ autoDrafts: AutoDraftItem[] }>(
-            `/auto-drafts?folder=drafting`,
-            "no-store"
-          ),
+        const [templateRes] = await Promise.all([
           Api.get<{ autoDrafts: AutoDraftItem[] }>(
             `/auto-drafts?folder=template`,
             "no-store"
           ),
         ]);
         if (!mounted) return;
-        setDrafting(
-          draftingRes?.autoDrafts ??
-            (draftingRes as any)?.data?.autoDrafts ??
-            []
-        );
         setTemplate(
           templateRes?.autoDrafts ??
             (templateRes as any)?.data?.autoDrafts ??
@@ -97,8 +93,8 @@ export default function AutoDraft() {
 
   return (
     <div className="p-1 select-none">
-      <div className="bg-background rounded-lg border">
-        <div className="px-4 py-3 border-b bg-accent rounded-t-lg">
+      <div className="bg-white rounded-lg border">
+        <div className="px-4 py-3 border-b bg-white rounded-t-lg">
           <h2 className="text-base font-semibold">Auto Draft</h2>
           <p className="text-xs text-muted-foreground mt-1">
             Auto drafts saved documents for template and drafting.
@@ -109,7 +105,7 @@ export default function AutoDraft() {
           return (
             <div key={name} className="border-b last:border-b-0">
               <div
-                className="flex items-center justify-between p-4 hover:bg-accent cursor-pointer"
+                className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer"
                 onClick={() => toggleFolder(name)}
               >
                 <div className="flex items-center gap-3">
@@ -136,56 +132,100 @@ export default function AutoDraft() {
                     {files.length} {files.length === 1 ? "file" : "files"}
                   </span>
                 </div>
+                {name === "Drafting" && draftingList.isFetching ? (
+                  <span className="text-xs text-muted-foreground">Refreshing…</span>
+                ) : null}
               </div>
               {isExpanded ? (
-                <div className="bg-accent">
-                  {files.map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center justify-between p-3 ml-8 border-l hover:bg-background"
-                    >
-                      <div className="flex items-center gap-3 flex-1">
-                        <span className="text-xl">📄</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">
-                              {file.file}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded-full ${file.user_role === "Owner" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
-                            >
-                              {getDisplayRole(file.user_role)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                            <span>{(file.user_email || "").split("@")[0]}</span>
-                            <span>{formatDate(file.created_at)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          className="p-1 hover:bg-red-100 rounded"
-                          onClick={() => removeDraft(file.id)}
-                          title="Delete"
-                        >
-                          <svg
-                            className="w-4 h-4 text-muted-foreground"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                <div className="bg-white">
+                  {name === "Drafting"
+                    ? (
+                        (files as any[]).length === 0 ? (
+                          <div className="p-3 ml-8 border-l text-xs text-muted-foreground">No drafting jobs</div>
+                        ) : (
+                          (files as any[]).map((job: any) => (
+                            <div key={job.id} className="flex items-center justify-between p-3 ml-8 border-l hover:bg-gray-50">
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className="text-xl">📄</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium truncate" title={job.name || job.instruction}>{job.name || job.instruction || "Untitled"}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${job.status === "COMPLETED" ? "bg-green-100 text-green-800" : job.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}>
+                                      {job.status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                    <span>
+                                      Uploaded by: {job.user?.name || ((job.user?.email || "").split("@")[0]) || "Unknown"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="p-1 hover:bg-red-100 rounded"
+                                  onClick={(e) => { e.stopPropagation(); deleteDraft.mutate(job.id); }}
+                                  title="Delete"
+                                  disabled={deleteDraft.isPending}
+                                >
+                                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )
+                      )
+                    : (
+                        files.map((file: AutoDraftItem) => (
+                          <div
+                            key={file.id}
+                            className="flex items-center justify-between p-3 ml-8 border-l hover:bg-gray-50"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                            <div className="flex items-center gap-3 flex-1">
+                              <span className="text-xl">📄</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium truncate">
+                                    {file.file}
+                                  </span>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${file.user_role === "Owner" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
+                                  >
+                                    {getDisplayRole(file.user_role)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                  <span>{(file.user_email || "").split("@")[0]}</span>
+                                  <span>{formatDate(file.created_at)}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="p-1 hover:bg-red-100 rounded"
+                                onClick={() => removeDraft(file.id)}
+                                title="Delete"
+                              >
+                                <svg
+                                  className="w-4 h-4 text-muted-foreground"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                 </div>
               ) : null}
             </div>
