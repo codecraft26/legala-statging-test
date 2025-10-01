@@ -1,39 +1,101 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
 import { Button } from "@/components/ui/button";
+import { useCreateEmptyDraft, useUpdateDraft } from "@/hooks/use-drafting";
+import { useToast } from "@/components/ui/toast";
 
 export default function DraftingPage() {
   const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = React.useState<string>("");
+  const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(null);
+  const [documentTitle, setDocumentTitle] = React.useState<string>("New Draft");
+  const [editorContentRef, setEditorContentRef] = React.useState<(() => string) | null>(null);
+
+  const createEmptyDraft = useCreateEmptyDraft(workspaceId);
+  const updateDraft = useUpdateDraft(workspaceId);
+
   React.useEffect(() => {
     const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     setWorkspaceId(id);
     setWorkspaceName("");
   }, []);
+
   const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName || "" } as any) : null;
+
+  const { showToast } = useToast();
+
+  const handleSave = async () => {
+    if (!workspaceId) {
+      showToast("No workspace selected", "error");
+      return;
+    }
+
+    try {
+      if (currentDraftId) {
+        // Update existing draft
+        const content = editorContentRef ? editorContentRef() : "";
+        await updateDraft.mutateAsync({
+          id: currentDraftId,
+          name: documentTitle,
+          content: content,
+        });
+        showToast("Draft updated successfully!", "success");
+      } else {
+        // Create new empty draft
+        const result = await createEmptyDraft.mutateAsync({
+          name: documentTitle,
+          workspaceId: workspaceId,
+        });
+        setCurrentDraftId(result.id);
+        showToast("Draft created successfully!", "success");
+        
+        // If there's content in the editor, update the draft with it
+        const content = editorContentRef ? editorContentRef() : "";
+        if (content && content.trim() !== "" && content !== "<p></p>") {
+          await updateDraft.mutateAsync({
+            id: result.id,
+            content: content,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      showToast("Failed to save draft", "error");
+    }
+  };
+
+  const handleDocumentTitleChange = useCallback((title: string) => {
+    setDocumentTitle(title);
+  }, []);
+
+  const handleEditorContentChange = useCallback((getContentFn: () => string) => {
+    setEditorContentRef(() => getContentFn);
+  }, []);
 
   return (
     <main className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
       <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">AutoDraft Pro</h1>
-            <p className="text-sm text-muted-foreground">
-              Workspace:{" "}
-              <span className="font-medium">{currentWorkspace?.name || ""}</span>
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <div className="flex items-center gap-2">
             <Button variant="outline">Import</Button>
-            <Button>Save</Button>
+            <Button 
+              onClick={handleSave}
+              disabled={createEmptyDraft.isPending || updateDraft.isPending}
+            >
+              {createEmptyDraft.isPending || updateDraft.isPending ? "Saving..." : "Save"}
+            </Button>
           </div>
         </div>
       </div>
       <div className="flex-1 overflow-hidden">
-        <TiptapEditor />
+        <TiptapEditor 
+          onDocumentTitleChange={handleDocumentTitleChange}
+          onEditorContentChange={handleEditorContentChange}
+          currentDraftId={currentDraftId}
+        />
       </div>
     </main>
   );

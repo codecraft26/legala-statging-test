@@ -1,25 +1,67 @@
 "use client";
 
-import React from "react";
-import { Download, FileDown, FileText, Upload, FileType } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Download, FileDown, FileText, Upload, FileType, Edit2 } from "lucide-react";
 
 type Props = {
   documentTitle: string;
+  onDocumentTitleChange?: (title: string) => void;
   onExportPDF?: () => void;
   onExportDOCX?: () => void;
   onImportWord?: (file: File) => void;
   onImportPDF?: (file: File) => void;
+  isEditingEnabled?: boolean;
 };
 
 export default function EditorHeader({
   documentTitle,
+  onDocumentTitleChange,
   onExportPDF,
   onExportDOCX,
   onImportWord,
   onImportPDF,
+  isEditingEnabled = true,
 }: Props) {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState(documentTitle);
   const wordRef = React.useRef<HTMLInputElement | null>(null);
   const pdfRef = React.useRef<HTMLInputElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTempTitle(documentTitle);
+  }, [documentTitle]);
+
+  const handleTitleEdit = () => {
+    if (!isEditingEnabled) return;
+    setIsEditingTitle(true);
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }, 0);
+  };
+
+  const handleTitleSave = () => {
+    if (tempTitle.trim() && tempTitle !== documentTitle) {
+      onDocumentTitleChange?.(tempTitle.trim());
+    } else {
+      setTempTitle(documentTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleCancel = () => {
+    setTempTitle(documentTitle);
+    setIsEditingTitle(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    } else if (e.key === 'Escape') {
+      handleTitleCancel();
+    }
+  };
   return (
     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
       <div className="flex items-center justify-between">
@@ -29,9 +71,35 @@ export default function EditorHeader({
               Legal AI Advance Editor
             </h2>
           </div>
-          <p className="text-sm text-gray-600 mt-1">
-            Document: {documentTitle}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-gray-600">Document:</span>
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleKeyDown}
+                className="text-sm bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-0 flex-1 max-w-xs"
+                placeholder="Enter document name"
+              />
+            ) : (
+              <button
+                onClick={handleTitleEdit}
+                disabled={!isEditingEnabled}
+                className={`text-sm font-medium flex items-center gap-1 px-2 py-1 rounded transition-colors ${
+                  isEditingEnabled
+                    ? "text-blue-600 hover:bg-blue-50 cursor-pointer"
+                    : "text-gray-600 cursor-default"
+                }`}
+                title={isEditingEnabled ? "Click to edit document name" : ""}
+              >
+                {documentTitle}
+                {isEditingEnabled && <Edit2 size={12} />}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -35,6 +35,8 @@ import VariablesPanel, { VariableDef } from "./components/VariablesPanel";
 import DocumentBrowser from "./components/DocumentBrowser";
 import { Api } from "@/lib/api-client";
 import { DraftingApi } from "@/lib/drafting-api";
+import { useUpdateDraft } from "@/hooks/use-drafting";
+import { useToast } from "@/components/ui/toast";
 import { FontSize } from "./extensions/FontSize";
 import "./styles/EditorStyles.css";
 
@@ -113,9 +115,31 @@ const VariableHighlight = Extension.create({
   },
 });
 
-export default function TiptapEditor() {
+interface TiptapEditorProps {
+  onDocumentTitleChange?: (title: string) => void;
+  onEditorContentChange?: (getContentFn: () => string) => void;
+  currentDraftId?: string | null;
+  initialTitle?: string;
+}
+
+// Simple debounce utility
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout | null = null;
+  return ((...args: any[]) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
+
+export default function TiptapEditor({ 
+  onDocumentTitleChange, 
+  onEditorContentChange, 
+  currentDraftId,
+  initialTitle 
+}: TiptapEditorProps = {}) {
   const [editorState, setEditorState] = useState<Record<string, unknown>>({});
-  const [documentTitle, setDocumentTitle] = useState("Untitled Document");
+  const [documentTitle, setDocumentTitle] = useState(initialTitle || "Untitled Document");
+  const [internalDraftId, setInternalDraftId] = useState<string | null>(currentDraftId || null);
   const [content, setContent] = useState("");
   const [contentUpdateTrigger, setContentUpdateTrigger] = useState(0);
   const [showTableMenu, setShowTableMenu] = useState(false);
@@ -135,6 +159,10 @@ export default function TiptapEditor() {
   const [placeholderStatus, setPlaceholderStatus] = useState<
     Record<string, string>
   >({});
+  
+  // Hook for updating drafts
+  const updateDraft = useUpdateDraft(currentWorkspaceId);
+  const { showToast } = useToast();
   const [editingVariable, setEditingVariable] = useState<string | null>(null);
   const [highlightedVariable, setHighlightedVariable] = useState<string | null>(
     null
@@ -151,6 +179,55 @@ export default function TiptapEditor() {
       } catch {}
     }
   }, []);
+
+  // Debounced function to update draft name
+  const debouncedUpdateDraftName = useMemo(
+    () => debounce(async (draftId: string, name: string) => {
+      try {
+        await updateDraft.mutateAsync({ id: draftId, name });
+        showToast('Draft name updated successfully', 'success');
+      } catch (error) {
+        console.error('Failed to update draft name:', error);
+        showToast('Failed to update draft name', 'error');
+      }
+    }, 1000),
+    [updateDraft, showToast]
+  );
+
+  // Handle document title changes
+  const handleDocumentTitleChange = useCallback((newTitle: string) => {
+    setDocumentTitle(newTitle);
+    
+    // If we have a current draft, update it via API
+    const currentId = internalDraftId || currentDraftId;
+    if (currentId && newTitle.trim()) {
+      debouncedUpdateDraftName(currentId, newTitle.trim());
+    }
+  }, [internalDraftId, currentDraftId, debouncedUpdateDraftName]);
+
+  // Sync internal draft ID with prop
+  useEffect(() => {
+    if (currentDraftId !== internalDraftId) {
+      setInternalDraftId(currentDraftId || null);
+    }
+  }, [currentDraftId, internalDraftId]);
+
+  // Update document title when initialTitle prop changes
+  useEffect(() => {
+    if (initialTitle) {
+      setDocumentTitle(initialTitle);
+    }
+  }, [initialTitle]);
+
+  // Callback effects for parent component communication
+  const onDocumentTitleChangeRef = useRef(onDocumentTitleChange);
+  onDocumentTitleChangeRef.current = onDocumentTitleChange;
+  
+  useEffect(() => {
+    if (onDocumentTitleChangeRef.current) {
+      onDocumentTitleChangeRef.current(documentTitle);
+    }
+  }, [documentTitle]);
 
   const charLimit = useMemo(() => undefined, []);
 
@@ -232,6 +309,17 @@ export default function TiptapEditor() {
       updateEditorState();
     },
   });
+
+  // Editor content callback effect
+  const onEditorContentChangeRef = useRef(onEditorContentChange);
+  onEditorContentChangeRef.current = onEditorContentChange;
+  
+  useEffect(() => {
+    if (onEditorContentChangeRef.current && editor) {
+      const getContent = () => editor.getHTML();
+      onEditorContentChangeRef.current(getContent);
+    }
+  }, [editor]);
 
   const updateEditorState = useCallback(() => {
     if (!editor) return;
@@ -798,10 +886,12 @@ export default function TiptapEditor() {
         <div className="h-full bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden flex flex-col">
           <EditorHeader
             documentTitle={documentTitle}
+            onDocumentTitleChange={handleDocumentTitleChange}
             onExportPDF={exportPDF}
             onExportDOCX={exportDOCX}
             onImportWord={importWord}
             onImportPDF={importPDF}
+            isEditingEnabled={true}
           />
           <EditorToolbar
             editor={editor}
@@ -851,7 +941,7 @@ export default function TiptapEditor() {
 
       {showVariablesPanel ? (
         <div
-          className="w-80 flex-shrink-0 overflow-hidden"
+          className="flex-shrink-0 overflow-hidden w-56 md:w-60 lg:w-64"
           style={{ height: "calc(100vh - 120px)" }}
         >
           <DocumentBrowser
@@ -918,6 +1008,29 @@ export default function TiptapEditor() {
                 console.error("=== IMPORT DOCUMENT FAILED ===");
                 console.error("Error details:", e);
                 alert(`Failed to import document: ${e?.message || e}`);
+              }
+            }}
+            onLoadDraftContent={({ name, content }) => {
+              try {
+                if (name) setDocumentTitle(name);
+                if (typeof content === "string") {
+                  const safeContent = content.trim() !== "" ? content : "<p></p>";
+                  // Avoid synchronous heavy operations; batch in microtask
+                  Promise.resolve().then(() => {
+                    setVariables([]);
+                    setVariableValues({});
+                    setPlaceholderStatus({});
+                    setContent(safeContent);
+                    editor
+                      ?.chain()
+                      .focus()
+                      .clearContent()
+                      .setContent(safeContent, false)
+                      .run();
+                  });
+                }
+              } catch (e) {
+                console.error("Failed to load draft content into editor:", e);
               }
             }}
           />
