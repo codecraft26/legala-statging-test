@@ -156,6 +156,9 @@ export default function TiptapEditor({
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showCustomFontSizeInput, setShowCustomFontSizeInput] = useState(false);
   const [showVariablesPanel, setShowVariablesPanel] = useState(true);
+  const [sidePanelView, setSidePanelView] = useState<"variables" | "drafts">(
+    "drafts"
+  );
   const [variables, setVariables] = useState<VariableDef[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     {}
@@ -326,6 +329,84 @@ export default function TiptapEditor({
       onEditorContentChangeRef.current(getContent);
     }
   }, [editor]);
+
+  // Derive variables from content placeholders like {{variable_id}}
+  useEffect(() => {
+    if (!editor) return;
+    let html = editor.getHTML() || "";
+    const curlyMatches = html.match(/\{\{([^}]+)\}\}/g) || [];
+    const bracketMatches = html.match(/\[[^\]]+\]/g) || [];
+
+    // Convert legacy bracket placeholders like [Company Name] => {{company_name}}
+    // Build a map so replacements are consistent
+    const bracketToCurly: Record<string, string> = {};
+    bracketMatches.forEach((m) => {
+      const label = m.slice(1, -1).trim();
+      if (!label) return;
+      const id = label
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      if (!id) return;
+      bracketToCurly[m] = `{{${id}}}`;
+    });
+
+    if (Object.keys(bracketToCurly).length > 0) {
+      // Replace all bracket placeholders with normalized curly syntax in the editor
+      let updated = html;
+      Object.entries(bracketToCurly).forEach(([from, to]) => {
+        const escaped = from.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+        const re = new RegExp(escaped, "g");
+        updated = updated.replace(re, to);
+      });
+      if (updated !== html) {
+        editor.chain().focus().setContent(updated, false).run();
+        html = updated;
+      }
+    }
+
+    // Recompute matches after potential normalization
+    const matches = html.match(/\{\{([^}]+)\}\}/g) || curlyMatches;
+    const foundIds = Array.from(
+      new Set(
+        matches
+          .map((m) => (m.slice(2, -2) || "").trim())
+          .filter((id) => id.length > 0)
+      )
+    );
+
+    if (foundIds.length === 0 && variables.length === 0) return;
+
+    const existingIds = new Set(variables.map((v) => v.unique_id));
+    const newDefs: VariableDef[] = [];
+    foundIds.forEach((id) => {
+      if (!existingIds.has(id)) {
+        // Try to find a pretty label from bracket source, else default to id
+        const prettyLabelEntry = Object.entries(bracketToCurly).find(
+          ([, to]) => to === `{{${id}}}`
+        );
+        const label = prettyLabelEntry ? prettyLabelEntry[0].slice(1, -1).trim() : id;
+        newDefs.push({ unique_id: id, label, type: "text" });
+      }
+    });
+
+    if (newDefs.length > 0) {
+      setVariables((prev) => [...prev, ...newDefs]);
+    }
+
+    // Update placeholder status map
+    if (variables.length > 0 || newDefs.length > 0) {
+      const allVars = newDefs.length > 0 ? [...variables, ...newDefs] : variables;
+      const foundSet = new Set(
+        (html.match(/\{\{[^}]+\}\}/g) || []).map((p) => p.slice(2, -2).trim())
+      );
+      const status: Record<string, string> = {};
+      allVars.forEach((v) => {
+        status[v.unique_id] = foundSet.has(v.unique_id) ? "Found" : "Missing";
+      });
+      setPlaceholderStatus(status);
+    }
+  }, [editor, content, variables]);
 
   const updateEditorState = useCallback(() => {
     if (!editor) return;
@@ -559,28 +640,52 @@ export default function TiptapEditor({
       setContent(updatedContent);
 
       if (replacementsMade > 0) {
-        alert(
+        showToast(
           `Applied ${replacementsMade} variable${
             replacementsMade === 1 ? "" : "s"
-          } successfully!`
+          } successfully!`,
+          "success"
         );
       } else {
-        alert(
-          "No variables were applied. Check if placeholders exist in the document."
+        showToast(
+          "No variables were applied. Check if placeholders exist in the document.",
+          "info"
         );
       }
       if (unmatchedVariables.length > 0) {
-        alert(
-          `The following variables have no matching placeholders: ${unmatchedVariables.join(
-            ", "
-          )}. Ensure their placeholders (e.g., {{variableId}}) exist in the document.`
+        showToast(
+          `No placeholders found for: ${unmatchedVariables.join(", ")}.`,
+          "info"
         );
       }
     } catch (error) {
       console.error("Failed to apply all variables:", error);
-      alert("Failed to apply variables due to an error.");
+      showToast("Failed to apply variables due to an error.", "error");
     }
   }, [editor, variableValues, placeholderStatus]);
+
+  const handleChangeVariableValue = useCallback((id: string, value: string) => {
+    setVariableValues((prev) => ({ ...prev, [id]: value }));
+  }, []);
+
+  const handleEditVariable = useCallback((id: string | null) => {
+    setEditingVariable(id);
+  }, []);
+
+  const handleInsertPlaceholder = useCallback(
+    (id: string) => {
+      if (!editor) return;
+      editor.chain().focus().insertContent(`{{${id}}}`).run();
+      setContent(editor.getHTML());
+    },
+    [editor]
+  );
+
+  const handleClearAll = useCallback(() => {
+    setVariableValues({});
+    setEditingVariable(null);
+    setHighlightedVariable(null);
+  }, []);
 
   // Save document with variables (template mode)
   const handleSave = useCallback(() => {
@@ -947,44 +1052,92 @@ export default function TiptapEditor({
       </div>
 
       {showVariablesPanel ? (
-        <div className="flex-shrink-0 h-full overflow-hidden w-80">
-          <DraftsList
-            workspaceId={currentWorkspaceId || undefined}
-            onLoadDraftContent={({ name, content }) => {
-              try {
-                if (name) setDocumentTitle(name);
-                if (typeof content === "string") {
-                  const safeContent = content.trim() !== "" ? content : "<p></p>";
-                  // Avoid synchronous heavy operations; batch in microtask
-                  Promise.resolve().then(() => {
-                    setVariables([]);
-                    setVariableValues({});
-                    setPlaceholderStatus({});
-                    setContent(safeContent);
-                    editor
-                      ?.chain()
-                      .focus()
-                      .clearContent()
-                      .setContent(safeContent, false)
-                      .run();
-                  });
-                }
-              } catch (e) {
-                console.error("Failed to load draft content into editor:", e);
-              }
-            }}
-            onCreateNewDraft={() => {
-              setInternalDraftId(null);
-              setDocumentTitle("New Draft");
-              setVariables([]);
-              setVariableValues({});
-              setPlaceholderStatus({});
-              const safeContent = "<p></p>";
-              setContent(safeContent);
-              editor?.chain().focus().clearContent().setContent(safeContent, false).run();
-              if (onNewDraft) onNewDraft();
-            }}
-          />
+        <div className="flex-shrink-0 h-full w-80 flex flex-col min-h-0">
+          <div className="border-b border-gray-200 bg-white">
+            <div className="flex text-sm">
+              <button
+                className={`flex-1 px-3 py-2 ${
+                  sidePanelView === "drafts"
+                    ? "border-b-2 border-black font-semibold"
+                    : "text-gray-600"
+                }`}
+                onClick={() => setSidePanelView("drafts")}
+                type="button"
+              >
+                Drafts
+              </button>
+              <button
+                className={`flex-1 px-3 py-2 ${
+                  sidePanelView === "variables"
+                    ? "border-b-2 border-black font-semibold"
+                    : "text-gray-600"
+                }`}
+                onClick={() => setSidePanelView("variables")}
+                type="button"
+              >
+                Variables
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0">
+            {sidePanelView === "drafts" ? (
+              <DraftsList
+                workspaceId={currentWorkspaceId || undefined}
+                onLoadDraftContent={({ name, content }) => {
+                  try {
+                    if (name) setDocumentTitle(name);
+                    if (typeof content === "string") {
+                      const safeContent = content.trim() !== "" ? content : "<p></p>";
+                      Promise.resolve().then(() => {
+                        setVariables([]);
+                        setVariableValues({});
+                        setPlaceholderStatus({});
+                        setContent(safeContent);
+                        editor
+                          ?.chain()
+                          .focus()
+                          .clearContent()
+                          .setContent(safeContent, false)
+                          .run();
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Failed to load draft content into editor:", e);
+                  }
+                }}
+                onCreateNewDraft={() => {
+                  setInternalDraftId(null);
+                  setDocumentTitle("New Draft");
+                  setVariables([]);
+                  setVariableValues({});
+                  setPlaceholderStatus({});
+                  const safeContent = "<p></p>";
+                  setContent(safeContent);
+                  editor?.chain().focus().clearContent().setContent(safeContent, false).run();
+                  if (onNewDraft) onNewDraft();
+                }}
+              />
+            ) : (
+              <VariablesPanel
+                variables={variables}
+                values={variableValues}
+                placeholderStatus={placeholderStatus}
+                editingVariable={editingVariable}
+                highlightedVariable={highlightedVariable}
+                inputRefs={inputRefs}
+                onChangeValue={handleChangeVariableValue}
+                onEditVariable={handleEditVariable}
+                onInsertPlaceholder={handleInsertPlaceholder}
+                onApplyAllVariables={handleApplyAllVariables}
+                onSaveDocument={handleSave}
+                onSaveWithVariablesReplaced={handleSaveWithVariablesReplaced}
+                onPreviewFinal={handlePreviewFinal}
+                onSaveDraftToDocument={handleSaveDraftToDocument}
+                onClearAll={handleClearAll}
+              />
+            )}
+          </div>
         </div>
       ) : null}
     </div>
