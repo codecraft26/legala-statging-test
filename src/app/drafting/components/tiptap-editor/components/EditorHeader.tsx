@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Download, FileDown, FileText, Upload, FileType, Edit2 } from "lucide-react";
+import { Download, FileDown, FileText, Upload, FileType, Edit2, Save } from "lucide-react";
 
 type Props = {
   documentTitle: string;
@@ -11,6 +11,8 @@ type Props = {
   onImportWord?: (file: File) => void;
   onImportPDF?: (file: File) => void;
   isEditingEnabled?: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
 };
 
 export default function EditorHeader({
@@ -21,6 +23,8 @@ export default function EditorHeader({
   onImportWord,
   onImportPDF,
   isEditingEnabled = true,
+  onSave,
+  isSaving,
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState(documentTitle);
@@ -126,7 +130,7 @@ export default function EditorHeader({
     setShowExportDropdown(false);
   };
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+    <div className="bg-white px-6 py-4 border-b border-gray-200">
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -144,7 +148,7 @@ export default function EditorHeader({
                 onChange={(e) => setTempTitle(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleKeyDown}
-                className="text-sm bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-0 flex-1 max-w-xs"
+                className="text-sm bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent min-w-0 flex-1 max-w-xs"
                 placeholder="Enter document name"
               />
             ) : (
@@ -153,7 +157,7 @@ export default function EditorHeader({
                 disabled={!isEditingEnabled}
                 className={`text-sm font-medium flex items-center gap-1 px-2 py-1 rounded transition-colors ${
                   isEditingEnabled
-                    ? "text-blue-600 hover:bg-blue-50 cursor-pointer"
+                    ? "text-black hover:bg-gray-100 cursor-pointer"
                     : "text-gray-600 cursor-default"
                 }`}
                 title={isEditingEnabled ? "Click to edit document name" : ""}
@@ -166,6 +170,21 @@ export default function EditorHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {onSave && (
+            <button
+              title={isSaving ? "Saving..." : "Save"}
+              onClick={onSave}
+              disabled={Boolean(isSaving)}
+              className="px-3 py-2 rounded-md bg-black text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              type="button"
+            >
+              <span className="inline-flex items-center gap-1">
+                <Save size={14} />
+                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+                <span className="sm:hidden">{isSaving ? "..." : ""}</span>
+              </span>
+            </button>
+          )}
           <div ref={importRef} className="relative">
             <button
               title="Import"

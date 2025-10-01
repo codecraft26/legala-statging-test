@@ -101,7 +101,7 @@ export default function EditorToolbar(props: Props) {
       disabled={disabled}
       title={title}
       className={`p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-        isActive ? "bg-blue-100 text-blue-600" : "text-gray-700"
+        isActive ? "bg-gray-200 text-black" : "text-gray-700"
       } ${className}`}
     >
       {children}
@@ -364,7 +364,7 @@ export default function EditorToolbar(props: Props) {
               <button
                 onClick={onSave}
                 disabled={isSaving}
-                className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors whitespace-nowrap"
                 title="Save Draft"
               >
                 <Save size={14} />

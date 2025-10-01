@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
 import { useCreateEmptyDraft, useUpdateDraft } from "@/hooks/use-drafting";
 import { useToast } from "@/components/ui/toast";
 
 export default function DraftingPage() {
+  const queryClient = useQueryClient();
   const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = React.useState<string>("");
   const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(null);
@@ -41,6 +43,10 @@ export default function DraftingPage() {
           name: documentTitle,
           content: content,
         });
+        // Ensure list refreshes
+        if (workspaceId) {
+          queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+        }
         showToast("Draft updated successfully!", "success");
       } else {
         // Create new empty draft
@@ -49,6 +55,10 @@ export default function DraftingPage() {
           workspaceId: workspaceId,
         });
         setCurrentDraftId(result.id);
+        // Ensure list shows new draft immediately
+        if (workspaceId) {
+          queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+        }
         showToast("Draft created successfully!", "success");
         
         // If there's content in the editor, update the draft with it
@@ -58,6 +68,9 @@ export default function DraftingPage() {
             id: result.id,
             content: content,
           });
+          if (workspaceId) {
+            queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+          }
         }
       }
     } catch (error) {
@@ -81,6 +94,10 @@ export default function DraftingPage() {
           onDocumentTitleChange={handleDocumentTitleChange}
           onEditorContentChange={handleEditorContentChange}
           currentDraftId={currentDraftId}
+          onNewDraft={() => {
+            setCurrentDraftId(null);
+            setDocumentTitle("New Draft");
+          }}
           onSave={handleSave}
           isSaving={createEmptyDraft.isPending || updateDraft.isPending}
         />

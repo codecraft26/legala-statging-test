@@ -135,7 +135,7 @@ export default function VariablesPanel({
               key={variable.unique_id}
               className={`bg-gray-50 rounded-lg p-3 transition-all duration-300 ${
                 highlightedVariable === variable.unique_id
-                  ? "bg-blue-100 border-2 border-blue-300 shadow-lg transform scale-105"
+                  ? "bg-gray-100 border-2 border-gray-400 shadow-lg transform scale-105"
                   : "border border-transparent"
               }`}
               data-variable-id={variable.unique_id}
@@ -176,7 +176,7 @@ export default function VariablesPanel({
                     ref={(el) => {
                       if (inputRefs) inputRefs.current[variable.unique_id] = el;
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                   />
                 ) : variable.type === "decimal" ? (
                   <input
@@ -189,7 +189,7 @@ export default function VariablesPanel({
                     ref={(el) => {
                       if (inputRefs) inputRefs.current[variable.unique_id] = el;
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                   />
                 ) : (
                   <input
@@ -201,7 +201,7 @@ export default function VariablesPanel({
                     ref={(el) => {
                       if (inputRefs) inputRefs.current[variable.unique_id] = el;
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                   />
                 )
               ) : (
@@ -220,7 +220,7 @@ export default function VariablesPanel({
               {placeholderStatus[variable.unique_id] === "Missing" && (
                 <button
                   onClick={() => onInsertPlaceholder(variable.unique_id)}
-                  className="mt-2 w-full px-2 py-1 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 hover:border-blue-500 rounded-md flex items-center justify-center space-x-1"
+                  className="mt-2 w-full px-2 py-1 text-xs text-black hover:text-gray-900 border border-gray-300 hover:border-gray-500 rounded-md flex items-center justify-center space-x-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Insert {`{{${variable.unique_id}}}`} Placeholder</span>
@@ -251,7 +251,7 @@ export default function VariablesPanel({
               {onPreviewFinal && (
                 <button
                   onClick={onPreviewFinal}
-                  className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center space-x-1 text-sm"
+                  className="px-3 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-1 text-sm"
                 >
                   <Eye className="w-3 h-3" />
                   <span>Preview</span>
@@ -260,7 +260,7 @@ export default function VariablesPanel({
               {onSaveDocument && (
                 <button
                   onClick={onSaveDocument}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center space-x-1 text-sm"
+                  className="px-3 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-1 text-sm"
                 >
                   <Save className="w-3 h-3" />
                   <span>Save Template</span>
@@ -281,7 +281,7 @@ export default function VariablesPanel({
             {/* Save as Draft Button */}
             <button
               onClick={openSaveDraftModal}
-              className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center justify-center space-x-2"
+              className="w-full px-4 py-2 bg-black text-white rounded-md hover:bg-zinc-800 flex items-center justify-center space-x-2"
             >
               <FileText className="w-4 h-4" />
               <span>Save as Draft</span>

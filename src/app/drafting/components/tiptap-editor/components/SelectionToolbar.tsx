@@ -289,7 +289,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       >
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-blue-600" />
+            <Edit3 className="w-4 h-4 text-black" />
             <h3 className="font-medium text-gray-900">Refine Text</h3>
           </div>
           <button
@@ -313,7 +313,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="e.g., Make this text more formal and professional, translate to Spanish, add more details..."
-                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none text-sm"
                 disabled={isProcessing}
                 aria-label="Enter prompt for refining selected text"
               />
@@ -323,7 +323,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
               <button
                 onClick={handleRefine}
                 disabled={isProcessing || !customPrompt.trim()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-black hover:bg-zinc-800 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
                 title="Refine selected text with custom prompt"
                 aria-label="Refine selected text"
               >

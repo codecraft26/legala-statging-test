@@ -166,7 +166,7 @@ export default function DocumentBrowser({ workspaceId, onImportDocx, onLoadDraft
                   </button>
                 ) : it.filename.toLowerCase().endsWith(".docx") ? (
                   <button
-                    className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded border text-blue-700 border-blue-300 hover:bg-blue-50"
+                    className="text-xs inline-flex items-center gap-1 px-2 py-1 rounded border text-black border-gray-300 hover:bg-gray-100"
                     onClick={() =>
                       onImportDocx({
                         id: it.id,

@@ -123,6 +123,7 @@ interface TiptapEditorProps {
   initialTitle?: string;
   onSave?: () => void;
   isSaving?: boolean;
+  onNewDraft?: () => void;
 }
 
 // Simple debounce utility
@@ -140,7 +141,8 @@ export default function TiptapEditor({
   currentDraftId,
   initialTitle,
   onSave,
-  isSaving 
+  isSaving,
+  onNewDraft,
 }: TiptapEditorProps = {}) {
   const [editorState, setEditorState] = useState<Record<string, unknown>>({});
   const [documentTitle, setDocumentTitle] = useState(initialTitle || "Untitled Document");
@@ -190,7 +192,6 @@ export default function TiptapEditor({
     () => debounce(async (draftId: string, name: string) => {
       try {
         await updateDraft.mutateAsync({ id: draftId, name });
-        showToast('Draft name updated successfully', 'success');
       } catch (error) {
         console.error('Failed to update draft name:', error);
         showToast('Failed to update draft name', 'error');
@@ -376,12 +377,12 @@ export default function TiptapEditor({
         <body>${html}</body>
       </html>`;
     const blob = new Blob(["\ufeff", wordContent], {
-      type: "application/msword",
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${documentTitle}.doc`;
+    a.download = `${documentTitle}.docx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -897,6 +898,8 @@ export default function TiptapEditor({
             onImportWord={importWord}
             onImportPDF={importPDF}
             isEditingEnabled={true}
+            onSave={onSave}
+            isSaving={isSaving}
           />
           <EditorToolbar
             editor={editor}
@@ -969,6 +972,17 @@ export default function TiptapEditor({
               } catch (e) {
                 console.error("Failed to load draft content into editor:", e);
               }
+            }}
+            onCreateNewDraft={() => {
+              setInternalDraftId(null);
+              setDocumentTitle("New Draft");
+              setVariables([]);
+              setVariableValues({});
+              setPlaceholderStatus({});
+              const safeContent = "<p></p>";
+              setContent(safeContent);
+              editor?.chain().focus().clearContent().setContent(safeContent, false).run();
+              if (onNewDraft) onNewDraft();
             }}
           />
         </div>

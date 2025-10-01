@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { FileText, Clock, User, Plus } from "lucide-react";
-import { useDraftingList, useDraftingDetail, useCreateEmptyDraft } from "@/hooks/use-drafting";
+import { useDraftingList, useDraftingDetail } from "@/hooks/use-drafting";
 
 type Props = {
   workspaceId?: string;
@@ -14,7 +14,6 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
   const drafting = useDraftingList(workspaceId);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const draftDetail = useDraftingDetail(selectedDraftId);
-  const createEmptyDraft = useCreateEmptyDraft(workspaceId);
 
   const handleImportDraft = async () => {
     if (!selectedDraftId) return;
@@ -36,22 +35,17 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
     setSelectedDraftId(draftId);
   };
 
-  const handleCreateNewDraft = async () => {
-    if (!workspaceId) return;
+  const handleCreateNewDraft = () => {
     try {
-      const newDraft = await createEmptyDraft.mutateAsync({
-        name: "New Draft",
-        workspaceId: workspaceId,
-      });
       if (onCreateNewDraft) {
         onCreateNewDraft();
       }
-      // Load the new draft content
       if (onLoadDraftContent) {
-        onLoadDraftContent({ name: newDraft.name, content: "" });
+        onLoadDraftContent({ name: "New Draft", content: "" });
       }
+      setSelectedDraftId(null);
     } catch (error) {
-      console.error("Error creating new draft:", error);
+      console.error("Error preparing new draft:", error);
     }
   };
 
@@ -71,14 +65,13 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
       <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText size={18} className="text-blue-600" />
+            <FileText size={18} className="text-black" />
             <h3 className="text-lg font-semibold text-gray-900">Drafts</h3>
           </div>
           <button
             onClick={handleCreateNewDraft}
-            disabled={!workspaceId || createEmptyDraft.isPending}
-            className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors duration-200"
-            title="Create new draft"
+            className="flex items-center gap-1 px-3 py-1.5 bg-black hover:bg-zinc-800 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+            title="Start a new draft"
           >
             <Plus size={16} />
             <span className="hidden sm:inline">New</span>
@@ -118,7 +111,7 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
                   onClick={() => handleDraftClick(draft.id)}
                   className={`w-full text-left p-3 rounded-lg border transition-all duration-200 hover:shadow-md ${
                     selectedDraftId === draft.id
-                      ? "bg-blue-50 border-blue-200 shadow-sm"
+                      ? "bg-gray-100 border-gray-300 shadow-sm"
                       : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
                 >
@@ -141,7 +134,7 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
                       </div>
                     </div>
                     <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
-                      selectedDraftId === draft.id ? "bg-blue-500" : "bg-gray-300"
+                      selectedDraftId === draft.id ? "bg-black" : "bg-gray-300"
                     }`}></div>
                   </div>
                 </button>
@@ -153,7 +146,7 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
 
       {/* Selected Draft Details & Import Button */}
       {selectedDraftId && (
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex-shrink-0 px-4 pt-3 pb-6 border-t border-gray-200 bg-gray-50">
           {draftDetail.isLoading ? (
             <div className="animate-pulse space-y-2">
               <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -173,7 +166,7 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
               </div>
               <button
                 onClick={handleImportDraft}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-black hover:bg-zinc-800 text-white text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={draftDetail.isLoading}
               >
                 {draftDetail.isLoading ? "Loading..." : "Load Draft"}
