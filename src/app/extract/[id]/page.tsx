@@ -4,6 +4,14 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ChevronLeft,
   Download,
   FileText,
@@ -19,7 +27,6 @@ import {
 } from "lucide-react";
 import {
   useExtractionDetail,
-  useExtractionResultDetail,
   useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
 
@@ -96,7 +103,7 @@ export default function ExtractionDetailPage() {
         extraction.extraction_result?.map((result) => ({
           file: result.file,
           data: result.data,
-        })) || [],
+        })),
     };
 
     const jsonContent =
@@ -119,7 +126,7 @@ export default function ExtractionDetailPage() {
     ) {
       removeExtraction(id, {
         onSuccess: () => {
-          router.push("/extract/list");
+          router.push("/extract");
         },
       });
     }
@@ -239,7 +246,7 @@ export default function ExtractionDetailPage() {
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
                   <FileText className="w-3.5 h-3.5" />
-                  {(extraction.extraction_result?.length || 0)} docs
+                  {extraction.extraction_result?.length} docs
                 </span>
                 {extraction.user ? (
                   <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
@@ -302,7 +309,7 @@ export default function ExtractionDetailPage() {
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
-              Results ({extraction.extraction_result?.length || 0})
+              Results ({extraction.extraction_result?.length})
             </button>
             <button
               onClick={() => setActiveTab("metadata")}
@@ -334,7 +341,7 @@ export default function ExtractionDetailPage() {
                     Documents
                   </div>
                   <div className="text-lg font-semibold">
-                    {extraction.extraction_result?.length || 0}
+                    {extraction.extraction_result?.length}
                   </div>
                 </div>
                 <div className="bg-muted rounded-lg p-4">
@@ -342,33 +349,27 @@ export default function ExtractionDetailPage() {
                     Usage
                   </div>
                   <div className="text-lg font-semibold">
-                    {extraction.usage || 0} tokens
+                    {extraction.usage} tokens
                   </div>
                 </div>
               </div>
 
               {/* Tags */}
-              {extraction.tags.length > 0 && (
+              {extraction.tags && extraction.tags.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
                     <Tag className="w-5 h-5" />
                     Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {extraction.tags?.length > 0 ? (
-                      extraction.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200"
-                        >
-                          {tag}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        No tags
+                    {extraction.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200"
+                      >
+                        {tag}
                       </span>
-                    )}
+                    ))}
                   </div>
                 </div>
               )}
@@ -410,18 +411,15 @@ export default function ExtractionDetailPage() {
               {extraction.extraction_result &&
               extraction.extraction_result.length > 0 ? (
                 <div className="space-y-4">
-                  {extraction.extraction_result.map((result, index) => (
-                    <div
-                      key={result.id}
-                      className="rounded-xl border bg-background"
-                    >
-                      <div className="px-4 py-3 border-b bg-muted/50 rounded-t-xl">
+                  {extraction.extraction_result.map((result, index) => {
+                    const dataEntries = result.data ? Object.entries(result.data) : [];
+                    
+                    return (
+                      <div key={result.id} className="space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <FileText className="w-4 h-4 text-muted-foreground" />
-                            <h4 className="font-medium">
-                              {result.file}
-                            </h4>
+                            <h4 className="font-medium">{result.file}</h4>
                           </div>
                           <Button
                             variant="ghost"
@@ -431,34 +429,44 @@ export default function ExtractionDetailPage() {
                             <Copy className="w-4 h-4" />
                           </Button>
                         </div>
-                      </div>
-                      <div className="p-4">
-                        {result.data && Object.keys(result.data).length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.entries(result.data).map(([key, value]) => (
-                              <div key={key} className="rounded-lg border p-3">
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                  {key
-                                    .replace(/_/g, " ")
-                                    .replace(/([A-Z])/g, " $1")
-                                    .toLowerCase()}
-                                </div>
-                                <div className="text-sm">
-                                  <pre className="whitespace-pre-wrap font-sans leading-relaxed">
-                                    {formatValue(value, key)}
-                                  </pre>
-                                </div>
-                              </div>
-                            ))}
+                        
+                        {dataEntries.length > 0 ? (
+                          <div className="rounded-lg border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Field</TableHead>
+                                  <TableHead>Value</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {dataEntries.map(([key, value]) => (
+                                  <TableRow key={key}>
+                                    <TableCell className="font-medium">
+                                      {key
+                                        .replace(/_/g, " ")
+                                        .replace(/([A-Z])/g, " $1")
+                                        .toLowerCase()
+                                        .replace(/^\w/, c => c.toUpperCase())}
+                                    </TableCell>
+                                    <TableCell>
+                                      <pre className="whitespace-pre-wrap font-sans leading-relaxed text-sm">
+                                        {formatValue(value, key)}
+                                      </pre>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           </div>
                         ) : (
-                          <p className="text-muted-foreground text-sm">
-                            No data extracted from this document.
-                          </p>
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p className="text-sm">No data extracted from this document.</p>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-10 text-muted-foreground">
@@ -477,67 +485,75 @@ export default function ExtractionDetailPage() {
           {/* Metadata Tab */}
           {activeTab === "metadata" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-medium mb-3">
-                    Extraction Details
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="font-medium">ID:</span> {extraction.id}
-                    </div>
-                    <div>
-                      <span className="font-medium">Created:</span>{" "}
-                      {new Date(extraction.createdAt).toLocaleString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Updated:</span>{" "}
-                      {new Date(extraction.updatedAt).toLocaleString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Status:</span>{" "}
-                      {extraction.status}
-                    </div>
-                    <div>
-                      <span className="font-medium">Workspace:</span>{" "}
-                      {extraction.workspaceId}
-                    </div>
+              <div className="space-y-6">
+                {/* Extraction Details Table */}
+                <div>
+                  <h4 className="font-medium mb-3">Extraction Details</h4>
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium w-1/3">ID</TableCell>
+                          <TableCell className="font-mono text-sm">{extraction.id}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Created</TableCell>
+                          <TableCell>{new Date(extraction.createdAt).toLocaleString()}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Updated</TableCell>
+                          <TableCell>{new Date(extraction.updatedAt).toLocaleString()}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Status</TableCell>
+                          <TableCell>{getStatusBadge(extraction.status)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">Workspace</TableCell>
+                          <TableCell className="font-mono text-sm">{extraction.workspaceId}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
 
+                {/* User Information Table */}
                 {extraction.user && (
-                  <div className="bg-muted rounded-lg p-4">
-                    <h4 className="font-medium mb-3">
-                      User Information
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">Name:</span>{" "}
-                        {extraction.user.name}
-                      </div>
-                      <div>
-                        <span className="font-medium">Email:</span>{" "}
-                        {extraction.user.email}
-                      </div>
-                      <div>
-                        <span className="font-medium">Role:</span>{" "}
-                        {extraction.user.role}
-                      </div>
+                  <div>
+                    <h4 className="font-medium mb-3">User Information</h4>
+                    <div className="rounded-lg border">
+                      <Table>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell className="font-medium w-1/3">Name</TableCell>
+                            <TableCell>{extraction.user.name}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Email</TableCell>
+                            <TableCell>{extraction.user.email}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="font-medium">Role</TableCell>
+                            <TableCell>{extraction.user.role}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Usage Statistics */}
+                {extraction.usage && (
+                  <div>
+                    <h4 className="font-medium mb-3">Usage Statistics</h4>
+                    <div className="rounded-lg border p-4">
+                      <pre className="text-sm overflow-x-auto">
+                        {JSON.stringify(extraction.usage, null, 2)}
+                      </pre>
                     </div>
                   </div>
                 )}
               </div>
-
-              {extraction.usage && (
-                <div className="bg-muted rounded-lg p-4">
-                  <h4 className="font-medium mb-3">
-                    Usage Statistics
-                  </h4>
-                  <pre className="text-sm overflow-x-auto">
-                    {JSON.stringify(extraction.usage, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
           )}
         </div>

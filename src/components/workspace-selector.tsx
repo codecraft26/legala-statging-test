@@ -118,7 +118,7 @@ export default function WorkspaceSelector() {
 
   if (loading) {
     return (
-      <div className="w-48 flex items-center">
+      <div className="w-full flex items-center">
         <div className="h-9 w-full rounded-md border bg-white px-3 py-2 text-sm animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-24"></div>
         </div>
@@ -128,7 +128,7 @@ export default function WorkspaceSelector() {
 
   if (error) {
     return (
-      <div className="w-48 flex items-center">
+      <div className="w-full flex items-center">
         <div className="h-9 w-full rounded-md border bg-white px-3 py-2 text-sm text-red-600">
           Workspaces unavailable
         </div>
@@ -137,24 +137,29 @@ export default function WorkspaceSelector() {
   }
 
   return (
-    <div className="w-48 flex items-center">
+    <div className="w-full flex items-center">
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between bg-white hover:bg-gray-50 border-gray-200"
+              className="w-full justify-between bg-white hover:bg-gray-50 border-gray-200 min-w-0"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <Building2Icon className="h-4 w-4 text-gray-500 shrink-0" />
-                <span className="truncate text-left">
+                <span className="truncate text-left text-sm">
                   {currentWorkspace?.name || "Select workspace"}
                 </span>
               </div>
-              <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400" />
+              <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400 ml-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-48 bg-white border-gray-200 shadow-lg">
+          <DropdownMenuContent 
+            className="w-56 bg-white border-gray-200 shadow-lg" 
+            align="start"
+            side="bottom"
+            sideOffset={4}
+          >
             {workspaces.map((workspace) => (
               <DropdownMenuItem
                 key={workspace.id}

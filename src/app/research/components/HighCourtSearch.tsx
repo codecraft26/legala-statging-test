@@ -50,19 +50,19 @@ const CaseDetailsModal = ({
   if (!caseData) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-        <div className="flex justify-between items-center border-b p-4 sticky top-0 bg-white z-10">
-          <h3 className="text-lg font-semibold">Case Details</h3>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
+        <div className="flex justify-between items-center border-b border-border p-4 sticky top-0 bg-background z-10">
+          <h3 className="text-lg font-semibold text-foreground">Case Details</h3>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <X size={20} />
           </button>
         </div>
         <div className="p-6">
-          <pre className="whitespace-pre-wrap text-sm">
+          <pre className="whitespace-pre-wrap text-sm text-foreground bg-muted/50 p-4 rounded-md">
             {JSON.stringify(caseData, null, 2)}
           </pre>
         </div>
@@ -261,7 +261,7 @@ export default function HighCourtSearch() {
               onClick={() => setSearchType("advocate")}
               className={`px-4 py-2 rounded-md ${
                 searchType === "advocate"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-black text-white"
                   : "bg-gray-200 text-gray-700"
               }`}
             >
@@ -272,7 +272,7 @@ export default function HighCourtSearch() {
               onClick={() => setSearchType("filing")}
               className={`px-4 py-2 rounded-md ${
                 searchType === "filing"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-black text-white"
                   : "bg-gray-200 text-gray-700"
               }`}
             >
@@ -291,7 +291,7 @@ export default function HighCourtSearch() {
               <select
                 value={courtCode}
                 onChange={(e) => setCourtCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 {courtCodeMapping.map((court) => (
                   <option key={court.code} value={court.code}>
@@ -308,7 +308,7 @@ export default function HighCourtSearch() {
               <select
                 value={stateCode}
                 onChange={(e) => setStateCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 {stateCodeMapping.map((state) => (
                   <option key={state.code} value={state.code}>
@@ -325,7 +325,7 @@ export default function HighCourtSearch() {
               <select
                 value={courtComplexCode}
                 onChange={(e) => setCourtComplexCode(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 {courtComplexMapping.map((complex) => (
                   <option key={complex.code} value={complex.code}>
@@ -346,7 +346,7 @@ export default function HighCourtSearch() {
                     type="text"
                     value={advocateName}
                     onChange={(e) => setAdvocateName(e.target.value)}
-                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                     placeholder="Enter advocate name"
                     required
                   />
@@ -361,7 +361,7 @@ export default function HighCourtSearch() {
                     onChange={(e) =>
                       setFilterType(e.target.value as "P" | "R" | "Both")
                     }
-                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                   >
                     <option value="Both">Both</option>
                     <option value="P">Petitioner</option>
@@ -379,7 +379,7 @@ export default function HighCourtSearch() {
                     type="number"
                     value={caseNo}
                     onChange={(e) => setCaseNo(e.target.value)}
-                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                     placeholder="5293619"
                     required
                   />
@@ -392,7 +392,7 @@ export default function HighCourtSearch() {
                   <select
                     value={rgYear}
                     onChange={(e) => setRgYear(e.target.value)}
-                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                    className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                   >
                     {years.map((y) => (
                       <option key={y} value={y}>
@@ -407,7 +407,7 @@ export default function HighCourtSearch() {
             <div className="md:col-span-2 md:flex md:justify-end">
               <button
                 type="submit"
-                className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full md:w-auto bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
                 disabled={loading}
               >
                 {loading ? (

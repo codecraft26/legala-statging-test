@@ -368,7 +368,7 @@ export default function HighCourtPartySearch() {
                 id="party-input"
                 value={partyName}
                 onChange={(e) => setPartyName(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                 placeholder="Enter party name"
                 required
               />
@@ -392,7 +392,7 @@ export default function HighCourtPartySearch() {
                   setShowCourtDropdown(true);
                 }}
                 onFocus={() => setShowCourtDropdown(true)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                 placeholder="Search court..."
                 required
               />
@@ -431,7 +431,7 @@ export default function HighCourtPartySearch() {
                 id="bench-select"
                 value={selectedBench}
                 onChange={(e) => setSelectedBench(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                 disabled={!selectedCourt}
                 required
               >
@@ -463,7 +463,7 @@ export default function HighCourtPartySearch() {
                 onChange={(e) =>
                   setStage(e.target.value as "BOTH" | "PENDING" | "DISPOSED")
                 }
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 <option value="BOTH">Both</option>
                 <option value="PENDING">Pending</option>
@@ -483,7 +483,7 @@ export default function HighCourtPartySearch() {
                 id="year-select"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -497,7 +497,7 @@ export default function HighCourtPartySearch() {
             <div className="col-span-1 md:col-span-2 flex justify-end mt-4">
               <button
                 type="submit"
-                className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full md:w-auto bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
                 disabled={partyQuery.isLoading || partyQuery.isFetching}
               >
                 {partyQuery.isLoading || partyQuery.isFetching ? (

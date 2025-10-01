@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
-import Topbar from "@/components/topbar";
 import { getCookie } from "@/lib/utils";
 
 const AUTH_PATHS = [
@@ -42,7 +41,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </div>
       <div className="flex-1 min-w-0 overflow-x-hidden">
-        <Topbar />
         <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">{children}</div>
       </div>
     </div>

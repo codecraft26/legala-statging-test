@@ -182,7 +182,7 @@ const CaseDetailsModal = ({
                   key={tab}
                   className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
                     activeTab === tab
-                      ? "text-blue-600 border-b-2 border-blue-600"
+                      ? "text-black border-b-2 border-black"
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                   onClick={() => setActiveTab(tab)}
@@ -1139,7 +1139,7 @@ export default function DistrictCourtSearch() {
               <select
                 value={districtName}
                 onChange={(e) => setDistrictName(e.target.value)}
-                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                 required
                 disabled={districtsQuery.isLoading || (!!stateName && apiDistricts.length === 0)}
               >
@@ -1162,7 +1162,7 @@ export default function DistrictCourtSearch() {
                 type="text"
                 value={litigantName}
                 onChange={(e) => setLitigantName(e.target.value)}
-                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
                 placeholder="Enter litigant name"
                 required
               />
@@ -1176,7 +1176,7 @@ export default function DistrictCourtSearch() {
               <select
                 value={regYear}
                 onChange={(e) => setRegYear(e.target.value)}
-                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -1193,7 +1193,7 @@ export default function DistrictCourtSearch() {
               <select
                 value={caseStatus}
                 onChange={(e) => setCaseStatus(e.target.value)}
-                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               >
                 <option value="P">P (Pending)</option>
                 <option value="D">D (Disposed)</option>
@@ -1250,7 +1250,7 @@ export default function DistrictCourtSearch() {
             <div className="md:col-span-2 md:flex md:justify-end">
               <button
                 type="submit"
-                className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                className="w-full md:w-auto bg-black text-white px-6 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
                 disabled={partyQuery.isLoading || partyQuery.isFetching}
               >
                 {partyQuery.isLoading || partyQuery.isFetching ? (

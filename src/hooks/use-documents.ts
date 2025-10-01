@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api-client";
-import { getCookie as getCookieUtil } from "@/lib/utils";
+
 
 export function useRenameDocument() {
   const queryClient = useQueryClient();

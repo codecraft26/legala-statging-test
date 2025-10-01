@@ -502,7 +502,7 @@ export default function FollowedCasesPage() {
                     key={tab}
                     className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${
                       activeTab === tab
-                        ? "text-blue-600 border-b-2 border-blue-600"
+                        ? "text-black border-b-2 border-black"
                         : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     }`}
                     onClick={() => setActiveTab(tab)}
@@ -587,7 +587,7 @@ export default function FollowedCasesPage() {
                         <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-zinc-900 rounded-md">
                           <span className="text-sm font-medium">{`Order #${order.order_number || ""} - ${order.order_date || ""}`}</span>
                           {order.order_details ? (
-                            <a href={order.order_details} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm">
+                            <a href={order.order_details} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-black hover:text-gray-700 text-sm">
                               <span>View Order</span>
                               <ExternalLink size={14} />
                             </a>
@@ -902,7 +902,7 @@ export default function FollowedCasesPage() {
       <div key={id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800 dark:border-gray-700">
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
-            <Bookmark className="h-4 w-4 text-blue-600" />
+            <Bookmark className="h-4 w-4 text-black" />
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {court.replace("_", " ")}
             </span>
@@ -1062,7 +1062,7 @@ export default function FollowedCasesPage() {
     if (query.isLoading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
         </div>
       );
     }

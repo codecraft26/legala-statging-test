@@ -1,119 +1,91 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
   Brain,
   PenTool,
-  Newspaper,
   Users,
   Mail,
   Folder,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { getCookie, deleteCookie } from "@/lib/utils";
+import { useUserRole } from "@/hooks/use-user-role";
+import { getCookie } from "@/lib/utils";
+import WorkspaceSelector from "./workspace-selector";
+import { UserDropdown } from "./user-dropdown";
+import { SIDEBAR_WIDTHS, NAVIGATION_ITEMS, OWNER_ONLY_ITEMS } from "./sidebar-constants";
+
+// Icon mapping for navigation items
+const iconMap = {
+  LayoutDashboard,
+  FileText,
+  Brain,
+  PenTool,
+  Users,
+  Mail,
+  Folder,
+} as const;
 
 const NavItem = ({
   href,
-  icon,
+  iconName,
   label,
   collapsed,
 }: {
   href: string;
-  icon: React.ReactNode;
+  iconName: keyof typeof iconMap;
   label: string;
   collapsed: boolean;
 }) => {
   const pathname = usePathname();
   const active = pathname === href;
+  const IconComponent = iconMap[iconName];
+  
   return (
     <Link
       href={href}
-      className={`group flex items-center rounded-xl border px-3 py-2 transition-all ${
+      className={`group flex items-center rounded-xl border px-3 py-2 transition-colors ${
         active
-          ? "bg-accent/60 border-accent"
-          : "border-transparent hover:bg-accent/40 hover:border-accent"
-      } ${collapsed ? "justify-center" : "gap-3"}`}
+          ? "bg-zinc-100 dark:bg-zinc-900/40 border-zinc-300 dark:border-zinc-800"
+          : "border-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900/40 hover:border-zinc-200 dark:hover:border-zinc-800"
+      } ${collapsed ? "justify-center" : "gap-3 min-w-0"}`}
     >
       <span className="text-muted-foreground group-hover:text-foreground">
-        {icon}
+        <IconComponent size={16} />
       </span>
       {!collapsed && <span className="text-sm">{label}</span>}
     </Link>
   );
 };
 
+
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const { signOut, user } = useAuth();
-  const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [lsRole, setLsRole] = useState<string | undefined>(undefined);
-  const [tokenRole, setTokenRole] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    setMounted(true);
-    try {
-      if (typeof window !== "undefined") {
-        const u = JSON.parse(localStorage.getItem("user") || "{}");
-        if (u?.role) {
-          // Normalize role from localStorage
-          const normalizedRole =
-            u.role?.toLowerCase() === "owner"
-              ? "Owner"
-              : u.role?.toLowerCase() === "admin"
-                ? "Admin"
-                : u.role?.toLowerCase() === "member"
-                  ? "Member"
-                  : u.role || "Member";
-          setLsRole(normalizedRole);
-        }
-        const token = getCookie("token");
-        if (token) {
-          const parts = token.split(".");
-          if (parts.length === 3) {
-            try {
-              const payload = JSON.parse(
-                atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-              );
-              if (payload?.role) setTokenRole(String(payload.role));
-            } catch {}
-          }
-        }
-      }
-    } catch {}
-  }, []);
-
-  // Debug logging
-  useEffect(() => {
-    // console.log("Sidebar role debug:", {
-    //   userRole: user?.role,
-    //   lsRole,
-    //   tokenRole,
-    //   mounted,
-    //   finalRole: user?.role || (mounted ? lsRole : undefined) || tokenRole,
-    //   isOwner:
-    //     (user?.role || (mounted ? lsRole : undefined) || tokenRole) === "Owner",
-    // });
-  }, [user?.role, lsRole, tokenRole, mounted]);
+  const { user } = useAuth();
+  const { isOwner, mounted } = useUserRole(user);
+  
+  const isAuthed = Boolean(
+    user || (typeof window !== "undefined" && getCookie("token"))
+  );
 
   return (
     <aside
-      className={`sticky top-0 h-svh shrink-0 border-r bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 transition-[width] ${
-        collapsed ? "w-[64px]" : "w-[200px]"
+      className={`sticky top-0 h-svh shrink-0 border-r bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-3 transition-[width] shadow-lg ${
+        collapsed ? SIDEBAR_WIDTHS.COLLAPSED : SIDEBAR_WIDTHS.EXPANDED
       }`}
     >
       <div className="mb-4 flex items-center justify-between">
         {!collapsed ? (
           <Link href="/dashboard" className="flex items-center gap-2">
             <img src="/logo.png" alt="logo" className="h-7 w-7" />
-            <span className="text-sm font-semibold">InfraHive</span>
+            <span className="text-sm font-bold tracking-wide">InfraHive</span>
           </Link>
         ) : (
           <Link href="/dashboard">
@@ -124,90 +96,54 @@ export default function Sidebar() {
           type="button"
           aria-label="Toggle sidebar"
           onClick={() => setCollapsed((v) => !v)}
-          className="rounded-md border p-1 hover:bg-accent"
+          className="rounded-md border p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
       </div>
 
-      <nav className="space-y-2">
-        <NavItem
-          collapsed={collapsed}
-          href="/dashboard"
-          icon={<LayoutDashboard size={16} />}
-          label="Dashboard"
-        />
-        <NavItem
-          collapsed={collapsed}
-          href="/extract"
-          icon={<FileText size={16} />}
-          label="Smart Extract"
-        />
-        <NavItem
-          collapsed={collapsed}
-          href="/research"
-          icon={<Brain size={16} />}
-          label="Research"
-        />
-        <NavItem
-          collapsed={collapsed}
-          href="/drafting"
-          icon={<PenTool size={16} />}
-          label="AutoDraft"
-        />
-        {/* <NavItem
-          collapsed={collapsed}
-          href="/news"
-          icon={<Newspaper size={16} />}
-          label="Legal News"
-        /> */}
-        {(() => {
-          const currentRole = user?.role || lsRole || tokenRole;
-          return currentRole === "Owner";
-        })() ? (
-          <>
-            <div className="pt-2 text-[11px] uppercase text-muted-foreground/80 pl-1">
-              Team
-            </div>
-            <NavItem
-              collapsed={collapsed}
-              href="/user/members"
-              icon={<Users size={16} />}
-              label="Members"
-            />
-            <NavItem
-              collapsed={collapsed}
-              href="/user/invites"
-              icon={<Mail size={16} />}
-              label="Invites"
-            />
-          </>
-        ) : null}
-        <div className="pt-2 text-[11px] uppercase text-muted-foreground/80 pl-1">
-          Storage
+      {/* Workspace Selector */}
+      {!collapsed && (
+        <div className="mb-4">
+          <WorkspaceSelector />
         </div>
-        <NavItem
-          collapsed={collapsed}
-          href="/documents"
-          icon={<Folder size={16} />}
-          label="Documents"
-        />
+      )}
+
+      <nav className="space-y-1">
+        {NAVIGATION_ITEMS.map((item) => (
+          <NavItem
+            key={item.href}
+            collapsed={collapsed}
+            href={item.href}
+            iconName={item.iconName as keyof typeof iconMap}
+            label={item.label}
+          />
+        ))}
+        
+        {isOwner && OWNER_ONLY_ITEMS.map((item) => (
+          <NavItem
+            key={item.href}
+            collapsed={collapsed}
+            href={item.href}
+            iconName={item.iconName as keyof typeof iconMap}
+            label={item.label}
+          />
+        ))}
       </nav>
 
       <div className="mt-auto pt-4">
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined") deleteCookie("token");
-            signOut();
-            router.push("/login");
-          }}
-          className={`mt-2 w-full inline-flex items-center ${
-            collapsed ? "justify-center" : "justify-start gap-2"
-          } rounded-xl border px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20`}
-        >
-          <LogOut size={16} /> {!collapsed && <span>Log out</span>}
-        </button>
+        {mounted && isAuthed ? (
+          <UserDropdown collapsed={collapsed} />
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="w-full rounded-md border px-3 py-2 text-sm hover:bg-accent text-center"
+            >
+              Login
+            </Link>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -24,11 +24,11 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
     <div className="w-full overflow-x-auto">
       <Table className={tableClassName || "table-fixed"}>
         <TableHeader>
-          <TableRow className={headerRowClassName || "bg-gray-100 dark:bg-zinc-800"}>
+          <TableRow className={headerRowClassName || "bg-muted/50"}>
             {columns.map((col) => (
               <TableHead
                 key={String(col.key)}
-                className={`px-3 py-3 text-xs font-semibold text-black dark:text-zinc-200 text-left ${col.className || ""}`}
+                className={`px-3 py-3 text-xs font-semibold text-foreground text-left ${col.className || ""}`}
                 style={col.width ? { minWidth: typeof col.width === "number" ? `${col.width}px` : col.width } : undefined}
               >
                 {col.header}
@@ -38,9 +38,9 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
         </TableHeader>
         <TableBody>
           {rows.map((row, idx) => (
-            <TableRow key={rowKey(row, idx)} className="hover:bg-gray-50 dark:hover:bg-zinc-800 border-b border-gray-100 dark:border-zinc-800">
+            <TableRow key={rowKey(row, idx)} className="hover:bg-muted/50 border-b border-border">
               {columns.map((col) => (
-                <TableCell key={String(col.key)} className="px-3 py-3 text-xs text-gray-700 dark:text-zinc-300">
+                <TableCell key={String(col.key)} className="px-3 py-3 text-xs text-foreground">
                   {col.render ? col.render(row) : (row as any)[col.key]}
                 </TableCell>
               ))}

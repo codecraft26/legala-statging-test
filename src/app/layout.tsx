@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import TanStackProvider from "@/provider/tanstack";
-import ThemeProvider from "@/provider/theme";
 import AppShell from "@/components/app-shell";
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -41,13 +40,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>
+       
           <TanStackProvider>
             <ToastProvider>
               <AppShell>{children}</AppShell>
             </ToastProvider>
           </TanStackProvider>
-        </ThemeProvider>
+       
       </body>
     </html>
   );
