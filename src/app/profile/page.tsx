@@ -5,6 +5,7 @@ import { useAuth, useProfileDetail } from "@/hooks/use-auth";
 import { getCookie } from "@/lib/utils";
 import { type CreditDetail } from "@/lib/credit-api";
 import { useCreditDetail } from "@/hooks/use-credit";
+import { useRouter } from "next/navigation";
 // Pie chart removed per request
 
 export default function ProfilePage() {
@@ -12,6 +13,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credit, setCredit] = useState<CreditDetail | null>(null);
+  const router = useRouter();
 
   const token = typeof window !== "undefined" ? getCookie("token") : null;
   const profileQuery = useProfileDetail();
@@ -20,11 +22,11 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) {
-      window.location.href = "/login";
+      router.replace("/login");
       return;
     }
     if (!user) refetch();
-  }, [token, user, refetch]);
+  }, [token, user, refetch, router]);
 
   useEffect(() => {
     setLoading(profileQuery.isLoading || creditQuery.isLoading);
