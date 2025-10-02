@@ -13,7 +13,9 @@ interface FollowButtonProps {
 export default function FollowButton({ isFollowing, loading, onClick, compact }: FollowButtonProps) {
   return (
     <button
-      className={`flex items-center justify-center ${compact ? "px-2 py-1 text-xs" : "px-4 py-2 text-sm"} font-medium rounded-md border transition-colors ${
+      className={`flex items-center justify-center whitespace-nowrap ${
+        compact ? "px-2 h-7 text-xs min-w-[92px]" : "px-4 h-9 text-sm min-w-[120px]"
+      } font-medium rounded-md border transition-colors ${
         isFollowing
           ? "text-yellow-700 bg-yellow-100 hover:bg-yellow-200 border-yellow-200 dark:text-yellow-300 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30 dark:border-yellow-800"
           : "text-foreground bg-secondary hover:bg-secondary/80 border-border"

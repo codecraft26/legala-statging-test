@@ -22,7 +22,7 @@ interface ResultsTableProps<T> {
 export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName, headerRowClassName }: ResultsTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto">
-      <Table className={tableClassName || "table-fixed"}>
+      <Table className={tableClassName || "table-auto w-full"}>
         <TableHeader>
           <TableRow className={headerRowClassName || "bg-muted/50"}>
             {columns.map((col) => (
@@ -40,7 +40,11 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
           {rows.map((row, idx) => (
             <TableRow key={rowKey(row, idx)} className="hover:bg-muted/50 border-b border-border">
               {columns.map((col) => (
-                <TableCell key={String(col.key)} className="px-3 py-3 text-xs text-foreground">
+                <TableCell
+                  key={String(col.key)}
+                  className="px-3 py-3 text-xs text-foreground align-top"
+                  style={col.width ? { minWidth: typeof col.width === "number" ? `${col.width}px` : col.width } : undefined}
+                >
                   {col.render ? col.render(row) : (row as any)[col.key]}
                 </TableCell>
               ))}
