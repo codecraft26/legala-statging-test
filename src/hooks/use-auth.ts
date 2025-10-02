@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api, apiRequest } from "@/lib/api-client";
+import { useToast } from "@/components/ui/toast";
 import { getCookie, deleteCookie } from "@/lib/utils";
 
 export interface AuthUser {
@@ -129,6 +130,7 @@ export function useSignup() {
 
 export function useLogin() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationFn: async (args: { email: string; password: string }) => {
@@ -141,8 +143,14 @@ export function useLogin() {
       }
       queryClient.invalidateQueries({ queryKey: authKeys.all });
     },
-    onError: (error) => {
-      console.error("Failed to login:", error);
+    onError: (error: any) => {
+      const message = error?.message || "Login failed";
+      try {
+        showToast(message, "error");
+      } catch {
+        // fallback
+        console.error("Failed to login:", error);
+      }
     },
   });
 }
