@@ -24,6 +24,7 @@ interface ResultsTableProps<T> {
   rowKey: (row: T, index: number) => React.Key;
   tableClassName?: string;
   headerRowClassName?: string;
+  compact?: boolean;
 }
 
 export default function ResultsTable<T>({
@@ -32,6 +33,7 @@ export default function ResultsTable<T>({
   rowKey,
   tableClassName,
   headerRowClassName,
+  compact,
 }: ResultsTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto">
@@ -41,7 +43,7 @@ export default function ResultsTable<T>({
             {columns.map((col) => (
               <TableHead
                 key={String(col.key)}
-                className={`px-3 py-3 text-xs font-semibold text-foreground text-left ${col.className || ""}`}
+                className={`${compact ? "px-1 py-1" : "px-3 py-3"} text-xs font-semibold text-foreground text-left ${col.className || ""}`}
                 style={
                   col.width
                     ? {
@@ -67,7 +69,7 @@ export default function ResultsTable<T>({
               {columns.map((col) => (
                 <TableCell
                   key={String(col.key)}
-                  className="px-3 py-3 text-xs text-foreground align-top"
+                  className={`${compact ? "px-1 py-1" : "px-3 py-3"} text-xs text-foreground align-top`}
                   style={
                     col.width
                       ? {
