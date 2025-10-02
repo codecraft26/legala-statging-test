@@ -31,18 +31,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [isAuth, pathname, router]);
 
-  if (isAuth) {
-    return <>{children}</>;
-  }
-
   return (
-    <div className="flex min-h-svh overflow-x-hidden">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-      <div className="flex-1 min-w-0 overflow-x-hidden">
-        <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">{children}</div>
-      </div>
-    </div>
+    <>
+      {isAuth ? (
+        <>{children}</>
+      ) : (
+        <div className="flex h-svh overflow-x-hidden">
+          <div className="hidden md:block">
+            <Sidebar />
+          </div>
+          <div className="flex-1 min-w-0 overflow-x-hidden h-svh overflow-y-auto">
+            <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">{children}</div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

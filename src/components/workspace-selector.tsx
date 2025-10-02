@@ -30,9 +30,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChevronDownIcon, PlusIcon, Building2Icon, CheckIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useUserRole } from "@/hooks/use-user-role";
 
 export default function WorkspaceSelector() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { isOwner, mounted } = useUserRole(user);
   const [currentWorkspace, setCurrentWorkspaceState] = useState<Workspace | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +109,7 @@ export default function WorkspaceSelector() {
   });
 
   const handleCreateWorkspace = async () => {
+    if (!(mounted && isOwner)) return;
     if (!newWorkspaceName.trim()) return;
     setIsCreating(true);
     try {
@@ -175,13 +180,17 @@ export default function WorkspaceSelector() {
                 )}
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator className="bg-gray-100" />
-            <DialogTrigger asChild>
-              <DropdownMenuItem className="cursor-pointer hover:bg-gray-50">
-                <PlusIcon className="h-4 w-4 mr-2 text-gray-500" />
-                <span>Create new workspace</span>
-              </DropdownMenuItem>
-            </DialogTrigger>
+            {mounted && isOwner && (
+              <>
+                <DropdownMenuSeparator className="bg-gray-100" />
+                <DialogTrigger asChild>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-50">
+                    <PlusIcon className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>Create new workspace</span>
+                  </DropdownMenuItem>
+                </DialogTrigger>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -208,6 +217,7 @@ export default function WorkspaceSelector() {
                     handleCreateWorkspace();
                   }
                 }}
+                disabled={!(mounted && isOwner)}
               />
             </div>
           </div>
@@ -224,7 +234,7 @@ export default function WorkspaceSelector() {
             </Button>
             <Button
               onClick={handleCreateWorkspace}
-              disabled={!newWorkspaceName.trim() || isCreating}
+              disabled={!newWorkspaceName.trim() || isCreating || !(mounted && isOwner)}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isCreating ? "Creating..." : "Create Workspace"}

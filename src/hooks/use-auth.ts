@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Api } from "@/lib/api-client";
+import { Api, apiRequest } from "@/lib/api-client";
 import { getCookie, deleteCookie } from "@/lib/utils";
 
 export interface AuthUser {
@@ -92,7 +92,13 @@ export function useResetPassword() {
 
   return useMutation({
     mutationFn: async (args: { token: string; password: string }) => {
-      return await Api.post("/user/reset-password", args);
+      const { token, password } = args;
+      return await apiRequest({
+        path: "/user/reset-password",
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: { password },
+      });
     },
     onSuccess: () => {
       // Invalidate auth queries after successful password reset
