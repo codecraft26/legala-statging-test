@@ -16,11 +16,22 @@ type AutoDraftItem = {
 
 export default function AutoDraft() {
   const [drafting, setDrafting] = React.useState<AutoDraftItem[]>([]);
-  const workspaceId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
+  const [mounted, setMounted] = React.useState(false);
+  const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
   const draftingList = useDraftingList(workspaceId);
   const deleteDraft = useDeleteDrafting(workspaceId);
   const createEmptyDraft = useCreateEmptyDraft(workspaceId);
   const router = useRouter();
+
+  React.useEffect(() => {
+    setMounted(true);
+    try {
+      const id = typeof window !== "undefined" ? getCookie("workspaceId") : null;
+      setWorkspaceId(id);
+    } catch {
+      setWorkspaceId(null);
+    }
+  }, []);
 
   const getDisplayRole = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -153,7 +164,7 @@ export default function AutoDraft() {
                         e.stopPropagation();
                         handleCreateNewDraft();
                       }}
-                      disabled={!workspaceId || createEmptyDraft.isPending}
+                      disabled={!mounted || !workspaceId || createEmptyDraft.isPending}
                       className="p-1.5 hover:bg-blue-100 rounded text-blue-600 disabled:text-gray-400 disabled:hover:bg-gray-100 transition-colors"
                       title="Create new draft"
                     >
@@ -162,7 +173,7 @@ export default function AutoDraft() {
                       </svg>
                     </button>
                   )}
-                  {name === "Drafting" && draftingList.isFetching ? (
+                  {name === "Drafting" && mounted && draftingList.isFetching ? (
                     <span className="text-xs text-muted-foreground">Refreshing…</span>
                   ) : null}
                 </div>

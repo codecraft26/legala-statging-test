@@ -2,9 +2,7 @@ import React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import TanStackProvider from "@/provider/tanstack";
-import AppShell from "@/components/app-shell";
-import { ToastProvider } from "@/components/ui/toast";
+import Providers from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,12 +19,10 @@ export const metadata: Metadata = {
   description: "Infrahive Legal Platform",
   icons: {
     icon: [
-      { url: "/logo.png", rel: "icon" },
-      { url: "/logo.png", rel: "shortcut icon" },
+      { url: "/logo.png", rel: "icon", type: "image/png" },
+      { url: "/logo.png", rel: "shortcut icon", type: "image/png" },
     ],
-    apple: [
-      { url: "/logo.png", rel: "apple-touch-icon" },
-    ],
+    apple: [{ url: "/logo.png", rel: "apple-touch-icon" }],
   },
 };
 
@@ -40,13 +36,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-       
-          <TanStackProvider>
-            <ToastProvider>
-              <AppShell>{children}</AppShell>
-            </ToastProvider>
-          </TanStackProvider>
-       
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
