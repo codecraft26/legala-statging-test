@@ -20,6 +20,9 @@ import {
   courtComplexMapping,
   courtCodeMapping,
 } from "../utils/courtMappings";
+import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
+import HighCourtAdvocateResultsTable from "./common/HighCourtAdvocateResultsTable";
+import { parseHighCourtHtml } from "../utils/highCourtParser";
 
 interface HighCourtResult {
   case_no: number;
@@ -39,37 +42,7 @@ interface CaseDetails {
 
 // (status pill not required in this simplified modal)
 
-// Case Details Modal
-const CaseDetailsModal = ({
-  caseData,
-  onClose,
-}: {
-  caseData: CaseDetails | null;
-  onClose: () => void;
-}) => {
-  if (!caseData) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-4xl max-h-screen overflow-y-auto">
-        <div className="flex justify-between items-center border-b border-border p-4 sticky top-0 bg-background z-10">
-          <h3 className="text-lg font-semibold text-foreground">Case Details</h3>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-6">
-          <pre className="whitespace-pre-wrap text-sm text-foreground bg-muted/50 p-4 rounded-md">
-            {JSON.stringify(caseData, null, 2)}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-};
+// Inline modal removed; using shared HighCourtCaseDetailsModal
 
 export default function HighCourtSearch() {
   const [searchType, setSearchType] = useState<"filing" | "advocate">(
@@ -84,7 +57,7 @@ export default function HighCourtSearch() {
   const [courtComplexCode, setCourtComplexCode] = useState("1");
   const [filterType, setFilterType] = useState<"P" | "R" | "Both">("Both");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCase, setSelectedCase] = useState<CaseDetails | null>(null);
+  const [selectedCase, setSelectedCase] = useState<any | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
@@ -142,8 +115,15 @@ export default function HighCourtSearch() {
     }
     const raw: any = detailQuery.data;
     if (!raw) return;
-    const details = typeof raw?.data === "string" ? raw.data : typeof raw === "string" ? raw : raw;
-    setSelectedCase(details);
+    const normalized = typeof raw?.data === "string"
+      ? parseHighCourtHtml(raw.data)
+      : typeof raw === "string"
+        ? parseHighCourtHtml(raw)
+        : raw;
+    setSelectedCase({
+      ...(currentPageResults.find((r: any) => String(r.cino || r.case_no) === caseId) || {}),
+      details: normalized,
+    });
     setShowCaseDetails(true);
     setDetailsLoading(null);
   }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
@@ -447,50 +427,38 @@ export default function HighCourtSearch() {
               No results found for your search criteria.
             </div>
           ) : (
-            (() => {
-              const columns: ColumnDef<HighCourtResult>[] = [
-                { key: "case_no", header: "CASE NO.", width: 120, render: (r) => r.case_no },
-                { key: "cino", header: "CINO", width: 120, render: (r) => r.cino },
-                { key: "state_code", header: "STATE CODE", width: 100, render: (r) => r.state_code },
-                { key: "court_code", header: "COURT CODE", width: 100, render: (r) => r.court_code },
-                { key: "national_court_code", header: "NATIONAL COURT CODE", width: 150, render: (r) => r.national_court_code },
-                { key: "follow", header: "FOLLOW", width: 120, render: (r) => {
-                  const caseId = r.cino || String(r.case_no);
-                  return (
-                    <FollowButton
-                      isFollowing={followedCases.has(caseId)}
-                      loading={followLoading === caseId}
-                      onClick={() => handleFollowCase(r)}
-                      compact
-                    />
-                  );
-                } },
-                { key: "actions", header: "ACTIONS", width: 120, render: (r) => {
-                  const caseId = r.cino || String(r.case_no);
-                  return (
-                    <button
-                      className="border border-gray-300 rounded px-2 py-1"
-                      onClick={() => handleViewDetails(r)}
-                      disabled={detailsLoading === caseId}
-                    >
-                      {detailsLoading === caseId ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <Eye className="w-3 h-3" />
-                          <span className="hidden sm:inline">Details</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                } },
-              ];
-              return (
-                <div className="w-full overflow-x-auto">
-                  <ResultsTable columns={columns} rows={currentPageResults} rowKey={(r) => r.cino || String(r.case_no)} />
-                </div>
-              );
-            })()
+            <HighCourtAdvocateResultsTable
+              rows={currentPageResults.map((r: any) => ({
+                cino: r.cino,
+                case_no: String(r.case_no),
+                case_type: 0,
+                case_year: 0,
+                case_no2: 0,
+                pet_name: (r as any).petitioner_name,
+                res_name: (r as any).respondent_name,
+                type_name: (r as any).type_name,
+                date_of_decision: (r as any).date_of_decision,
+              }))}
+              isRowFollowed={(r: any) => followedCases.has(r.cino || r.case_no)}
+              loadingDetailsId={detailsLoading}
+              onClickDetails={(row: any) => handleViewDetails({
+                case_no: parseInt(row.case_no, 10) || 0,
+                state_code: parseInt(stateCode, 10) || 0,
+                cino: row.cino,
+                court_code: parseInt(courtCode, 10) || 0,
+                national_court_code: "",
+                dist_cd: 0,
+              } as any)}
+              onClickFollow={(row: any) => handleFollowCase({
+                case_no: parseInt(row.case_no, 10) || 0,
+                state_code: parseInt(stateCode, 10) || 0,
+                cino: row.cino,
+                court_code: parseInt(courtCode, 10) || 0,
+                national_court_code: "",
+                dist_cd: 0,
+              } as any)}
+              followLoading={!!followLoading}
+            />
           )}
 
           {/* Footer Pagination */}
@@ -508,12 +476,16 @@ export default function HighCourtSearch() {
 
       {/* Case Details Modal */}
       {showCaseDetails && (
-        <CaseDetailsModal
-          caseData={selectedCase}
+        <HighCourtCaseDetailsModal
+          caseData={selectedCase as any}
           onClose={() => {
             setShowCaseDetails(false);
             setSelectedCase(null);
           }}
+          followedCases={followedCases}
+          handleFollowCase={(r: any) => handleFollowCase(r)}
+          followMutation={{ isPending: followLoading != null }}
+          unfollowMutation={{ isPending: false }}
         />
       )}
     </div>
