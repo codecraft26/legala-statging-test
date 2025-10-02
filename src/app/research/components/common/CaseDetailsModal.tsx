@@ -30,7 +30,7 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-screen max-w-[90vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-[1200px] max-h-[90vh] overflow-hidden">
         <CardHeader className="sticky top-0 bg-card z-10 border-b">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -51,7 +51,7 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
                   link.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 text-xs"
+                className="inline-flex items-center gap-2 bg-black text-white px-3 py-2 rounded-md hover:bg-gray-800 text-xs"
               >
                 <Download size={16} />
                 <span>Download</span>
@@ -63,7 +63,7 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-6">
+        <CardContent className="p-4 md:p-6 overflow-auto max-h-[calc(90vh-120px)]">
           <div className="mb-6">
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm font-medium">CNR: {caseData.caseInfo.cnrNumber || "N/A"}</span>
@@ -75,7 +75,8 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
           </div>
 
           <div className="border-b mb-4">
-            <div className="flex overflow-x-auto">
+            <div className="w-full overflow-x-auto">
+              <div className="flex whitespace-nowrap min-w-max">
               {getAvailableTabs().map((tab) => (
                 <button
                   key={tab}
@@ -85,6 +86,7 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               ))}
+              </div>
             </div>
           </div>
 
@@ -94,37 +96,37 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
                 <div className="mb-6">
                   <h3 className="font-medium mb-4">Case Information</h3>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse">
+                    <table className="min-w-full w-full border-collapse table-fixed">
                       <thead>
                         <tr className="bg-muted/50">
-                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground">Field</th>
-                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground">Value</th>
+                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top w-56 md:w-64">Field</th>
+                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top">Value</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Case Type</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseInfo.caseType || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Case Type</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.caseType || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Filing Number</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseInfo.filingNumber || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Filing Number</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.filingNumber || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Filing Date</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseInfo.filingDate || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Filing Date</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.filingDate || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Registration Number</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseInfo.registrationNumber || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Registration Number</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.registrationNumber || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Registration Date</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseInfo.registrationDate || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Registration Date</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.registrationDate || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">CNR Number</td>
-                          <td className="border border-border p-2 text-sm font-mono">{caseData.caseInfo.cnrNumber || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">CNR Number</td>
+                          <td className="border border-border p-2 text-sm font-mono whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseInfo.cnrNumber || "N/A"}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -134,35 +136,35 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
                 <div className="mb-6">
                   <h3 className="font-medium mb-4">Status Information</h3>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full border-collapse">
+                    <table className="min-w-full w-full border-collapse table-fixed">
                       <thead>
                         <tr className="bg-muted/50">
-                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground">Field</th>
-                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground">Value</th>
+                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top w-56 md:w-64">Field</th>
+                          <th className="border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top">Value</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Case Status</td>
-                          <td className="border border-border p-2 text-sm">
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Case Status</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>
                             <StatusPill status={caseData.caseStatus.caseStatus || "N/A"} />
                           </td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Stage of Case</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseStatus.stageOfCase || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Stage of Case</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseStatus.stageOfCase || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">First Hearing Date</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseStatus.firstHearingDate || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">First Hearing Date</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseStatus.firstHearingDate || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Next Hearing Date</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseStatus.nextHearingDate || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Next Hearing Date</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseStatus.nextHearingDate || "N/A"}</td>
                         </tr>
                         <tr className="hover:bg-muted/30">
-                          <td className="border border-border p-2 text-sm font-medium">Court Number and Judge</td>
-                          <td className="border border-border p-2 text-sm">{caseData.caseStatus.courtNumberAndJudge || "N/A"}</td>
+                          <td className="border border-border p-2 text-sm font-medium w-56 md:w-64">Court Number and Judge</td>
+                          <td className="border border-border p-2 text-sm whitespace-pre-wrap break-words break-all" style={{overflowWrap:"anywhere",wordBreak:"break-word"}}>{caseData.caseStatus.courtNumberAndJudge || "N/A"}</td>
                         </tr>
                       </tbody>
                     </table>
