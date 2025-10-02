@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import ResearchShell from "@/components/research-shell";
-
-import { FollowedCaseCard } from "../components/FollowedCaseCard";
 import { FollowedDistrictTable } from "../components/FollowedDistrictTable";
 import { FollowedHighCourtTable } from "../components/FollowedHighCourtTable";
+import { FollowedSupremeTable } from "../components/FollowedSupremeTable";
 import { Bookmark, BookmarkX, ExternalLink, Calendar, User, FileText, Eye, Loader2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,8 @@ import CaseDetailsModal from "../components/common/CaseDetailsModal";
 import HighCourtCaseDetailsModal from "../components/common/HighCourtCaseDetailsModal";
 import { parseCaseDetailsHTML, ParsedCaseDetails } from "../utils/district-parsers";
 import { parseHighCourtHtml, ParsedHighCourtDetails } from "../utils/highCourtParser";
+import SupremeCaseDetailsDialog from "../components/SupremeCaseDetailsDialog";
+import { createSupremeCourtCaseData, SupremeCaseData } from "../utils/supreme-parser";
 
 type CourtType = "Supreme_Court" | "High_Court" | "District_Court";
 
@@ -36,6 +37,7 @@ export default function FollowedCasesPage() {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [districtModalData, setDistrictModalData] = useState<ParsedCaseDetails | null>(null);
   const [highModalData, setHighModalData] = useState<{ cino?: string; case_no?: string; details?: ParsedHighCourtDetails } | null>(null);
+  const [supremeModalData, setSupremeModalData] = useState<SupremeCaseData | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState<null | CourtType>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
   
@@ -102,13 +104,23 @@ export default function FollowedCasesPage() {
         dist_cd: 1
       });
     } else if (caseItem.court === "Supreme_Court") {
-      // For supreme court, we need diary_no and diary_year
-      const diaryNumber = caseItem.followed["View"] || caseItem.followed["diary_no"] || "";
-      const year = caseItem.followed["diary_year"] || new Date().getFullYear();
-      setSupremeDetailParams({
-        diary_no: parseInt(diaryNumber) || 0,
-        diary_year: year
-      });
+      // Derive diary_no and diary_year from either diary_number or action string
+      const diaryNumberField = caseItem.followed["diary_number"] as string | undefined;
+      const actionField = caseItem.followed["action"] as string | undefined;
+      let diaryNo = 0;
+      let diaryYear = new Date().getFullYear();
+
+      if (diaryNumberField && diaryNumberField.includes("/")) {
+        const [noStr, yearStr] = diaryNumberField.split("/");
+        diaryNo = parseInt(noStr || "0");
+        diaryYear = parseInt(yearStr || String(diaryYear));
+      } else if (actionField && actionField.includes("diary_no=") && actionField.includes("diary_year=")) {
+        const url = new URL(actionField.startsWith("http") ? actionField : `http://x${actionField}`);
+        diaryNo = parseInt(url.searchParams.get("diary_no") || "0");
+        diaryYear = parseInt(url.searchParams.get("diary_year") || String(diaryYear));
+      }
+
+      setSupremeDetailParams({ diary_no: diaryNo, diary_year: diaryYear });
     }
   };
 
@@ -167,31 +179,27 @@ export default function FollowedCasesPage() {
         setDetailsLoading(null);
         return;
       }
-      const raw = (supremeDetailQuery.data && typeof supremeDetailQuery.data === "object" && (supremeDetailQuery.data as any).data)
-        ? (supremeDetailQuery.data as any).data
-        : supremeDetailQuery.data;
-      if (typeof raw === "string") {
-        const parsed = parseCaseDetailsHTML(raw);
-        if (parsed) {
-          setDistrictModalData(parsed);
-          setShowCaseDetails("Supreme_Court");
-        }
+      const data = supremeDetailQuery.data;
+      const payload = data && typeof data === "object" && (data as any).data ? (data as any).data : data;
+      const html = (payload && typeof payload === "object")
+        ? ((payload as any).case_details || (payload as any).html || (payload as any).content || (payload as any).data?.case_details)
+        : undefined;
+      let normalized: SupremeCaseData | null = null;
+      if (typeof html === "string") {
+        normalized = createSupremeCourtCaseData(html);
+      } else if (payload && typeof payload === "object") {
+        normalized = payload as SupremeCaseData;
+      }
+      if (normalized) {
+        setSupremeModalData(normalized);
+        setShowCaseDetails("Supreme_Court");
       }
       setDetailsLoading(null);
     }
   }, [supremeDetailQuery.data, supremeDetailQuery.error, supremeDetailQuery.isLoading, supremeDetailQuery.isFetching, supremeDetailParams]);
 
   
-  const renderCaseCard = (caseItem: FollowedCase) => (
-    <FollowedCaseCard
-      key={caseItem.id}
-      caseItem={caseItem}
-      onUnfollow={handleUnfollow}
-      onView={handleViewDetails}
-      unfollowPending={unfollowMutation.isPending}
-      detailsLoadingId={detailsLoading}
-    />
-  );
+
 
   const renderTabContent = (query: any, court: CourtType) => {
     if (query.isLoading) {
@@ -281,7 +289,7 @@ export default function FollowedCasesPage() {
       );
     }
 
-    // For High Court, show table similar to District (no pagination initially)
+    // For High Court, show table similar to District
     if (court === "High_Court") {
       const { total, currentPageRows } = paginate(cases);
       return (
@@ -300,12 +308,27 @@ export default function FollowedCasesPage() {
       );
     }
 
-    // Default: card layout for other courts
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {cases.map((caseItem: FollowedCase) => renderCaseCard(caseItem))}
-      </div>
-    );
+    // For Supreme Court, show table similar to others
+    if (court === "Supreme_Court") {
+      const { total, currentPageRows } = paginate(cases);
+      return (
+        <FollowedSupremeTable
+          rows={currentPageRows}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={(p) => setPage(p)}
+          onPageSizeChange={(n) => setPageSize(n)}
+          onView={handleViewDetails}
+          onUnfollow={handleUnfollow}
+          detailsLoadingId={detailsLoading}
+          unfollowPending={unfollowMutation.isPending}
+        />
+      );
+    }
+
+    // Default fallback
+    return null;
   };
 
   if (!workspaceId) {
@@ -331,6 +354,12 @@ export default function FollowedCasesPage() {
   return (
     <ResearchShell title="Followed Cases">
       <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-foreground mb-2">Followed Cases</h1>
+          <p className="text-gray-600 dark:text-zinc-400">
+            View and manage cases you have followed across different courts
+          </p>
+        </div>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as CourtType)}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="Supreme_Court">Supreme Court</TabsTrigger>
@@ -352,16 +381,28 @@ export default function FollowedCasesPage() {
         </Tabs>
       </div>
       
-      {/* Case Details Modal (District + Supreme use the same modal) */}
-      {(showCaseDetails === "District_Court" || showCaseDetails === "Supreme_Court") && districtModalData && (
+      {/* Case Details Modals */}
+      {showCaseDetails === "District_Court" && districtModalData && (
         <CaseDetailsModal
           caseData={districtModalData}
           onClose={() => {
             setShowCaseDetails(null);
             setDistrictModalData(null);
             setDistrictDetailParams(null);
-            setSupremeDetailParams(null);
           }}
+        />
+      )}
+      {showCaseDetails === "Supreme_Court" && supremeModalData && (
+        <SupremeCaseDetailsDialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowCaseDetails(null);
+              setSupremeModalData(null);
+              setSupremeDetailParams(null);
+            }
+          }}
+          caseData={supremeModalData}
         />
       )}
       {showCaseDetails === "High_Court" && highModalData && (
