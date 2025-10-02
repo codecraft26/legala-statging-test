@@ -5,17 +5,9 @@ import { useRouter } from "next/navigation";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import ResultsTable, { ColumnDef } from "../research/components/common/ResultsTable";
 import {
   FileText,
-  Tag,
   Clock,
   Loader2,
   Trash2,
@@ -26,6 +18,7 @@ import {
   useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
 import Pagination from "../research/components/common/Pagination";
+import { useToast } from "@/components/ui/toast";
 
 type Extraction = {
   id: string;
@@ -39,6 +32,7 @@ type Extraction = {
 
 export default function ExtractPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState<string>("");
   useEffect(() => {
@@ -97,6 +91,85 @@ export default function ExtractPage() {
     setPage(1);
   }, [pageSize, totalItems]);
 
+  // Define table columns
+  const columns: ColumnDef<Extraction>[] = [
+    {
+      key: "name",
+      header: "Extraction Name",
+      render: (extraction) => (
+        <button
+          className="flex items-center gap-2 hover:underline"
+          onClick={() => router.push(`/extract/${extraction.id}`)}
+        >
+          <div className="rounded p-1 bg-accent">
+            <FileText size={14} />
+          </div>
+          <div className="font-medium text-left">{extraction.name}</div>
+        </button>
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "Run Time",
+      render: (extraction) => (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Clock size={12} /> {new Date(extraction.createdAt).toLocaleString()}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (extraction) => (
+        <div className="flex items-center gap-2">
+          <StatusBadge status={extraction.status} />
+          {extraction.status === "processing" ? (
+            <span className="text-xs text-muted-foreground">{extraction.progress}%</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      className: "text-right",
+      render: (extraction) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-600 hover:text-red-700"
+          disabled={isDeleting && deletingId === extraction.id}
+          aria-label="Delete extraction"
+          title="Delete"
+          onClick={() => {
+            setDeletingId(extraction.id);
+            removeExtraction(extraction.id, {
+              onSuccess: () => {
+                showToast("Extraction deleted successfully", "success");
+              },
+              onError: (err) => {
+                console.error("Failed to delete extraction:", err);
+                showToast(
+                  `Failed to delete extraction: ${
+                    err instanceof Error ? err.message : "Unknown error"
+                  }`,
+                  "error"
+                );
+              },
+              onSettled: () => setDeletingId(null),
+            });
+          }}
+        >
+          {isDeleting && deletingId === extraction.id ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -149,99 +222,18 @@ export default function ExtractPage() {
           </div>
 
           <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Tags</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentItems.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No extractions found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  currentItems.map((x) => (
-                    <TableRow key={x.id}>
-                      <TableCell>
-                        <button
-                          className="flex items-center gap-2 hover:underline"
-                          onClick={() => router.push(`/extract/${x.id}`)}
-                        >
-                          <div className="rounded p-1 bg-accent">
-                            <FileText size={14} />
-                          </div>
-                          <div className="font-medium text-left">{x.name}</div>
-                        </button>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock size={12} /> {new Date(x.createdAt).toLocaleString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {x.tags && x.tags.length > 0 ? (
-                            x.tags.map((t) => (
-                              <span key={t} className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground">
-                                <Tag size={10} /> {t}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No tags</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={x.status} />
-                          {x.status === "processing" ? (
-                            <span className="text-xs text-muted-foreground">{x.progress}%</span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-600 hover:text-red-700"
-                          disabled={isDeleting && deletingId === x.id}
-                          aria-label="Delete extraction"
-                          title="Delete"
-                          onClick={() => {
-                            if (!confirm("Delete this extraction? This cannot be undone.")) return;
-                            setDeletingId(x.id);
-                            removeExtraction(x.id, {
-                              onError: (err) => {
-                                console.error("Failed to delete extraction:", err);
-                                alert(
-                                  `Failed to delete extraction: ${
-                                    err instanceof Error ? err.message : "Unknown error"
-                                  }`
-                                );
-                              },
-                              onSettled: () => setDeletingId(null),
-                            });
-                          }}
-                        >
-                          {isDeleting && deletingId === x.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            {currentItems.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                No extractions found
+              </div>
+            ) : (
+              <ResultsTable
+                columns={columns}
+                rows={currentItems}
+                rowKey={(extraction) => extraction.id}
+                tableClassName="w-full"
+              />
+            )}
           </div>
 
           <Pagination

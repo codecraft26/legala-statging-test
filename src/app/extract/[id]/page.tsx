@@ -29,10 +29,12 @@ import {
   useExtractionDetail,
   useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
+import { useToast } from "@/components/ui/toast";
 
 export default function ExtractionDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { showToast } = useToast();
   const id = params.id as string;
 
   const [copied, setCopied] = useState(false);
@@ -119,17 +121,21 @@ export default function ExtractionDetailPage() {
   };
 
   const handleDelete = () => {
-    if (
-      confirm(
-        "Are you sure you want to delete this extraction? This action cannot be undone."
-      )
-    ) {
-      removeExtraction(id, {
-        onSuccess: () => {
-          router.push("/extract");
-        },
-      });
-    }
+    removeExtraction(id, {
+      onSuccess: () => {
+        showToast("Extraction deleted successfully", "success");
+        router.push("/extract");
+      },
+      onError: (err) => {
+        console.error("Failed to delete extraction:", err);
+        showToast(
+          `Failed to delete extraction: ${
+            err instanceof Error ? err.message : "Unknown error"
+          }`,
+          "error"
+        );
+      },
+    });
   };
 
   const formatValue = (value: any, key: string) => {
@@ -235,7 +241,7 @@ export default function ExtractionDetailPage() {
               className="flex items-center gap-2 p-2 h-8"
             >
               <ChevronLeft className="w-4 h-4" />
-              Back
+             
             </Button>
             <div>
               <h1 className="text-2xl font-semibold leading-tight">{extraction.name}</h1>
@@ -507,10 +513,6 @@ export default function ExtractionDetailPage() {
                         <TableRow>
                           <TableCell className="font-medium">Status</TableCell>
                           <TableCell>{getStatusBadge(extraction.status)}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">Workspace</TableCell>
-                          <TableCell className="font-mono text-sm">{extraction.workspaceId}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
