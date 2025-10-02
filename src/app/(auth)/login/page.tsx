@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth, useLogin } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie } from "@/lib/utils";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -116,7 +117,7 @@ export default function LoginPage() {
           </div>
           {/* Right: Visual */}
           <div className="hidden md:block bg-muted relative min-h-[280px]">
-            <img src="/logo.png" alt="Logo" className="absolute inset-0 w-full h-full object-contain p-10 dark:opacity-80" />
+            <Image src="/logo.png" alt="Logo" fill className="object-contain p-10 dark:opacity-80" />
           </div>
         </div>
       </div>

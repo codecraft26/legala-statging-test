@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   FileText,
   Clock,
@@ -258,9 +259,11 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-6">
-              <img
+              <Image
                 src="https://www.infrahive.ai/_next/image?url=%2Fimages%2Flogo%2Flogo.png&w=640&q=75"
-                className="w-[120px] mx-auto filter group-hover:brightness-110 transition-all duration-200"
+                width={120}
+                height={120}
+                className="mx-auto filter group-hover:brightness-110 transition-all duration-200"
                 alt="Logo"
               />
             </div>

@@ -353,7 +353,6 @@ export default function HighCourtCaseDetailsModal({
                   key={tab}
                   className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === tab ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground hover:text-foreground"}`}
                   onClick={() => setActiveTab(tab)}
-                  aria-selected={activeTab === tab}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>

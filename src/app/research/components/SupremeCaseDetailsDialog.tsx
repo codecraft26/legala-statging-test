@@ -53,25 +53,19 @@ export default function SupremeCaseDetailsDialog({
     if (!open) setActiveTab("case_details");
   }, [open]);
 
-  if (!caseData) return null;
+  const availableTabs = React.useMemo(() => {
+    if (!caseData) return [];
+    return Object.keys(caseData).filter((key) => (caseData as any)[key]?.success);
+  }, [caseData]);
 
-  const availableTabs = Object.keys(caseData).filter((key) => (caseData as any)[key]?.success);
-  console.log("Available tabs:", availableTabs);
-  console.log("Case data structure:", caseData);
-  if (availableTabs.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl p-0">
-          <DialogHeader className="px-4 py-3 border-b">
-            <DialogTitle className="text-base">Supreme Court Case</DialogTitle>
-          </DialogHeader>
-          <div className="p-4 text-sm text-muted-foreground">No content available.</div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-  const safeActive = availableTabs.includes(activeTab) ? activeTab : availableTabs[0];
-  const tabPayload = (caseData as any)[safeActive]?.data?.data as string | undefined;
+  const safeActive = React.useMemo(() => {
+    return availableTabs.includes(activeTab) ? activeTab : availableTabs[0];
+  }, [activeTab, availableTabs]);
+
+  const tabPayload = React.useMemo(() => {
+    if (!caseData || !safeActive) return undefined;
+    return (caseData as any)[safeActive]?.data?.data as string | undefined;
+  }, [caseData, safeActive]);
 
   const content: React.ReactNode = React.useMemo(() => {
     if (!tabPayload) {
@@ -164,6 +158,21 @@ export default function SupremeCaseDetailsDialog({
       </div>
     );
   }, [tabPayload, safeActive]);
+
+  if (!caseData) return null;
+
+  if (availableTabs.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-6xl p-0">
+          <DialogHeader className="px-4 py-3 border-b">
+            <DialogTitle className="text-base">Supreme Court Case</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 text-sm text-muted-foreground">No content available.</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

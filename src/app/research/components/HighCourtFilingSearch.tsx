@@ -147,7 +147,7 @@ export default function HighCourtFilingSearch() {
 
   React.useEffect(() => {
     setPage(1);
-  }, [filingQuery.isFetching, searchQuery, JSON.stringify(searchParams)]);
+  }, [filingQuery.isFetching, searchQuery, searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,7 +197,7 @@ export default function HighCourtFilingSearch() {
     } as any);
     setShowCaseDetails(true);
     setLoadingDetails(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams, currentPageResults]);
 
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;

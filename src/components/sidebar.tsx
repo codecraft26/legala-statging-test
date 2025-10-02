@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   FileText,
@@ -84,12 +85,12 @@ export default function Sidebar() {
       <div className="mb-4 flex items-center justify-between">
         {!collapsed ? (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/logo.png" alt="logo" className="h-7 w-7" />
+            <Image src="/logo.png" alt="logo" width={28} height={28} />
             <span className="text-sm font-bold tracking-wide">InfraHive</span>
           </Link>
         ) : (
           <Link href="/dashboard">
-            <img src="/logo.png" alt="logo" className="h-7 w-7" />
+            <Image src="/logo.png" alt="logo" width={28} height={28} />
           </Link>
         )}
         <button

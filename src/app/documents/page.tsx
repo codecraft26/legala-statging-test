@@ -75,7 +75,7 @@ export default function DocumentsPage() {
   useEffect(() => {
     if (!currentWorkspace) return;
 
-  }, [currentFolderId]);
+  }, [currentFolderId, currentWorkspace]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !currentWorkspace) return;

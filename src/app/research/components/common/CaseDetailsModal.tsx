@@ -9,8 +9,6 @@ import { ParsedCaseDetails } from "../../utils/district-parsers";
 export default function CaseDetailsModal({ caseData, onClose }: { caseData: ParsedCaseDetails | null; onClose: () => void; }) {
   const [activeTab, setActiveTab] = useState("overview");
 
-  if (!caseData) return null;
-
   // Prevent background scroll while modal is open, but keep background visible
   useEffect(() => {
     const originalOverflow = document.documentElement.style.overflow;
@@ -19,6 +17,8 @@ export default function CaseDetailsModal({ caseData, onClose }: { caseData: Pars
       document.documentElement.style.overflow = originalOverflow;
     };
   }, []);
+
+  if (!caseData) return null;
 
   const getAvailableTabs = () => {
     if (!caseData) return ["overview"];

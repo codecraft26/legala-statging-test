@@ -259,7 +259,7 @@ export default function DistrictCourtSearch() {
       nextPages[courtName] = Math.min(Math.max(1, current), totalPages);
     });
     setPageByCourt(nextPages);
-  }, [filteredResults, pageSize]);
+  }, [filteredResults, pageSize, pageByCourt]);
 
   // Handle EST code selection
   const handleEstCodeToggle = (estCode: string) => {

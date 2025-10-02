@@ -144,7 +144,6 @@ export default function SupremeCourtSearch() {
         // If nothing was wrapped but we have a single html, fall back to html mode below
         if (Object.keys(wrapped).length > 0) {
           normalized = wrapped;
-          console.log("Wrapped API response into tabs:", Object.keys(wrapped));
         }
       }
       if (!normalized && typeof html === "string") {

@@ -111,13 +111,13 @@ export default function HighCourtAdvocateSearch() {
   }, [followedQuery.data]);
 
   // Helper to check if a row is already followed
-  const isRowFollowed = (r: HighCourtResult): boolean => {
+  const isRowFollowed = useCallback((r: HighCourtResult): boolean => {
     const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
     const num = r.case_no2 != null ? String(r.case_no2) : (r.case_no ? String(parseInt(r.case_no)) : "");
     const composite = r.type_name && num && r.case_year != null ? `${r.type_name}/${num}/${r.case_year}` : "";
     const byComposite = composite ? followedCases.has(composite) : false;
     return byCino || byComposite;
-  };
+  }, [followedCases]);
 
   // Filter search results based on searchQuery
   const rawResults: HighCourtResult[] = useMemo(() => {
@@ -152,7 +152,7 @@ export default function HighCourtAdvocateSearch() {
   // Reset page when results change
   React.useEffect(() => {
     setPage(1);
-  }, [advocateQuery.isFetching, searchQuery, JSON.stringify(searchParams)]);
+  }, [advocateQuery.isFetching, searchQuery, searchParams]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -198,7 +198,7 @@ export default function HighCourtAdvocateSearch() {
     } as any);
     setShowCaseDetails(true);
     setLoadingDetails(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams, currentPageResults]);
 
   const handleViewDetails = useCallback((result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;

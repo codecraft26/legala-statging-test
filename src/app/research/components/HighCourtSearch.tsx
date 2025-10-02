@@ -103,30 +103,6 @@ export default function HighCourtSearch() {
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
 
-  // Handle detail query response
-  React.useEffect(() => {
-    if (!detailParams) return;
-    if (detailQuery.isLoading || detailQuery.isFetching) return;
-    const caseId = String(detailParams.cino || detailParams.case_no);
-    if (detailQuery.error) {
-      console.error("Failed to fetch case details:", detailQuery.error);
-      setDetailsLoading(null);
-      return;
-    }
-    const raw: any = detailQuery.data;
-    if (!raw) return;
-    const normalized = typeof raw?.data === "string"
-      ? parseHighCourtHtml(raw.data)
-      : typeof raw === "string"
-        ? parseHighCourtHtml(raw)
-        : raw;
-    setSelectedCase({
-      ...(currentPageResults.find((r: any) => String(r.cino || r.case_no) === caseId) || {}),
-      details: normalized,
-    });
-    setShowCaseDetails(true);
-    setDetailsLoading(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -227,6 +203,31 @@ export default function HighCourtSearch() {
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, total);
   const currentPageResults = filteredResults.slice(startIndex, endIndex);
+
+  // Handle detail query response
+  React.useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = String(detailParams.cino || detailParams.case_no);
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setDetailsLoading(null);
+      return;
+    }
+    const raw: any = detailQuery.data;
+    if (!raw) return;
+    const normalized = typeof raw?.data === "string"
+      ? parseHighCourtHtml(raw.data)
+      : typeof raw === "string"
+        ? parseHighCourtHtml(raw)
+        : raw;
+    setSelectedCase({
+      ...(currentPageResults.find((r: any) => String(r.cino || r.case_no) === caseId) || {}),
+      details: normalized,
+    });
+    setShowCaseDetails(true);
+    setDetailsLoading(null);
+  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams, currentPageResults]);
 
   return (
     <div className="p-6">
