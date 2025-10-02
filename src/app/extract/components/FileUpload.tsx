@@ -2,10 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Folder,
-  ChevronRight,
-} from "lucide-react";
+import { Folder, ChevronRight } from "lucide-react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Api } from "@/lib/api-client";
 import DragDropArea from "./DragDropArea";
@@ -32,7 +29,8 @@ export default function FileUpload({
   onSuggestedNameChange,
 }: FileUploadProps) {
   const currentWorkspace = React.useMemo(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     if (!id) return undefined as any;
     return { id, name: "Workspace" } as any;
   }, []);
@@ -167,7 +165,9 @@ export default function FileUpload({
         const first = selected[0].filename;
         const base = first.replace(/\.[^/.]+$/, "");
         const suggestion =
-          selected.length === 1 ? base : `${base} + ${selected.length - 1} more`;
+          selected.length === 1
+            ? base
+            : `${base} + ${selected.length - 1} more`;
         onSuggestedNameChange && onSuggestedNameChange(suggestion);
       }
     } catch (error) {
@@ -251,7 +251,9 @@ export default function FileUpload({
             const first = selected[0].filename;
             const base = first.replace(/\.[^/.]+$/, "");
             const suggestion =
-              selected.length === 1 ? base : `${base} + ${selected.length - 1} more`;
+              selected.length === 1
+                ? base
+                : `${base} + ${selected.length - 1} more`;
             onSuggestedNameChange && onSuggestedNameChange(suggestion);
           } else {
             onSuggestedNameChange && onSuggestedNameChange("");
@@ -269,7 +271,8 @@ export default function FileUpload({
                 ? `${files.length} file${files.length !== 1 ? "s" : ""}`
                 : (() => {
                     const selected = documentFiles.filter(
-                      (i) => i.type === "file" && selectedDocumentIds.includes(i.id)
+                      (i) =>
+                        i.type === "file" && selectedDocumentIds.includes(i.id)
                     );
                     if (selected.length === 0) return "";
                     const first = selected[0].filename;
@@ -280,7 +283,10 @@ export default function FileUpload({
             </span>
           )}
         </div>
-        <Button onClick={onNext} disabled={files.length === 0 && selectedDocumentIds.length === 0}>
+        <Button
+          onClick={onNext}
+          disabled={files.length === 0 && selectedDocumentIds.length === 0}
+        >
           Continue
           <ChevronRight className="w-4 h-4 ml-2" />
         </Button>

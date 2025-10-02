@@ -14,7 +14,14 @@ interface PasswordFieldProps {
   disabled?: boolean;
 }
 
-export default function PasswordField({ id, label, value, onChange, placeholder, disabled }: PasswordFieldProps) {
+export default function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+}: PasswordFieldProps) {
   const [show, setShow] = useState(false);
   return (
     <div className="space-y-2">
@@ -42,5 +49,3 @@ export default function PasswordField({ id, label, value, onChange, placeholder,
     </div>
   );
 }
-
-

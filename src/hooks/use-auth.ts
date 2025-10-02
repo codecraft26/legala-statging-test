@@ -15,9 +15,9 @@ export interface AuthUser {
 
 // Query keys for consistent cache management
 export const authKeys = {
-  all: ['auth'] as const,
-  me: () => [...authKeys.all, 'me'] as const,
-  profile: () => [...authKeys.all, 'profile'] as const,
+  all: ["auth"] as const,
+  me: () => [...authKeys.all, "me"] as const,
+  profile: () => [...authKeys.all, "profile"] as const,
 };
 
 export function useAuth() {
@@ -41,7 +41,7 @@ export function useAuth() {
   });
 
   const user: AuthUser | undefined = query.data
-    ? ((query.data as any).data || (query.data as any))
+    ? (query.data as any).data || (query.data as any)
     : undefined;
 
   const signOut = () => {
@@ -80,7 +80,10 @@ export function useAcceptInvite() {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: async (args: { email: string }) => {
-      return await Api.post<{ message: string; token?: string }>("/user/forgot-password", args);
+      return await Api.post<{ message: string; token?: string }>(
+        "/user/forgot-password",
+        args
+      );
     },
     onError: (error) => {
       console.error("Failed to send forgot password request:", error);
@@ -115,7 +118,11 @@ export function useSignup() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (args: { name: string; email: string; password: string }) => {
+    mutationFn: async (args: {
+      name: string;
+      email: string;
+      password: string;
+    }) => {
       return await Api.post("/user/signup", args);
     },
     onSuccess: () => {
@@ -209,5 +216,3 @@ export function useAuthWithProfile() {
     refetchProfile: profile.refetch,
   };
 }
-
-

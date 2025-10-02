@@ -22,12 +22,14 @@ export const researchKeys = {
     [...researchKeys.all, "followed", workspaceId, court] as const,
 };
 
-export function useSupremeByParty(params: {
-  party_type: string;
-  party_name: string;
-  year: number;
-  party_status: string;
-} | null) {
+export function useSupremeByParty(
+  params: {
+    party_type: string;
+    party_name: string;
+    year: number;
+    party_status: string;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.list(researchKeys.supreme(), params),
     queryFn: () => SupremeCourtAPI.searchByParty(params!),
@@ -35,10 +37,12 @@ export function useSupremeByParty(params: {
   });
 }
 
-export function useSupremeDetail(params: {
-  diary_no: number;
-  diary_year: number;
-} | null) {
+export function useSupremeDetail(
+  params: {
+    diary_no: number;
+    diary_year: number;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.detail(
       researchKeys.supreme(),
@@ -49,13 +53,15 @@ export function useSupremeDetail(params: {
   });
 }
 
-export function useHighByAdvocate(params: {
-  court_code: number;
-  state_code: number;
-  court_complex_code: number;
-  advocate_name: string;
-  f: "P" | "R" | "Both";
-} | null) {
+export function useHighByAdvocate(
+  params: {
+    court_code: number;
+    state_code: number;
+    court_complex_code: number;
+    advocate_name: string;
+    f: "P" | "R" | "Both";
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.list(researchKeys.high(), params),
     queryFn: () => HighCourtAPI.searchByAdvocate(params!),
@@ -65,14 +71,16 @@ export function useHighByAdvocate(params: {
   });
 }
 
-export function useHighByParty(params: {
-  court_code: number;
-  state_code: number;
-  court_complex_code: number;
-  petres_name: string;
-  rgyear: number;
-  f: "BOTH" | "PENDING" | "DISPOSED";
-} | null) {
+export function useHighByParty(
+  params: {
+    court_code: number;
+    state_code: number;
+    court_complex_code: number;
+    petres_name: string;
+    rgyear: number;
+    f: "BOTH" | "PENDING" | "DISPOSED";
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.list(researchKeys.high(), params),
     queryFn: () => HighCourtAPI.searchByParty(params!),
@@ -82,13 +90,15 @@ export function useHighByParty(params: {
   });
 }
 
-export function useHighByFilingNumber(params: {
-  court_code: number;
-  state_code: number;
-  court_complex_code: number;
-  case_no: number;
-  rgyear: number;
-} | null) {
+export function useHighByFilingNumber(
+  params: {
+    court_code: number;
+    state_code: number;
+    court_complex_code: number;
+    case_no: number;
+    rgyear: number;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.list(researchKeys.high(), params),
     queryFn: () => HighCourtAPI.searchByFilingNumber(params!),
@@ -98,14 +108,16 @@ export function useHighByFilingNumber(params: {
   });
 }
 
-export function useHighDetail(params: {
-  case_no: number;
-  state_code: number;
-  cino: string;
-  court_code: number;
-  national_court_code: string;
-  dist_cd: number;
-} | null) {
+export function useHighDetail(
+  params: {
+    case_no: number;
+    state_code: number;
+    cino: string;
+    court_code: number;
+    national_court_code: string;
+    dist_cd: number;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.detail(
       researchKeys.high(),
@@ -116,13 +128,15 @@ export function useHighDetail(params: {
   });
 }
 
-export function useDistrictByParty(params: {
-  district_name: string;
-  litigant_name: string;
-  reg_year: number;
-  case_status: string;
-  est_code: string;
-} | null) {
+export function useDistrictByParty(
+  params: {
+    district_name: string;
+    litigant_name: string;
+    reg_year: number;
+    case_status: string;
+    est_code: string;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.list(researchKeys.district(), params),
     queryFn: () => DistrictCourtAPI.searchByParty(params!),
@@ -130,10 +144,12 @@ export function useDistrictByParty(params: {
   });
 }
 
-export function useDistrictDetail(params: {
-  cino: string;
-  district_name: string;
-} | null) {
+export function useDistrictDetail(
+  params: {
+    cino: string;
+    district_name: string;
+  } | null
+) {
   return useQuery({
     queryKey: researchKeys.detail(
       researchKeys.district(),

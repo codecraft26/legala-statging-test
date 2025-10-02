@@ -30,5 +30,3 @@ export const TrailingNode = Extension.create({
     ];
   },
 });
-
-

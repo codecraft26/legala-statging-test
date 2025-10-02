@@ -9,7 +9,11 @@ interface SearchInputProps {
   placeholder?: string;
 }
 
-export default function SearchInput({ value, onChange, placeholder = "Search files and folders…" }: SearchInputProps) {
+export default function SearchInput({
+  value,
+  onChange,
+  placeholder = "Search files and folders…",
+}: SearchInputProps) {
   return (
     <div className="mt-3 relative">
       <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -22,5 +26,3 @@ export default function SearchInput({ value, onChange, placeholder = "Search fil
     </div>
   );
 }
-
-

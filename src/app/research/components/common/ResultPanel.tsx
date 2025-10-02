@@ -8,7 +8,11 @@ interface ResultPanelProps {
   data?: unknown | null;
 }
 
-export default function ResultPanel({ loading, error, data }: ResultPanelProps) {
+export default function ResultPanel({
+  loading,
+  error,
+  data,
+}: ResultPanelProps) {
   return (
     <div className="space-y-2">
       {loading ? (
@@ -23,5 +27,3 @@ export default function ResultPanel({ loading, error, data }: ResultPanelProps) 
     </div>
   );
 }
-
-

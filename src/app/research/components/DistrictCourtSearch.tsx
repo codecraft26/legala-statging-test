@@ -13,14 +13,24 @@ import {
 } from "@/hooks/use-research";
 import { districtId } from "../utils/districtId";
 import { useDistrictsIndex } from "@/hooks/use-research";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { useEstCodes } from "@/hooks/use-est-codes";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
 import { getCookie } from "@/lib/utils";
 import FollowButton from "./common/FollowButton";
 import StatusPill from "./common/StatusPill";
 import CaseDetailsModal from "./common/CaseDetailsModal";
-import { parseCaseDetailsHTML, parseDistrictCourtHTML, ParsedCaseDetails } from "../utils/district-parsers";
+import {
+  parseCaseDetailsHTML,
+  parseDistrictCourtHTML,
+  ParsedCaseDetails,
+} from "../utils/district-parsers";
 import DistrictSearchForm from "./district/DistrictSearchForm";
 import DistrictResults from "./district/DistrictResults";
 
@@ -99,22 +109,25 @@ export default function DistrictCourtSearch() {
   const [pageSize, setPageSize] = useState(20);
   const [pageByCourt, setPageByCourt] = useState<Record<string, number>>({});
   const [estMenuOpen, setEstMenuOpen] = useState(false);
-  const [detailParams, setDetailParams] = useState<{ cino: string; district_name: string } | null>(null);
+  const [detailParams, setDetailParams] = useState<{
+    cino: string;
+    district_name: string;
+  } | null>(null);
 
-  const [partyParams, setPartyParams] = useState<
-    | {
-        district_name: string;
-        litigant_name: string;
-        reg_year: number;
-        case_status: string;
-        est_code: string;
-      }
-    | null
-  >(null);
+  const [partyParams, setPartyParams] = useState<{
+    district_name: string;
+    litigant_name: string;
+    reg_year: number;
+    case_status: string;
+    est_code: string;
+  } | null>(null);
   const partyQuery = useDistrictByParty(partyParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
-  const followedQuery = useFollowedResearch(workspaceId || "", "District_Court");
+  const followedQuery = useFollowedResearch(
+    workspaceId || "",
+    "District_Court"
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -155,7 +168,12 @@ export default function DistrictCourtSearch() {
     else if (typeof raw?.data === "string") html = raw.data;
     else if (typeof raw?.data?.data === "string") html = raw.data.data;
     if (html) {
-      const parsed = parseDistrictCourtHTML(html, districtName, litigantName, caseStatus);
+      const parsed = parseDistrictCourtHTML(
+        html,
+        districtName,
+        litigantName,
+        caseStatus
+      );
       setSearchResults(parsed);
       return;
     }
@@ -164,12 +182,16 @@ export default function DistrictCourtSearch() {
     const arrayData: any[] | undefined = Array.isArray(raw)
       ? (raw as any[])
       : Array.isArray(raw?.data)
-      ? (raw.data as any[])
-      : undefined;
+        ? (raw.data as any[])
+        : undefined;
     if (arrayData && arrayData.length > 0) {
       const mapped: DistrictCourtResult[] = arrayData.map((row: any) => {
-        const serial = String(row["Serial Number"] ?? row.serial_number ?? "").trim();
-        const caseCombo = String(row["Case Type/Case Number/Case Year"] ?? "").trim();
+        const serial = String(
+          row["Serial Number"] ?? row.serial_number ?? ""
+        ).trim();
+        const caseCombo = String(
+          row["Case Type/Case Number/Case Year"] ?? ""
+        ).trim();
         const party = String(row["Petitioner versus Respondent"] ?? "").trim();
         const view = String(row["View"] ?? row.cino ?? "").trim();
 
@@ -226,8 +248,11 @@ export default function DistrictCourtSearch() {
   );
 
   // Fallback: unique districts from static map (used if API not loaded yet)
-  const uniqueDistricts = useMemo(() =>
-    Array.from(new Set(districtId.map((d) => d.name.toLowerCase()))).sort(), []);
+  const uniqueDistricts = useMemo(
+    () =>
+      Array.from(new Set(districtId.map((d) => d.name.toLowerCase()))).sort(),
+    []
+  );
 
   // Filter search results based on searchQuery
   const filteredResults = useMemo(() => {
@@ -259,7 +284,7 @@ export default function DistrictCourtSearch() {
       nextPages[courtName] = Math.min(Math.max(1, current), totalPages);
     });
     setPageByCourt(nextPages);
-  }, [filteredResults, pageSize]);
+  }, [filteredResults, pageSize, pageByCourt]);
 
   // Handle EST code selection
   const handleEstCodeToggle = (estCode: string) => {
@@ -305,7 +330,10 @@ export default function DistrictCourtSearch() {
     setPageByCourt({});
 
     // If params are unchanged (same key), force a refetch so user doesn't need to refresh
-    if (partyParams && JSON.stringify(partyParams) === JSON.stringify(nextParams)) {
+    if (
+      partyParams &&
+      JSON.stringify(partyParams) === JSON.stringify(nextParams)
+    ) {
       partyQuery.refetch();
     } else {
       setPartyParams(nextParams);
@@ -325,14 +353,25 @@ export default function DistrictCourtSearch() {
     }
     const data: any = detailQuery.data;
     if (!data) return;
-    const payload = typeof data?.data === "string" ? data.data : typeof data === "string" ? data : data;
+    const payload =
+      typeof data?.data === "string"
+        ? data.data
+        : typeof data === "string"
+          ? data
+          : data;
     const parsedDetails = parseCaseDetailsHTML(payload);
     if (parsedDetails) {
       setSelectedCase(parsedDetails);
       setShowCaseDetails(true);
     }
     setDetailsLoading(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
+  }, [
+    detailQuery.data,
+    detailQuery.error,
+    detailQuery.isLoading,
+    detailQuery.isFetching,
+    detailParams,
+  ]);
 
   const handleViewDetails = (result: DistrictCourtResult) => {
     const caseId = result.cino;
@@ -343,12 +382,12 @@ export default function DistrictCourtSearch() {
   const handleFollowCase = async (caseData: DistrictCourtResult) => {
     const caseId = caseData.cino;
     const workspaceId = getCookie("workspaceId");
-    
+
     if (!workspaceId) {
       alert("Please select a workspace to follow cases");
       return;
     }
-    
+
     // Prevent duplicate follow
     if (followedCases.has(caseId)) {
       return;
@@ -362,9 +401,9 @@ export default function DistrictCourtSearch() {
         "Serial Number": caseData.serial_number || "",
         "Case Type/Case Number/Case Year": `${caseData.case_type || ""}/${caseData.case_number || ""}/${caseData.case_year || ""}`,
         "Petitioner versus Respondent": `${caseData.petitioner_name || ""} Versus ${caseData.respondent_name || ""}`,
-        "View": caseData.cino
+        View: caseData.cino,
       };
-      
+
       await followMutation.mutateAsync({
         court: "District_Court",
         followed: followedData,
@@ -417,27 +456,33 @@ export default function DistrictCourtSearch() {
       {/* Error Display */}
       {partyQuery.error && (
         <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
-          <p className="text-red-700 dark:text-red-400">{partyQuery.error instanceof Error ? partyQuery.error.message : "An error occurred while searching"}</p>
+          <p className="text-red-700 dark:text-red-400">
+            {partyQuery.error instanceof Error
+              ? partyQuery.error.message
+              : "An error occurred while searching"}
+          </p>
         </div>
       )}
 
       {/* Results Section */}
-      {!partyQuery.isLoading && !partyQuery.isFetching && Object.keys(searchResults).length > 0 && (
-        <DistrictResults
-          filteredResults={filteredResults}
-          pageByCourt={pageByCourt}
-          setPageByCourt={setPageByCourt}
-                      pageSize={pageSize}
-          setPageSize={setPageSize}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          followedCases={followedCases}
-          followLoading={followLoading}
-          detailsLoading={detailsLoading}
-          onFollow={handleFollowCase}
-          onViewDetails={handleViewDetails}
-        />
-      )}
+      {!partyQuery.isLoading &&
+        !partyQuery.isFetching &&
+        Object.keys(searchResults).length > 0 && (
+          <DistrictResults
+            filteredResults={filteredResults}
+            pageByCourt={pageByCourt}
+            setPageByCourt={setPageByCourt}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            followedCases={followedCases}
+            followLoading={followLoading}
+            detailsLoading={detailsLoading}
+            onFollow={handleFollowCase}
+            onViewDetails={handleViewDetails}
+          />
+        )}
 
       {/* Case Details Modal */}
       {showCaseDetails && (

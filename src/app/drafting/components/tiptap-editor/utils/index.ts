@@ -1,5 +1,8 @@
 // Simple debounce utility
-export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): T {
   let timeout: NodeJS.Timeout | null = null;
   return ((...args: any[]) => {
     if (timeout) clearTimeout(timeout);
@@ -18,8 +21,8 @@ export const sanitizeHtmlContent = (content: string) =>
 
 // Preprocess HTML content to ensure proper variable placeholders
 export const preprocessHtmlContent = (
-  html: string, 
-  variables: any[], 
+  html: string,
+  variables: any[],
   setPlaceholderStatus: (status: Record<string, string>) => void
 ) => {
   let processedHtml = html;
@@ -38,10 +41,7 @@ export const preprocessHtmlContent = (
 
   variables.forEach((variable) => {
     const placeholder = `{{${variable.unique_id}}}`;
-    const regex = new RegExp(
-      `\\{\\{\\s*${variable.unique_id}\\s*\\}\\}`,
-      "gi"
-    );
+    const regex = new RegExp(`\\{\\{\\s*${variable.unique_id}\\s*\\}\\}`, "gi");
     processedHtml = processedHtml.replace(regex, placeholder);
   });
 
@@ -81,7 +81,7 @@ export const extractVariablesFromContent = (html: string) => {
 
 // Normalize bracket placeholders to curly syntax
 export const normalizeBracketPlaceholders = (
-  html: string, 
+  html: string,
   bracketToCurly: Record<string, string>
 ) => {
   if (Object.keys(bracketToCurly).length === 0) return html;
@@ -92,14 +92,14 @@ export const normalizeBracketPlaceholders = (
     const re = new RegExp(escaped, "g");
     updated = updated.replace(re, to);
   });
-  
+
   return updated;
 };
 
 // Get workspace ID from cookie
 export const getWorkspaceIdFromCookie = (): string | null => {
   if (typeof window === "undefined") return null;
-  
+
   try {
     const cookieMatch = document.cookie.match(/(?:^|; )workspaceId=([^;]*)/);
     return cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;

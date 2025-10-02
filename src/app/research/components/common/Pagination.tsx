@@ -11,7 +11,14 @@ interface PaginationProps {
   pageSizeOptions?: number[];
 }
 
-export default function Pagination({ page, pageSize, total, onPageChange, onPageSizeChange, pageSizeOptions = [10, 20, 50, 100] }: PaginationProps) {
+export default function Pagination({
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50, 100],
+}: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const startIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(page * pageSize, total);
@@ -26,7 +33,9 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
           className="border border-input bg-background text-foreground rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
         >
           {pageSizeOptions.map((n) => (
-            <option key={n} value={n}>{n}</option>
+            <option key={n} value={n}>
+              {n}
+            </option>
           ))}
         </select>
         <span>
@@ -55,5 +64,3 @@ export default function Pagination({ page, pageSize, total, onPageChange, onPage
     </div>
   );
 }
-
-

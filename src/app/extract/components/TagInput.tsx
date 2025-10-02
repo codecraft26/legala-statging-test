@@ -134,7 +134,9 @@ export default function TagInput({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Suggested tags</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">click to add</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                click to add
+              </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {suggestedTags.map((t) => {
@@ -190,7 +192,9 @@ export default function TagInput({
             <div className="text-center py-6 bg-muted/20 rounded-lg border border-dashed">
               <Tag className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No tags added yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Add custom tags or select from suggestions above</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Add custom tags or select from suggestions above
+              </p>
             </div>
           )}
 

@@ -1,7 +1,14 @@
 "use client";
 
 import React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export interface ColumnDef<T> {
   key: keyof T | string;
@@ -19,7 +26,13 @@ interface ResultsTableProps<T> {
   headerRowClassName?: string;
 }
 
-export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName, headerRowClassName }: ResultsTableProps<T>) {
+export default function ResultsTable<T>({
+  columns,
+  rows,
+  rowKey,
+  tableClassName,
+  headerRowClassName,
+}: ResultsTableProps<T>) {
   return (
     <div className="w-full overflow-x-auto">
       <Table className={tableClassName || "table-auto w-full"}>
@@ -29,7 +42,16 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
               <TableHead
                 key={String(col.key)}
                 className={`px-3 py-3 text-xs font-semibold text-foreground text-left ${col.className || ""}`}
-                style={col.width ? { minWidth: typeof col.width === "number" ? `${col.width}px` : col.width } : undefined}
+                style={
+                  col.width
+                    ? {
+                        minWidth:
+                          typeof col.width === "number"
+                            ? `${col.width}px`
+                            : col.width,
+                      }
+                    : undefined
+                }
               >
                 {col.header}
               </TableHead>
@@ -38,12 +60,24 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
         </TableHeader>
         <TableBody>
           {rows.map((row, idx) => (
-            <TableRow key={rowKey(row, idx)} className="hover:bg-muted/50 border-b border-border">
+            <TableRow
+              key={rowKey(row, idx)}
+              className="hover:bg-muted/50 border-b border-border"
+            >
               {columns.map((col) => (
                 <TableCell
                   key={String(col.key)}
                   className="px-3 py-3 text-xs text-foreground align-top"
-                  style={col.width ? { minWidth: typeof col.width === "number" ? `${col.width}px` : col.width } : undefined}
+                  style={
+                    col.width
+                      ? {
+                          minWidth:
+                            typeof col.width === "number"
+                              ? `${col.width}px`
+                              : col.width,
+                        }
+                      : undefined
+                  }
                 >
                   {col.render ? col.render(row) : (row as any)[col.key]}
                 </TableCell>
@@ -55,5 +89,3 @@ export default function ResultsTable<T>({ columns, rows, rowKey, tableClassName,
     </div>
   );
 }
-
-

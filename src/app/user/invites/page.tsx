@@ -70,8 +70,16 @@ export default function InvitesPage() {
   }, []);
 
   const normalizedEmail = email.trim().toLowerCase();
-  const isExistingMember = normalizedEmail && members.some((m) => (m.email || "").toLowerCase() === normalizedEmail);
-  const isPendingInvite = normalizedEmail && invites.some((i) => (i.email || "").toLowerCase() === normalizedEmail && String(i.status || "").toUpperCase() !== "ACCEPTED");
+  const isExistingMember =
+    normalizedEmail &&
+    members.some((m) => (m.email || "").toLowerCase() === normalizedEmail);
+  const isPendingInvite =
+    normalizedEmail &&
+    invites.some(
+      (i) =>
+        (i.email || "").toLowerCase() === normalizedEmail &&
+        String(i.status || "").toUpperCase() !== "ACCEPTED"
+    );
 
   const sendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +87,10 @@ export default function InvitesPage() {
     setError(null);
     try {
       if (!normalizedEmail) throw new Error("Email required");
-      if (isExistingMember) throw new Error("User is already a member of this workspace");
-      if (isPendingInvite) throw new Error("An invite has already been sent to this email");
+      if (isExistingMember)
+        throw new Error("User is already a member of this workspace");
+      if (isPendingInvite)
+        throw new Error("An invite has already been sent to this email");
       await Api.post("/user/invite", { email });
       setEmail("");
       fetchInvites();
@@ -95,7 +105,9 @@ export default function InvitesPage() {
     setResendingId(tokenOrId);
     setError(null);
     try {
-      await Api.post(`/user/resend-invite?token=${encodeURIComponent(tokenOrId)}`);
+      await Api.post(
+        `/user/resend-invite?token=${encodeURIComponent(tokenOrId)}`
+      );
       await fetchInvites();
     } catch (err: any) {
       setError(err?.message ?? "Failed to resend invite");
@@ -135,9 +147,13 @@ export default function InvitesPage() {
           </button>
         </div>
         {isExistingMember ? (
-          <p className="text-xs text-amber-600">This user is already a member of your workspace.</p>
+          <p className="text-xs text-amber-600">
+            This user is already a member of your workspace.
+          </p>
         ) : isPendingInvite ? (
-          <p className="text-xs text-amber-600">An invite has already been sent to this email.</p>
+          <p className="text-xs text-amber-600">
+            An invite has already been sent to this email.
+          </p>
         ) : null}
       </form>
       {loading ? <p className="text-muted-foreground">Loading...</p> : null}
@@ -156,7 +172,6 @@ export default function InvitesPage() {
                 <tr key={i.id} className="border-t">
                   <td className="px-4 py-3">{i.email}</td>
                   <td className="px-4 py-3">{i.status ?? "pending"}</td>
-                  
                 </tr>
               ))}
               {invites.length === 0 ? (

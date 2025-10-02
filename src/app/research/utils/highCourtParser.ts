@@ -40,7 +40,10 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
     const container = document.createElement("div");
     container.innerHTML = html;
 
-    const getCellAfterLabel = (tableSelector: string, label: string): string => {
+    const getCellAfterLabel = (
+      tableSelector: string,
+      label: string
+    ): string => {
       const table = container.querySelector(tableSelector);
       if (!table) return "";
       const tds = Array.from(table.querySelectorAll("td"));
@@ -55,20 +58,28 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
 
     // Case details table (first table under "Case Details")
     const case_details = {
-      filing_number: getCellAfterLabel(".case_details_table", "Filing Number") || "",
-      filing_date: getCellAfterLabel(".case_details_table", "Filing Date") || "",
+      filing_number:
+        getCellAfterLabel(".case_details_table", "Filing Number") || "",
+      filing_date:
+        getCellAfterLabel(".case_details_table", "Filing Date") || "",
       registration_number:
         getCellAfterLabel(".case_details_table", "Registration Number") || "",
       registration_date:
         getCellAfterLabel(".case_details_table", "Registration Date") || "",
-      cnr_number: (container.querySelector(".case_details_table tr strong")?.textContent || "").trim() || "",
+      cnr_number:
+        (
+          container.querySelector(".case_details_table tr strong")
+            ?.textContent || ""
+        ).trim() || "",
     };
 
     // Case Status table (after "Case Status")
-    const statusTable = Array.from(container.querySelectorAll("table")).find((t) =>
-      /Case Status/i.test(t.previousElementSibling?.textContent || "")
+    const statusTable = Array.from(container.querySelectorAll("table")).find(
+      (t) => /Case Status/i.test(t.previousElementSibling?.textContent || "")
     );
-    const statusRows = statusTable ? Array.from(statusTable.querySelectorAll("tr")) : [];
+    const statusRows = statusTable
+      ? Array.from(statusTable.querySelectorAll("tr"))
+      : [];
     const statusMap: Record<string, string> = {};
     statusRows.forEach((tr) => {
       const cells = tr.querySelectorAll("td");
@@ -90,8 +101,12 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
     };
 
     // Parties and advocates
-    const petitionerSpan = container.querySelector(".Petitioner_Advocate_table");
-    const respondentSpan = container.querySelector(".Respondent_Advocate_table");
+    const petitionerSpan = container.querySelector(
+      ".Petitioner_Advocate_table"
+    );
+    const respondentSpan = container.querySelector(
+      ".Respondent_Advocate_table"
+    );
     const petitioner_and_advocate = petitionerSpan
       ? (petitionerSpan.textContent || "")
           .split(/\n|<br\s*\/?>(?=\s*)/gi as any)
@@ -106,10 +121,11 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
       : [];
 
     // Orders table
-    const ordersHeader = Array.from(container.querySelectorAll("h2")).find((h) =>
-      /Orders/i.test(h.textContent || "")
+    const ordersHeader = Array.from(container.querySelectorAll("h2")).find(
+      (h) => /Orders/i.test(h.textContent || "")
     );
-    const ordersTable = ordersHeader?.parentElement?.nextElementSibling as HTMLTableElement | null;
+    const ordersTable = ordersHeader?.parentElement
+      ?.nextElementSibling as HTMLTableElement | null;
     const orders: ParsedHighCourtDetails["orders"] = [];
     if (ordersTable) {
       const rows = Array.from(ordersTable.querySelectorAll("tr")).slice(1);
@@ -163,5 +179,3 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
     return {};
   }
 }
-
-

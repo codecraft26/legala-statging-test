@@ -13,7 +13,11 @@ interface BreadcrumbsProps {
   onCrumbClick: (index: number) => void;
 }
 
-export default function Breadcrumbs({ path, onHome, onCrumbClick }: BreadcrumbsProps) {
+export default function Breadcrumbs({
+  path,
+  onHome,
+  onCrumbClick,
+}: BreadcrumbsProps) {
   return (
     <div className="flex items-center gap-2 text-sm flex-wrap">
       <button
@@ -37,5 +41,3 @@ export default function Breadcrumbs({ path, onHome, onCrumbClick }: BreadcrumbsP
     </div>
   );
 }
-
-

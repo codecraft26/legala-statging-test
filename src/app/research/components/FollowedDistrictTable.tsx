@@ -57,7 +57,9 @@ export function FollowedDistrictTable({
       header: "Type",
       width: 120,
       render: (row) => {
-        const combo = row.followed?.["Case Type/Case Number/Case Year"] as string | undefined;
+        const combo = row.followed?.["Case Type/Case Number/Case Year"] as
+          | string
+          | undefined;
         const type = combo ? (combo.split("/")[0] || "").trim() : "";
         return <div className="truncate max-w-[110px]">{type}</div>;
       },
@@ -67,7 +69,9 @@ export function FollowedDistrictTable({
       header: "CNR",
       width: 160,
       render: (row) => (
-        <div className="truncate max-w-[150px]">{row.followed?.["View"] ?? ""}</div>
+        <div className="truncate max-w-[150px]">
+          {row.followed?.["View"] ?? ""}
+        </div>
       ),
     },
     {
@@ -75,7 +79,9 @@ export function FollowedDistrictTable({
       header: "Parties",
       width: 300,
       render: (row) => (
-        <div className="truncate max-w-[300px]">{row.followed?.["Petitioner versus Respondent"] ?? ""}</div>
+        <div className="truncate max-w-[300px]">
+          {row.followed?.["Petitioner versus Respondent"] ?? ""}
+        </div>
       ),
     },
     {
@@ -134,5 +140,3 @@ export function FollowedDistrictTable({
     </div>
   );
 }
-
-

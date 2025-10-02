@@ -77,7 +77,9 @@ export const parseHtmlContent = (htmlString: string): any[][] => {
     if (result.length === 0) {
       const textContent = doc.body.textContent?.trim();
       if (textContent) {
-        const lines = textContent.split("\n").filter((line) => line.trim().length > 0);
+        const lines = textContent
+          .split("\n")
+          .filter((line) => line.trim().length > 0);
         if (lines.length > 0) {
           const textTable: any[][] = [];
           lines.forEach((line) => {
@@ -101,7 +103,9 @@ export const parseHtmlContent = (htmlString: string): any[][] => {
     return result;
   } catch (error) {
     console.error("Error parsing HTML:", error);
-    return [[["Error parsing content"], [htmlString.substring(0, 200) + "..."]]];
+    return [
+      [["Error parsing content"], [htmlString.substring(0, 200) + "..."]],
+    ];
   }
 };
 
@@ -115,7 +119,9 @@ export const createSupremeCourtCaseData = (
     const caseData: SupremeCourtCaseData = {};
 
     const caseDetailsSection =
-      (tempDiv.querySelector(".case-details, .main-content, table") as HTMLElement) || tempDiv;
+      (tempDiv.querySelector(
+        ".case-details, .main-content, table"
+      ) as HTMLElement) || tempDiv;
     if (caseDetailsSection) {
       (caseData as any).case_details = {
         success: true,
@@ -129,7 +135,9 @@ export const createSupremeCourtCaseData = (
       "earlier_court_details",
       "tagged_matters",
       "listing_dates",
+      // Recognize both keys for IA content
       "interlocutory_application",
+      "interlocutory_application_documents",
       "court_fees",
       "notices",
       "defects",
@@ -138,6 +146,7 @@ export const createSupremeCourtCaseData = (
       "drop_note",
       "office_report",
       "similarities",
+      "caveat",
     ];
 
     sections.forEach((section) => {
@@ -179,6 +188,16 @@ export const createSupremeCourtCaseData = (
       "tagged_matters",
       "listing_dates",
       "interlocutory_application",
+      "interlocutory_application_documents",
+      "court_fees",
+      "notices",
+      "defects",
+      "judgement_orders",
+      "mention_memo",
+      "drop_note",
+      "office_report",
+      "similarities",
+      "caveat",
     ];
 
     standardTabs.forEach((tab) => {
@@ -217,7 +236,9 @@ export const createSupremeCourtCaseData = (
       } else {
         const textContent = mainDiv.textContent || "";
         if (textContent) {
-          const lines = textContent.split("\n").filter((line) => line.trim().length > 0);
+          const lines = textContent
+            .split("\n")
+            .filter((line) => line.trim().length > 0);
           let structuredHTML = '<div class="case-details-content">';
           lines.forEach((line, index) => {
             const trimmedLine = line.trim();
@@ -257,5 +278,3 @@ export const createSupremeCourtCaseData = (
 };
 
 export type { SupremeCourtCaseData as SupremeCaseData };
-
-

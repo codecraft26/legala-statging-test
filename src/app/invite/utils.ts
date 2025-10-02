@@ -13,5 +13,3 @@ export function validateInvitePassword(password: string): string | null {
   }
   return null;
 }
-
-

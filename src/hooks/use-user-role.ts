@@ -8,7 +8,7 @@ export function useUserRole(user?: { role?: string }) {
 
   useEffect(() => {
     setMounted(true);
-    
+
     try {
       if (typeof window !== "undefined") {
         // Get role from localStorage

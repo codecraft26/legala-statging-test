@@ -10,7 +10,11 @@ type Props = {
   onCreateNewDraft?: () => void;
 };
 
-export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNewDraft }: Props) {
+export default function DraftsList({
+  workspaceId,
+  onLoadDraftContent,
+  onCreateNewDraft,
+}: Props) {
   const drafting = useDraftingList(workspaceId);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const draftDetail = useDraftingDetail(selectedDraftId);
@@ -53,7 +57,11 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
     if (!dateString) return "Unknown";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return (
+        date.toLocaleDateString() +
+        " " +
+        date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      );
     } catch {
       return "Unknown";
     }
@@ -78,10 +86,9 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
           </button>
         </div>
         <p className="text-sm text-gray-600 mt-1">
-          {drafting.isLoading 
-            ? "Loading..." 
-            : `${(drafting.data || []).length} draft${(drafting.data || []).length !== 1 ? "s" : ""} available`
-          }
+          {drafting.isLoading
+            ? "Loading..."
+            : `${(drafting.data || []).length} draft${(drafting.data || []).length !== 1 ? "s" : ""} available`}
         </p>
       </div>
 
@@ -100,7 +107,9 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
           <div className="p-4 text-center pb-32">
             <FileText size={48} className="mx-auto text-gray-300 mb-3" />
             <p className="text-gray-500 text-sm">No drafts found</p>
-            <p className="text-gray-400 text-xs mt-1">Create your first draft to get started</p>
+            <p className="text-gray-400 text-xs mt-1">
+              Create your first draft to get started
+            </p>
           </div>
         ) : (
           <div className="p-2 space-y-1 pb-40">
@@ -123,24 +132,29 @@ export default function DraftsList({ workspaceId, onLoadDraftContent, onCreateNe
                       <div className="flex items-center gap-1">
                         <User size={12} />
                         <span className="truncate">
-                          {draft.user?.name || (draft.user?.email || "").split("@")[0] || "Unknown"}
+                          {draft.user?.name ||
+                            (draft.user?.email || "").split("@")[0] ||
+                            "Unknown"}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock size={12} />
-                        <span>{formatDate(draft.updatedAt || draft.createdAt)}</span>
+                        <span>
+                          {formatDate(draft.updatedAt || draft.createdAt)}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
-                    selectedDraftId === draft.id ? "bg-black" : "bg-gray-300"
-                  }`}></div>
+                  <div
+                    className={`flex-shrink-0 w-2 h-2 rounded-full ${
+                      selectedDraftId === draft.id ? "bg-black" : "bg-gray-300"
+                    }`}
+                  ></div>
                 </div>
               </button>
             ))}
           </div>
         )}
-
       </div>
 
       {/* Static footer with Load Draft */}

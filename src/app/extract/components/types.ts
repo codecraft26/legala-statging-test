@@ -22,5 +22,3 @@ export type Extraction = {
   user?: ExtractionUser | null;
   extraction_result?: ExtractionResult[] | null;
 };
-
-

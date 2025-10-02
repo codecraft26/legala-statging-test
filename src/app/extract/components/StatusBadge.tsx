@@ -23,7 +23,9 @@ export default function StatusBadge({ status }: { status: string }) {
   const config = statusConfig[status] || statusConfig.PENDING;
 
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.className}`}>
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.className}`}
+    >
       {status === "PROCESSING" && (
         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
       )}
@@ -31,5 +33,3 @@ export default function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
-
-

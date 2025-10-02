@@ -63,7 +63,9 @@ export const DraftingApi = {
    * @param request - Drafting request with document IDs, instruction, and workspace
    * @returns Promise with draft response
    */
-  draftFromDocuments: async (request: DraftingRequest): Promise<DraftingResponse> => {
+  draftFromDocuments: async (
+    request: DraftingRequest
+  ): Promise<DraftingResponse> => {
     return Api.post<DraftingResponse>("/drafting", request);
   },
 
@@ -72,7 +74,9 @@ export const DraftingApi = {
    * @param request - Request with name and workspaceId
    * @returns Promise with draft response
    */
-  createEmptyDraft: async (request: CreateEmptyDraftRequest): Promise<CreateEmptyDraftResponse> => {
+  createEmptyDraft: async (
+    request: CreateEmptyDraftRequest
+  ): Promise<CreateEmptyDraftResponse> => {
     return Api.post<CreateEmptyDraftResponse>("/drafting/empty", request);
   },
 
@@ -81,9 +85,14 @@ export const DraftingApi = {
    * @param request - Request with draft ID and updated fields
    * @returns Promise with updated draft response
    */
-  updateDraft: async (request: UpdateDraftRequest): Promise<UpdateDraftResponse> => {
+  updateDraft: async (
+    request: UpdateDraftRequest
+  ): Promise<UpdateDraftResponse> => {
     const { id, ...updateData } = request;
-    return Api.patch<UpdateDraftResponse>(`/drafting?id=${encodeURIComponent(id)}`, updateData);
+    return Api.patch<UpdateDraftResponse>(
+      `/drafting?id=${encodeURIComponent(id)}`,
+      updateData
+    );
   },
 
   /**
@@ -101,7 +110,9 @@ export const DraftingApi = {
   ): Promise<any> => {
     return Api.post("/drafting/save-to-document", {
       draftId,
-      fileName: fileName.endsWith(`.${fileFormat}`) ? fileName : `${fileName}.${fileFormat}`,
+      fileName: fileName.endsWith(`.${fileFormat}`)
+        ? fileName
+        : `${fileName}.${fileFormat}`,
       workspaceId,
       fileFormat,
     });

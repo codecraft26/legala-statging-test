@@ -10,7 +10,12 @@ interface SearchBarProps {
   className?: string;
 }
 
-export default function SearchBar({ value, onChange, placeholder = "Search Data...", className }: SearchBarProps) {
+export default function SearchBar({
+  value,
+  onChange,
+  placeholder = "Search Data...",
+  className,
+}: SearchBarProps) {
   return (
     <div className={`relative ${className || ""}`}>
       <input
@@ -26,5 +31,3 @@ export default function SearchBar({ value, onChange, placeholder = "Search Data.
     </div>
   );
 }
-
-

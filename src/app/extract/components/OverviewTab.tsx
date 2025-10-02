@@ -3,23 +3,33 @@ import { Tag, Loader2 } from "lucide-react";
 import StatusBadge from "../components/StatusBadge";
 import type { Extraction } from "./types";
 
-const OverviewTab = memo(function OverviewTab({ extraction }: { extraction: Extraction }) {
+const OverviewTab = memo(function OverviewTab({
+  extraction,
+}: {
+  extraction: Extraction;
+}) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-muted rounded-lg p-4">
           <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
-          <div><StatusBadge status={extraction.status} /></div>
+          <div>
+            <StatusBadge status={extraction.status} />
+          </div>
         </div>
         <div className="bg-muted rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-500 mb-1">Documents</div>
+          <div className="text-sm font-medium text-gray-500 mb-1">
+            Documents
+          </div>
           <div className="text-lg font-semibold">
             {extraction.extraction_result?.length}
           </div>
         </div>
         <div className="bg-muted rounded-lg p-4">
           <div className="text-sm font-medium text-gray-500 mb-1">Usage</div>
-          <div className="text-lg font-semibold">{String(extraction.usage)} tokens</div>
+          <div className="text-lg font-semibold">
+            {String(extraction.usage)} tokens
+          </div>
         </div>
       </div>
 
@@ -49,7 +59,9 @@ const OverviewTab = memo(function OverviewTab({ extraction }: { extraction: Extr
             Instructions
           </h3>
           <div className="bg-muted rounded-lg p-4">
-            <p className="whitespace-pre-wrap text-gray-700">{extraction.instruction}</p>
+            <p className="whitespace-pre-wrap text-gray-700">
+              {extraction.instruction}
+            </p>
           </div>
         </div>
       )}
@@ -71,5 +83,3 @@ const OverviewTab = memo(function OverviewTab({ extraction }: { extraction: Extr
 });
 
 export default OverviewTab;
-
-

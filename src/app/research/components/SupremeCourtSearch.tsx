@@ -46,23 +46,17 @@ export default function SupremeCourtSearch() {
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
 
-  const [searchParams, setSearchParams] = useState<
-    | {
-        party_type: string;
-        party_name: string;
-        year: number;
-        party_status: string;
-      }
-    | null
-  >(null);
+  const [searchParams, setSearchParams] = useState<{
+    party_type: string;
+    party_name: string;
+    year: number;
+    party_status: string;
+  } | null>(null);
   const searchQueryResult = useSupremeByParty(searchParams);
-  const [detailParams, setDetailParams] = useState<
-    | {
-        diary_no: number;
-        diary_year: number;
-      }
-    | null
-  >(null);
+  const [detailParams, setDetailParams] = useState<{
+    diary_no: number;
+    diary_year: number;
+  } | null>(null);
   const detailsQuery = useSupremeDetail(detailParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
@@ -126,16 +120,40 @@ export default function SupremeCourtSearch() {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
       // Normalize API response: handle multiple shapes robustly
-      const payload = data && typeof data === "object" && "data" in data ? (data as any).data : data;
-      const html = (payload && typeof payload === "object")
-        ? ((payload as any).case_details || (payload as any).html || (payload as any).content || (payload as any).data?.case_details)
-        : undefined;
+      const payload =
+        data && typeof data === "object" && "data" in data
+          ? (data as any).data
+          : data;
+      const html =
+        payload && typeof payload === "object"
+          ? (payload as any).case_details ||
+            (payload as any).html ||
+            (payload as any).content ||
+            (payload as any).data?.case_details
+          : undefined;
       let normalized: any = null;
-      if (typeof html === "string") {
+      if (payload && typeof payload === "object") {
+        // Server returned separate sections. Wrap each into the dialog's expected shape.
+        const wrapped: Record<
+          string,
+          { success: boolean; data: { data: string } }
+        > = {};
+        Object.keys(payload as Record<string, unknown>).forEach((key) => {
+          const value: any = (payload as any)[key];
+          if (value == null) return;
+          // Accept raw HTML string or JSON string; otherwise stringify objects safely
+          const content =
+            typeof value === "string" ? value : JSON.stringify(value);
+          wrapped[key] = { success: true, data: { data: content } };
+        });
+        // If nothing was wrapped but we have a single html, fall back to html mode below
+        if (Object.keys(wrapped).length > 0) {
+          normalized = wrapped;
+        }
+      }
+      if (!normalized && typeof html === "string") {
+        // Fallback: single big HTML → auto-split into tabs best-effort
         normalized = createSupremeCourtCaseData(html);
-      } else if (payload && typeof payload === "object") {
-        // If server already returned structured tabs with success flags
-        normalized = payload as any;
       }
       if (normalized) {
         setSelectedCase(normalized);
@@ -162,12 +180,12 @@ export default function SupremeCourtSearch() {
   const handleFollowCase = async (caseData: CaseResult) => {
     const caseId = caseData.diary_number;
     const workspaceId = getCookie("workspaceId");
-    
+
     if (!workspaceId) {
       alert("Please select a workspace to follow cases");
       return;
     }
-    
+
     setFollowLoading(caseId);
 
     try {
@@ -183,9 +201,9 @@ export default function SupremeCourtSearch() {
         const followedData = {
           "Case Number": caseData.case_number || "",
           "Petitioner versus Respondent": `${caseData.petitioner_name || ""} versus ${caseData.respondent_name || ""}`,
-          "View": caseData.diary_number
+          View: caseData.diary_number,
         };
-        
+
         await followMutation.mutateAsync({
           court: "Supreme_Court",
           followed: followedData,
@@ -225,7 +243,9 @@ export default function SupremeCourtSearch() {
                 placeholder="Enter party name"
                 required
               />
-              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Example: Tanishk</div>
+              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+                Example: Tanishk
+              </div>
             </div>
 
             <div>
@@ -290,7 +310,9 @@ export default function SupremeCourtSearch() {
               <button
                 type="submit"
                 className="w-full md:w-auto bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
-                disabled={searchQueryResult.isLoading || searchQueryResult.isFetching}
+                disabled={
+                  searchQueryResult.isLoading || searchQueryResult.isFetching
+                }
               >
                 {searchQueryResult.isLoading || searchQueryResult.isFetching ? (
                   <div className="flex items-center space-x-2">
@@ -315,8 +337,14 @@ export default function SupremeCourtSearch() {
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
-              <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{searchQueryResult.error instanceof Error ? searchQueryResult.error.message : "An error occurred while searching"}</p>
+              <p className="text-red-700 dark:text-red-400 font-medium">
+                Search Error
+              </p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
+                {searchQueryResult.error instanceof Error
+                  ? searchQueryResult.error.message
+                  : "An error occurred while searching"}
+              </p>
               <p className="text-red-500 dark:text-red-300/80 text-xs mt-2">
                 Please check your internet connection and try again. If the
                 problem persists, contact support.
@@ -327,144 +355,220 @@ export default function SupremeCourtSearch() {
       )}
 
       {/* Success Message */}
-      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length > 0 && (
-        <div className="mt-4 p-4 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900 rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
-            <p className="text-green-700 dark:text-emerald-300">
-              Found {filteredResults.length} case
-              {filteredResults.length !== 1 ? "s" : ""} matching your search
-              criteria.
-            </p>
+      {!searchQueryResult.isLoading &&
+        !searchQueryResult.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-4 p-4 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-900 rounded-md">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+              <p className="text-green-700 dark:text-emerald-300">
+                Found {filteredResults.length} case
+                {filteredResults.length !== 1 ? "s" : ""} matching your search
+                criteria.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Results Section */}
-      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length > 0 && (
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-medium">Search Results</h3>
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
-          </div>
+      {!searchQueryResult.isLoading &&
+        !searchQueryResult.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-medium">Search Results</h3>
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            </div>
 
-          {filteredResults.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <div>
-                  <p className="text-yellow-700 font-medium">
-                    No results found
-                  </p>
-                  <p className="text-yellow-600 text-sm mt-1">
-                    {searchQuery
-                      ? "No cases match your search filter."
-                      : "No cases found for your search criteria."}
-                  </p>
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
-                    >
-                      Clear search filter
-                    </button>
-                  )}
+            {filteredResults.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-yellow-700 font-medium">
+                      No results found
+                    </p>
+                    <p className="text-yellow-600 text-sm mt-1">
+                      {searchQuery
+                        ? "No cases match your search filter."
+                        : "No cases found for your search criteria."}
+                    </p>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
+                      >
+                        Clear search filter
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            (() => {
-              const columns: ColumnDef<any>[] = [
-                { key: "serial_number", header: "INDEX NO.", width: 100, render: (r) => (
-                  <span className="text-gray-800 dark:text-zinc-200 font-medium">{r.serial_number || "N/A"}</span>
-                ) },
-                { key: "diary_number", header: "DIARY NUMBER", width: 120, render: (r) => (
-                  <div className="max-w-[120px] truncate" title={r.diary_number || ""}>{r.diary_number || "N/A"}</div>
-                ) },
-                { key: "case_number", header: "CASE NUMBER", width: 120, render: (r) => (
-                  <div className="max-w-[120px] truncate" title={r.case_number || ""}>{r.case_number || "N/A"}</div>
-                ) },
-                { key: "petitioner_name", header: "PETITIONER", width: 200, render: (r) => (
-                  <div className="max-w-[200px] truncate" title={r.petitioner_name || ""}>{r.petitioner_name || "N/A"}</div>
-                ) },
-                { key: "respondent_name", header: "RESPONDENT", width: 200, render: (r) => (
-                  <div className="max-w-[200px] truncate" title={r.respondent_name || ""}>{r.respondent_name || "N/A"}</div>
-                ) },
-                { key: "status", header: "STATUS", width: 100, render: (r) => (<StatusPill status={r.status} />) },
-                { key: "follow", header: "FOLLOW", width: 80, render: (r) => {
-                  const caseId = r.diary_number;
-                  return (
-                    <FollowButton
-                      isFollowing={followedCases.has(caseId)}
-                      loading={followLoading === caseId}
-                      onClick={() => handleFollowCase(r)}
-                      compact
+            ) : (
+              (() => {
+                const columns: ColumnDef<any>[] = [
+                  {
+                    key: "serial_number",
+                    header: "INDEX NO.",
+                    width: 100,
+                    render: (r) => (
+                      <span className="text-gray-800 dark:text-zinc-200 font-medium">
+                        {r.serial_number || "N/A"}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "diary_number",
+                    header: "DIARY NUMBER",
+                    width: 120,
+                    render: (r) => (
+                      <div
+                        className="max-w-[120px] truncate"
+                        title={r.diary_number || ""}
+                      >
+                        {r.diary_number || "N/A"}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "case_number",
+                    header: "CASE NUMBER",
+                    width: 120,
+                    render: (r) => (
+                      <div
+                        className="max-w-[120px] truncate"
+                        title={r.case_number || ""}
+                      >
+                        {r.case_number || "N/A"}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "petitioner_name",
+                    header: "PETITIONER",
+                    width: 200,
+                    render: (r) => (
+                      <div
+                        className="max-w-[200px] truncate"
+                        title={r.petitioner_name || ""}
+                      >
+                        {r.petitioner_name || "N/A"}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "respondent_name",
+                    header: "RESPONDENT",
+                    width: 200,
+                    render: (r) => (
+                      <div
+                        className="max-w-[200px] truncate"
+                        title={r.respondent_name || ""}
+                      >
+                        {r.respondent_name || "N/A"}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "status",
+                    header: "STATUS",
+                    width: 100,
+                    render: (r) => <StatusPill status={r.status} />,
+                  },
+                  {
+                    key: "follow",
+                    header: "FOLLOW",
+                    width: 80,
+                    render: (r) => {
+                      const caseId = r.diary_number;
+                      return (
+                        <FollowButton
+                          isFollowing={followedCases.has(caseId)}
+                          loading={followLoading === caseId}
+                          onClick={() => handleFollowCase(r)}
+                          compact
+                        />
+                      );
+                    },
+                  },
+                  {
+                    key: "actions",
+                    header: "ACTIONS",
+                    width: 100,
+                    render: (r) => {
+                      const caseId = r.diary_number;
+                      return (
+                        <button
+                          className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-black rounded hover:bg-gray-800 transition-colors"
+                          onClick={() => handleViewDetails(r)}
+                          disabled={detailsLoading === caseId}
+                        >
+                          {detailsLoading === caseId ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Eye className="w-3 h-3" />
+                              <span className="hidden sm:inline">Details</span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    },
+                  },
+                ];
+                return (
+                  <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
+                    <ResultsTable
+                      columns={columns}
+                      rows={filteredResults}
+                      rowKey={(r) => r.diary_number}
                     />
-                  );
-                } },
-                { key: "actions", header: "ACTIONS", width: 100, render: (r) => {
-                  const caseId = r.diary_number;
-                  return (
-                    <button
-                      className="flex items-center justify-center space-x-1 px-2 py-1 text-xs font-medium text-white bg-black rounded hover:bg-gray-800 transition-colors"
-                      onClick={() => handleViewDetails(r)}
-                      disabled={detailsLoading === caseId}
-                    >
-                      {detailsLoading === caseId ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <Eye className="w-3 h-3" />
-                          <span className="hidden sm:inline">Details</span>
-                        </>
-                      )}
-                    </button>
-                  );
-                } },
-              ];
-              return (
-                <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
-                  <ResultsTable columns={columns} rows={filteredResults} rowKey={(r) => r.diary_number} />
-                </div>
-              );
-            })()
-          )}
-        </div>
-      )}
+                  </div>
+                );
+              })()
+            )}
+          </div>
+        )}
 
       {/* No Data Found State */}
-      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length === 0 && partyName && (
-        <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
-          <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="h-8 w-8 text-yellow-600" />
+      {!searchQueryResult.isLoading &&
+        !searchQueryResult.isFetching &&
+        filteredResults.length === 0 &&
+        partyName && (
+          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
+            <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-8 w-8 text-yellow-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
+              No Data Found
+            </h3>
+            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
+              No cases found for party name &quot;{partyName}&quot; in year{" "}
+              {year}. Please verify the party name and search criteria, or try a
+              different search.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
-            No Data Found
-          </h3>
-          <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-            No cases found for party name &quot;{partyName}&quot; in year {year}
-            . Please verify the party name and search criteria, or try a
-            different search.
-          </p>
-        </div>
-      )}
+        )}
 
       {/* No Search Performed State */}
-      {!searchQueryResult.isLoading && !searchQueryResult.isFetching && filteredResults.length === 0 && !partyName && (
-        <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
-          <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-            <Search className="h-8 w-8 text-black" />
+      {!searchQueryResult.isLoading &&
+        !searchQueryResult.isFetching &&
+        filteredResults.length === 0 &&
+        !partyName && (
+          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-8 w-8 text-black" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
+              Search Supreme Court Cases
+            </h3>
+            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
+              Enter a party name and select your search criteria to find Supreme
+              Court cases. Use the example &quot;Tanishk&quot; to test the
+              search functionality.
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
-            Search Supreme Court Cases
-          </h3>
-          <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-            Enter a party name and select your search criteria to find Supreme
-            Court cases. Use the example &quot;Tanishk&quot; to test the search
-            functionality.
-          </p>
-        </div>
-      )}
+        )}
 
       <SupremeCaseDetailsDialog
         open={showCaseDetails}

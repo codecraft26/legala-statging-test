@@ -47,7 +47,9 @@ export function FollowedSupremeTable({
       header: "Index No.",
       width: 100,
       render: (row) => (
-        <span className="text-gray-800 dark:text-zinc-200 font-medium">{row.followed?.["serial_number"] ?? ""}</span>
+        <span className="text-gray-800 dark:text-zinc-200 font-medium">
+          {row.followed?.["serial_number"] ?? ""}
+        </span>
       ),
     },
     {
@@ -55,7 +57,9 @@ export function FollowedSupremeTable({
       header: "Diary Number",
       width: 140,
       render: (row) => (
-        <div className="truncate max-w-[130px]">{row.followed?.["diary_number"] ?? ""}</div>
+        <div className="truncate max-w-[130px]">
+          {row.followed?.["diary_number"] ?? ""}
+        </div>
       ),
     },
     {
@@ -63,7 +67,9 @@ export function FollowedSupremeTable({
       header: "Case Number",
       width: 220,
       render: (row) => (
-        <div className="truncate max-w-[210px]">{row.followed?.["case_number"] ?? ""}</div>
+        <div className="truncate max-w-[210px]">
+          {row.followed?.["case_number"] ?? ""}
+        </div>
       ),
     },
     {
@@ -71,7 +77,9 @@ export function FollowedSupremeTable({
       header: "Petitioner",
       width: 200,
       render: (row) => (
-        <div className="truncate max-w-[190px]">{row.followed?.["petitioner_name"] ?? ""}</div>
+        <div className="truncate max-w-[190px]">
+          {row.followed?.["petitioner_name"] ?? ""}
+        </div>
       ),
     },
     {
@@ -79,7 +87,9 @@ export function FollowedSupremeTable({
       header: "Respondent",
       width: 200,
       render: (row) => (
-        <div className="truncate max-w-[190px]">{row.followed?.["respondent_name"] ?? ""}</div>
+        <div className="truncate max-w-[190px]">
+          {row.followed?.["respondent_name"] ?? ""}
+        </div>
       ),
     },
     {
@@ -138,5 +148,3 @@ export function FollowedSupremeTable({
     </div>
   );
 }
-
-

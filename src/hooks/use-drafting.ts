@@ -78,7 +78,10 @@ export function useDeleteDrafting(workspaceId?: string | null) {
   });
 }
 
-export type DraftingDetail = DraftingItem & { content?: string; error?: string | null };
+export type DraftingDetail = DraftingItem & {
+  content?: string;
+  error?: string | null;
+};
 
 export function useDraftingDetail(id?: string | null) {
   return useQuery({
@@ -88,15 +91,20 @@ export function useDraftingDetail(id?: string | null) {
       if (!id) return null;
       const base = getApiBaseUrl();
       const token = getCookie("token") || "";
-      const res = await fetch(`${base}/drafting/detail?id=${encodeURIComponent(id)}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `${base}/drafting/detail?id=${encodeURIComponent(id)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: "no-store",
+        }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as { success: boolean; data: DraftingDetail } | DraftingDetail;
+      const json = (await res.json()) as
+        | { success: boolean; data: DraftingDetail }
+        | DraftingDetail;
       return (json as any)?.data ?? (json as DraftingDetail);
     },
     refetchOnWindowFocus: false,
@@ -118,7 +126,9 @@ export type CreateEmptyDraftResponse = {
 export function useCreateEmptyDraft(workspaceId?: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (request: CreateEmptyDraftRequest): Promise<DraftingItem> => {
+    mutationFn: async (
+      request: CreateEmptyDraftRequest
+    ): Promise<DraftingItem> => {
       const base = getApiBaseUrl();
       const token = getCookie("token") || "";
       const res = await fetch(`${base}/drafting/empty`, {
@@ -166,17 +176,20 @@ export function useUpdateDraft(workspaceId?: string | null) {
     mutationFn: async (request: UpdateDraftRequest): Promise<DraftingItem> => {
       const base = getApiBaseUrl();
       const token = getCookie("token") || "";
-      const res = await fetch(`${base}/drafting?id=${encodeURIComponent(request.id)}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          name: request.name,
-          content: request.content,
-        }),
-      });
+      const res = await fetch(
+        `${base}/drafting?id=${encodeURIComponent(request.id)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            name: request.name,
+            content: request.content,
+          }),
+        }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as UpdateDraftResponse;
       return json.data;
@@ -191,12 +204,13 @@ export function useUpdateDraft(workspaceId?: string | null) {
         );
       });
       // Update the detail cache if it exists
-      queryClient.setQueryData(["drafting-detail", updatedDraft.id], updatedDraft);
+      queryClient.setQueryData(
+        ["drafting-detail", updatedDraft.id],
+        updatedDraft
+      );
     },
     onError: (error) => {
       console.error("Error updating draft:", error);
     },
   });
 }
-
-

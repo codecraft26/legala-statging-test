@@ -1,7 +1,13 @@
 "use client";
 
 import React from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { Loader2, Search } from "lucide-react";
 
 interface DistrictSearchFormProps {
@@ -36,16 +42,33 @@ interface DistrictSearchFormProps {
 
 export default function DistrictSearchForm(props: DistrictSearchFormProps) {
   const {
-    stateName, setStateName, states,
-    districtsQueryLoading, districtsQueryError,
-    districtName, setDistrictName, apiDistricts, uniqueDistricts,
-    litigantName, setLitigantName,
-    regYear, setRegYear, years,
-    caseStatus, setCaseStatus,
-    estMenuOpen, setEstMenuOpen,
-    estLoading, estError, estCodeOptions, selectedEstCodes,
-    onToggleEstCode, onSelectAllEstCodes, onClearAllEstCodes,
-    onSubmit, isSearching
+    stateName,
+    setStateName,
+    states,
+    districtsQueryLoading,
+    districtsQueryError,
+    districtName,
+    setDistrictName,
+    apiDistricts,
+    uniqueDistricts,
+    litigantName,
+    setLitigantName,
+    regYear,
+    setRegYear,
+    years,
+    caseStatus,
+    setCaseStatus,
+    estMenuOpen,
+    setEstMenuOpen,
+    estLoading,
+    estError,
+    estCodeOptions,
+    selectedEstCodes,
+    onToggleEstCode,
+    onSelectAllEstCodes,
+    onClearAllEstCodes,
+    onSubmit,
+    isSearching,
   } = props;
 
   return (
@@ -53,7 +76,9 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">State</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              State
+            </label>
             <DropdownMenu>
               <DropdownMenuTrigger className="w-full text-left border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md px-3 py-2">
                 {stateName || "Select state"}
@@ -75,15 +100,23 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">District Name *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              District Name *
+            </label>
             <select
               value={districtName}
               onChange={(e) => setDistrictName(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
               required
-              disabled={districtsQueryLoading || (!!stateName && apiDistricts.length === 0)}
+              disabled={
+                districtsQueryLoading ||
+                (!!stateName && apiDistricts.length === 0)
+              }
             >
-              {(stateName && apiDistricts.length > 0 ? apiDistricts : uniqueDistricts).map((district) => (
+              {(stateName && apiDistricts.length > 0
+                ? apiDistricts
+                : uniqueDistricts
+              ).map((district) => (
                 <option key={district} value={district}>
                   {district.charAt(0).toUpperCase() + district.slice(1)}
                 </option>
@@ -95,7 +128,9 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Litigant Name *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Litigant Name *
+            </label>
             <input
               type="text"
               value={litigantName}
@@ -108,20 +143,26 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Registration Year</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Registration Year
+            </label>
             <select
               value={regYear}
               onChange={(e) => setRegYear(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
             >
               {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Case Status</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Case Status
+            </label>
             <select
               value={caseStatus}
               onChange={(e) => setCaseStatus(e.target.value)}
@@ -134,44 +175,71 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
           </div>
 
           <div className="col-span-2">
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Establishment Code *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Establishment Code *
+            </label>
             <div className="flex gap-2 mb-2">
               <DropdownMenu open={estMenuOpen} onOpenChange={setEstMenuOpen}>
                 <DropdownMenuTrigger className="px-3 py-2 text-sm border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md">
-                  {selectedEstCodes.length > 0 ? `${selectedEstCodes.length} selected` : "Select EST codes"}
+                  {selectedEstCodes.length > 0
+                    ? `${selectedEstCodes.length} selected`
+                    : "Select EST codes"}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-96 max-h-72 overflow-y-auto">
                   {estLoading ? (
                     <div className="flex items-center justify-center py-2 px-2 text-sm text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading EST codes...
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading
+                      EST codes...
                     </div>
                   ) : estError ? (
-                    <div className="py-2 px-2 text-sm text-red-600">Error loading EST codes: {String(estError)}</div>
+                    <div className="py-2 px-2 text-sm text-red-600">
+                      Error loading EST codes: {String(estError)}
+                    </div>
                   ) : estCodeOptions.length > 0 ? (
                     <>
-                      <DropdownMenuItem onSelect={(e)=>e.preventDefault()} onClick={onSelectAllEstCodes} className="text-xs">Select All</DropdownMenuItem>
-                      <DropdownMenuItem onSelect={(e)=>e.preventDefault()} onClick={onClearAllEstCodes} className="text-xs">Clear All</DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={onSelectAllEstCodes}
+                        className="text-xs"
+                      >
+                        Select All
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={onClearAllEstCodes}
+                        className="text-xs"
+                      >
+                        Clear All
+                      </DropdownMenuItem>
                       <div className="h-px my-1 bg-gray-200" />
                       {estCodeOptions.map((option, index) => (
                         <DropdownMenuCheckboxItem
                           key={index}
                           checked={selectedEstCodes.includes(option.code)}
-                          onSelect={(e)=>e.preventDefault()}
+                          onSelect={(e) => e.preventDefault()}
                           onCheckedChange={() => onToggleEstCode(option.code)}
                         >
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium">{option.code}</span>
-                            <span className="text-xs text-gray-500">{option.description}</span>
+                            <span className="text-sm font-medium">
+                              {option.code}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {option.description}
+                            </span>
                           </div>
                         </DropdownMenuCheckboxItem>
                       ))}
                     </>
                   ) : (
-                    <div className="py-2 px-2 text-sm text-gray-500">No EST codes available for {districtName}</div>
+                    <div className="py-2 px-2 text-sm text-gray-500">
+                      No EST codes available for {districtName}
+                    </div>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span className="text-xs text-gray-500 dark:text-zinc-400 self-center">{selectedEstCodes.length} selected</span>
+              <span className="text-xs text-gray-500 dark:text-zinc-400 self-center">
+                {selectedEstCodes.length} selected
+              </span>
             </div>
           </div>
 
@@ -199,5 +267,3 @@ export default function DistrictSearchForm(props: DistrictSearchFormProps) {
     </div>
   );
 }
-
-

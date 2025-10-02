@@ -65,68 +65,34 @@ export default function HighCourtSearch() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const [advocateParams, setAdvocateParams] = useState<
-    | {
-        court_code: number;
-        state_code: number;
-        court_complex_code: number;
-        advocate_name: string;
-        f: "P" | "R" | "Both";
-      }
-    | null
-  >(null);
-  const [filingParams, setFilingParams] = useState<
-    | {
-        court_code: number;
-        state_code: number;
-        court_complex_code: number;
-        case_no: number;
-        rgyear: number;
-      }
-    | null
-  >(null);
-  const [detailParams, setDetailParams] = useState<
-    | {
-        case_no: number;
-        state_code: number;
-        cino: string;
-        court_code: number;
-        national_court_code: string;
-        dist_cd: number;
-      }
-    | null
-  >(null);
+  const [advocateParams, setAdvocateParams] = useState<{
+    court_code: number;
+    state_code: number;
+    court_complex_code: number;
+    advocate_name: string;
+    f: "P" | "R" | "Both";
+  } | null>(null);
+  const [filingParams, setFilingParams] = useState<{
+    court_code: number;
+    state_code: number;
+    court_complex_code: number;
+    case_no: number;
+    rgyear: number;
+  } | null>(null);
+  const [detailParams, setDetailParams] = useState<{
+    case_no: number;
+    state_code: number;
+    cino: string;
+    court_code: number;
+    national_court_code: string;
+    dist_cd: number;
+  } | null>(null);
 
   const advocateQuery = useHighByAdvocate(advocateParams);
   const filingQuery = useHighByFilingNumber(filingParams);
   const detailQuery = useHighDetail(detailParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
-
-  // Handle detail query response
-  React.useEffect(() => {
-    if (!detailParams) return;
-    if (detailQuery.isLoading || detailQuery.isFetching) return;
-    const caseId = String(detailParams.cino || detailParams.case_no);
-    if (detailQuery.error) {
-      console.error("Failed to fetch case details:", detailQuery.error);
-      setDetailsLoading(null);
-      return;
-    }
-    const raw: any = detailQuery.data;
-    if (!raw) return;
-    const normalized = typeof raw?.data === "string"
-      ? parseHighCourtHtml(raw.data)
-      : typeof raw === "string"
-        ? parseHighCourtHtml(raw)
-        : raw;
-    setSelectedCase({
-      ...(currentPageResults.find((r: any) => String(r.cino || r.case_no) === caseId) || {}),
-      details: normalized,
-    });
-    setShowCaseDetails(true);
-    setDetailsLoading(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -206,12 +172,12 @@ export default function HighCourtSearch() {
   const rawResults: HighCourtResult[] = Array.isArray(activeQuery.data)
     ? (activeQuery.data as any)
     : Array.isArray((activeQuery.data as any)?.results)
-    ? ((activeQuery.data as any).results as any)
-    : Array.isArray((activeQuery.data as any)?.data)
-    ? ((activeQuery.data as any).data as any)
-    : Array.isArray((activeQuery.data as any)?.cases)
-    ? ((activeQuery.data as any).cases as any)
-    : [];
+      ? ((activeQuery.data as any).results as any)
+      : Array.isArray((activeQuery.data as any)?.data)
+        ? ((activeQuery.data as any).data as any)
+        : Array.isArray((activeQuery.data as any)?.cases)
+          ? ((activeQuery.data as any).cases as any)
+          : [];
 
   const loading = activeQuery.isLoading || activeQuery.isFetching;
   const error = activeQuery.error as any;
@@ -227,6 +193,41 @@ export default function HighCourtSearch() {
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, total);
   const currentPageResults = filteredResults.slice(startIndex, endIndex);
+
+  // Handle detail query response
+  React.useEffect(() => {
+    if (!detailParams) return;
+    if (detailQuery.isLoading || detailQuery.isFetching) return;
+    const caseId = String(detailParams.cino || detailParams.case_no);
+    if (detailQuery.error) {
+      console.error("Failed to fetch case details:", detailQuery.error);
+      setDetailsLoading(null);
+      return;
+    }
+    const raw: any = detailQuery.data;
+    if (!raw) return;
+    const normalized =
+      typeof raw?.data === "string"
+        ? parseHighCourtHtml(raw.data)
+        : typeof raw === "string"
+          ? parseHighCourtHtml(raw)
+          : raw;
+    setSelectedCase({
+      ...(currentPageResults.find(
+        (r: any) => String(r.cino || r.case_no) === caseId
+      ) || {}),
+      details: normalized,
+    });
+    setShowCaseDetails(true);
+    setDetailsLoading(null);
+  }, [
+    detailQuery.data,
+    detailQuery.error,
+    detailQuery.isLoading,
+    detailQuery.isFetching,
+    detailParams,
+    currentPageResults,
+  ]);
 
   return (
     <div className="p-6">
@@ -410,7 +411,9 @@ export default function HighCourtSearch() {
       {/* Error Display */}
       {error && (
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-700">{error instanceof Error ? error.message : String(error)}</p>
+          <p className="text-red-700">
+            {error instanceof Error ? error.message : String(error)}
+          </p>
         </div>
       )}
 
@@ -419,7 +422,11 @@ export default function HighCourtSearch() {
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-lg font-medium">Search Results</h3>
-            <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search Data..." />
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search Data..."
+            />
           </div>
 
           {filteredResults.length === 0 ? (
@@ -441,22 +448,26 @@ export default function HighCourtSearch() {
               }))}
               isRowFollowed={(r: any) => followedCases.has(r.cino || r.case_no)}
               loadingDetailsId={detailsLoading}
-              onClickDetails={(row: any) => handleViewDetails({
-                case_no: parseInt(row.case_no, 10) || 0,
-                state_code: parseInt(stateCode, 10) || 0,
-                cino: row.cino,
-                court_code: parseInt(courtCode, 10) || 0,
-                national_court_code: "",
-                dist_cd: 0,
-              } as any)}
-              onClickFollow={(row: any) => handleFollowCase({
-                case_no: parseInt(row.case_no, 10) || 0,
-                state_code: parseInt(stateCode, 10) || 0,
-                cino: row.cino,
-                court_code: parseInt(courtCode, 10) || 0,
-                national_court_code: "",
-                dist_cd: 0,
-              } as any)}
+              onClickDetails={(row: any) =>
+                handleViewDetails({
+                  case_no: parseInt(row.case_no, 10) || 0,
+                  state_code: parseInt(stateCode, 10) || 0,
+                  cino: row.cino,
+                  court_code: parseInt(courtCode, 10) || 0,
+                  national_court_code: "",
+                  dist_cd: 0,
+                } as any)
+              }
+              onClickFollow={(row: any) =>
+                handleFollowCase({
+                  case_no: parseInt(row.case_no, 10) || 0,
+                  state_code: parseInt(stateCode, 10) || 0,
+                  cino: row.cino,
+                  court_code: parseInt(courtCode, 10) || 0,
+                  national_court_code: "",
+                  dist_cd: 0,
+                } as any)
+              }
               followLoading={!!followLoading}
             />
           )}
@@ -468,7 +479,10 @@ export default function HighCourtSearch() {
               pageSize={pageSize}
               total={total}
               onPageChange={setPage}
-              onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
             />
           )}
         </div>

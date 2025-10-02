@@ -3,7 +3,11 @@ import { Editor } from "@tiptap/react";
 import { useUpdateDraft } from "@/hooks/use-drafting";
 import { useToast } from "@/components/ui/toast";
 import { DraftingApi } from "@/lib/drafting-api";
-import { DocumentData, DraftFromDocumentsParams, SaveDraftToDocumentParams } from "../types";
+import {
+  DocumentData,
+  DraftFromDocumentsParams,
+  SaveDraftToDocumentParams,
+} from "../types";
 import { debounce, sanitizeHtmlContent } from "../utils";
 
 export const useDocumentOperations = (
@@ -12,7 +16,9 @@ export const useDocumentOperations = (
   variableValues: Record<string, string>,
   variables: any[]
 ) => {
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
+    null
+  );
   const updateDraft = useUpdateDraft(currentWorkspaceId);
   const { showToast } = useToast();
 
@@ -20,8 +26,12 @@ export const useDocumentOperations = (
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const cookieMatch = document.cookie.match(/(?:^|; )workspaceId=([^;]*)/);
-        const workspaceId = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+        const cookieMatch = document.cookie.match(
+          /(?:^|; )workspaceId=([^;]*)/
+        );
+        const workspaceId = cookieMatch
+          ? decodeURIComponent(cookieMatch[1])
+          : null;
         setCurrentWorkspaceId(workspaceId);
       } catch {}
     }
@@ -29,14 +39,15 @@ export const useDocumentOperations = (
 
   // Debounced function to update draft name
   const debouncedUpdateDraftName = useMemo(
-    () => debounce(async (draftId: string, name: string) => {
-      try {
-        await updateDraft.mutateAsync({ id: draftId, name });
-      } catch (error) {
-        console.error('Failed to update draft name:', error);
-        showToast('Failed to update draft name', 'error');
-      }
-    }, 1000),
+    () =>
+      debounce(async (draftId: string, name: string) => {
+        try {
+          await updateDraft.mutateAsync({ id: draftId, name });
+        } catch (error) {
+          console.error("Failed to update draft name:", error);
+          showToast("Failed to update draft name", "error");
+        }
+      }, 1000),
     [updateDraft, showToast]
   );
 

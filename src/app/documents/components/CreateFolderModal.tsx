@@ -11,7 +11,13 @@ interface CreateFolderModalProps {
   onCreate: () => void;
 }
 
-export default function CreateFolderModal({ open, value, onChange, onClose, onCreate }: CreateFolderModalProps) {
+export default function CreateFolderModal({
+  open,
+  value,
+  onChange,
+  onClose,
+  onCreate,
+}: CreateFolderModalProps) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
@@ -30,12 +36,20 @@ export default function CreateFolderModal({ open, value, onChange, onClose, onCr
           className="w-full rounded-md border px-3 py-2 text-sm mb-3"
         />
         <div className="flex items-center justify-end gap-2">
-          <button onClick={onClose} className="rounded-md border px-3 py-2 text-sm">Cancel</button>
-          <button onClick={onCreate} className="rounded-md border px-3 py-2 text-sm hover:bg-accent">Create</button>
+          <button
+            onClick={onClose}
+            className="rounded-md border px-3 py-2 text-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onCreate}
+            className="rounded-md border px-3 py-2 text-sm hover:bg-accent"
+          >
+            Create
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
-

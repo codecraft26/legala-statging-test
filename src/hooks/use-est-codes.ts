@@ -24,8 +24,7 @@ export interface EstCodesResponse {
 }
 
 export function useEstCodes() {
-  const ccBase =
-    process.env.NEXT_PUBLIC_CC_BASE_URL || getBackendBaseUrl();
+  const ccBase = process.env.NEXT_PUBLIC_CC_BASE_URL || getBackendBaseUrl();
 
   const query = useQuery<{ [district: string]: any }, Error>({
     queryKey: ["est-codes", ccBase],

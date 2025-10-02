@@ -2,7 +2,12 @@
 
 import React from "react";
 import { X, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { parseHtmlContent, SupremeCaseData } from "../utils/supreme-parser";
 
@@ -29,7 +34,11 @@ function renderCellContent(cell: any, cellIndex: number) {
     return (
       <span
         className="block whitespace-pre-wrap break-words break-all leading-5"
-        style={{ overflowWrap: "anywhere", wordBreak: "break-word", whiteSpace: "pre-wrap" }}
+        style={{
+          overflowWrap: "anywhere",
+          wordBreak: "break-word",
+          whiteSpace: "pre-wrap",
+        }}
       >
         {cell}
       </span>
@@ -53,42 +62,78 @@ export default function SupremeCaseDetailsDialog({
     if (!open) setActiveTab("case_details");
   }, [open]);
 
-  if (!caseData) return null;
-
-  const availableTabs = Object.keys(caseData).filter((key) => (caseData as any)[key]?.success);
-  if (availableTabs.length === 0) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl p-0">
-          <DialogHeader className="px-4 py-3 border-b">
-            <DialogTitle className="text-base">Supreme Court Case</DialogTitle>
-          </DialogHeader>
-          <div className="p-4 text-sm text-muted-foreground">No content available.</div>
-        </DialogContent>
-      </Dialog>
+  const availableTabs = React.useMemo(() => {
+    if (!caseData) return [];
+    return Object.keys(caseData).filter(
+      (key) => (caseData as any)[key]?.success
     );
-  }
-  const safeActive = availableTabs.includes(activeTab) ? activeTab : availableTabs[0];
-  const tabPayload = (caseData as any)[safeActive]?.data?.data as string | undefined;
+  }, [caseData]);
+
+  const safeActive = React.useMemo(() => {
+    return availableTabs.includes(activeTab) ? activeTab : availableTabs[0];
+  }, [activeTab, availableTabs]);
+
+  const tabPayload = React.useMemo(() => {
+    if (!caseData || !safeActive) return undefined;
+    return (caseData as any)[safeActive]?.data?.data as string | undefined;
+  }, [caseData, safeActive]);
 
   const content: React.ReactNode = React.useMemo(() => {
-    if (typeof tabPayload === "string" && tabPayload.startsWith("{")) {
-      try {
-        const json = JSON.parse(tabPayload);
-        return (
-          <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{JSON.stringify(json, null, 2)}</pre>
-        );
-      } catch {
-        return <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{tabPayload}</pre>;
+    if (!tabPayload) {
+      return (
+        <div className="p-4 text-sm text-muted-foreground">
+          No content available for this section.
+        </div>
+      );
+    }
+
+    if (typeof tabPayload === "string") {
+      // Handle JSON responses
+      if (tabPayload.startsWith("{") || tabPayload.startsWith("[")) {
+        try {
+          const json = JSON.parse(tabPayload);
+          if (json.message === "No records found") {
+            return (
+              <div className="p-4 text-sm text-muted-foreground">
+                No records found for this section.
+              </div>
+            );
+          }
+          return (
+            <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">
+              {JSON.stringify(json, null, 2)}
+            </pre>
+          );
+        } catch {
+          // If JSON parsing fails, treat as regular text
+        }
       }
-    } else if (typeof tabPayload === "string") {
+
+      // Handle HTML content
       const tables = parseHtmlContent(tabPayload);
+      if (
+        tables.length === 0 ||
+        (tables.length === 1 && tables[0].length === 0)
+      ) {
+        return (
+          <div className="p-4 text-sm text-muted-foreground">
+            No structured content available for this section.
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-6">
           {tables.map((table, tableIndex) => (
-            <div key={tableIndex} className="rounded-lg border border-border overflow-hidden">
+            <div
+              key={tableIndex}
+              className="rounded-lg border border-border overflow-hidden"
+            >
               <div className="bg-muted/40 px-4 py-2 border-b border-border">
-                <h3 className="font-medium text-sm">{safeActive.replace(/_/g, " ").toUpperCase()} - Table {tableIndex + 1}</h3>
+                <h3 className="font-medium text-sm">
+                  {safeActive.replace(/_/g, " ").toUpperCase()} - Table{" "}
+                  {tableIndex + 1}
+                </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-full border-collapse table-fixed">
@@ -107,19 +152,27 @@ export default function SupremeCaseDetailsDialog({
                     </thead>
                   )}
                   <tbody>
-                    {table.slice(table[0] ? 1 : 0).map((row: any, rowIndex: number) => (
-                      <tr key={rowIndex} className="odd:bg-background even:bg-muted/20">
-                        {row.map((cell: any, cellIndex: number) => (
-                          <td
-                            key={cellIndex}
-                            className={`border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5 ${cellIndex === 0 ? "w-56 md:w-64 text-muted-foreground" : "w-auto"}`}
-                            style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-                          >
-                            {renderCellContent(cell, cellIndex)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
+                    {table
+                      .slice(table[0] ? 1 : 0)
+                      .map((row: any, rowIndex: number) => (
+                        <tr
+                          key={rowIndex}
+                          className="odd:bg-background even:bg-muted/20"
+                        >
+                          {row.map((cell: any, cellIndex: number) => (
+                            <td
+                              key={cellIndex}
+                              className={`border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5 ${cellIndex === 0 ? "w-56 md:w-64 text-muted-foreground" : "w-auto"}`}
+                              style={{
+                                overflowWrap: "anywhere",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {renderCellContent(cell, cellIndex)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -128,8 +181,30 @@ export default function SupremeCaseDetailsDialog({
         </div>
       );
     }
-    return null;
+
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Unexpected content format for this section.
+      </div>
+    );
   }, [tabPayload, safeActive]);
+
+  if (!caseData) return null;
+
+  if (availableTabs.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-6xl p-0">
+          <DialogHeader className="px-4 py-3 border-b">
+            <DialogTitle className="text-base">Supreme Court Case</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 text-sm text-muted-foreground">
+            No content available.
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -167,5 +242,3 @@ export default function SupremeCaseDetailsDialog({
     </Dialog>
   );
 }
-
-

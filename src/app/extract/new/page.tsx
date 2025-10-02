@@ -4,12 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  FileText,
-  Settings,
-  Sparkles,
-  ChevronLeft,
-} from "lucide-react";
+import { FileText, Settings, Sparkles, ChevronLeft } from "lucide-react";
 import ProgressBar from "../components/ProgressBar";
 import FileUpload from "../components/FileUpload";
 import TagInput from "../components/TagInput";
@@ -25,24 +20,31 @@ export default function NewExtractionPage() {
   const { showToast } = useToast();
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState<string>("");
-  
+
   useEffect(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     setWorkspaceId(id);
     setWorkspaceName("");
   }, []);
 
-  const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName } as any) : null;
+  const currentWorkspace = workspaceId
+    ? ({ id: workspaceId, name: workspaceName } as any)
+    : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<{ file: File }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [currentExtractionId, setCurrentExtractionId] = useState<string | null>(null);
+  const [currentExtractionId, setCurrentExtractionId] = useState<string | null>(
+    null
+  );
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [suggestedName, setSuggestedName] = useState<string>("");
 
-  const { mutate: createExtractionFiles, isPending: isExtractingFiles } = useCreateExtractionFiles();
-  const { mutate: createExtractionDocs, isPending: isExtractingDocs } = useCreateExtractionDocuments();
+  const { mutate: createExtractionFiles, isPending: isExtractingFiles } =
+    useCreateExtractionFiles();
+  const { mutate: createExtractionDocs, isPending: isExtractingDocs } =
+    useCreateExtractionDocuments();
 
   const { data: pollingData } = useExtractionPolling(
     currentExtractionId || undefined,
@@ -57,7 +59,7 @@ export default function NewExtractionPage() {
         setIsLoading(false);
         setCurrentExtractionId(null);
         showToast("Extraction completed successfully!", "success");
-        
+
         // Redirect to the extraction details page
         router.push(`/extract/${pollingData.id}`);
       } else if (pollingData.status === "FAILED") {
@@ -65,7 +67,10 @@ export default function NewExtractionPage() {
         setIsLoading(false);
         setCurrentExtractionId(null);
         console.error("Extraction failed:", pollingData);
-        showToast(`Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`, "error");
+        showToast(
+          `Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`,
+          "error"
+        );
       }
     }
   }, [pollingData, router, showToast]);
@@ -88,7 +93,12 @@ export default function NewExtractionPage() {
     }
   };
 
-  const handleExtractionSubmit = async ({ tags, instructions, agent, name }: any) => {
+  const handleExtractionSubmit = async ({
+    tags,
+    instructions,
+    agent,
+    name,
+  }: any) => {
     if (!currentWorkspace?.id) {
       console.error("No workspace selected");
       return;
@@ -116,7 +126,10 @@ export default function NewExtractionPage() {
               console.error("Extraction failed:", error);
               setIsLoading(false);
               setProgress(0);
-              showToast(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`, "error");
+              showToast(
+                `Failed to start extraction: ${error?.message || "Unknown error occurred"}`,
+                "error"
+              );
             },
           }
         );
@@ -138,7 +151,10 @@ export default function NewExtractionPage() {
               console.error("Extraction failed:", error);
               setIsLoading(false);
               setProgress(0);
-              showToast(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`, "error");
+              showToast(
+                `Failed to start extraction: ${error?.message || "Unknown error occurred"}`,
+                "error"
+              );
             },
           }
         );
@@ -147,7 +163,10 @@ export default function NewExtractionPage() {
       console.error("Error starting extraction:", error);
       setIsLoading(false);
       setProgress(0);
-      showToast(`Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`, "error");
+      showToast(
+        `Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
+        "error"
+      );
     }
   };
 
@@ -174,9 +193,7 @@ export default function NewExtractionPage() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">
-              {currentStep === 1
-                ? "Upload Documents"
-                : "Configure Extraction"}
+              {currentStep === 1 ? "Upload Documents" : "Configure Extraction"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {currentStep === 1
@@ -206,9 +223,8 @@ export default function NewExtractionPage() {
                   Processing Documents
                 </h3>
                 <p className="text-muted-foreground mb-3">
-                  Document{" "}
-                  {Math.round((progress / 100) * (files?.length || 1))} of{" "}
-                  {files?.length || 1}
+                  Document {Math.round((progress / 100) * (files?.length || 1))}{" "}
+                  of {files?.length || 1}
                 </p>
                 <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                   <div
@@ -236,13 +252,14 @@ export default function NewExtractionPage() {
               {currentStep === 2 && (
                 <TagInput
                   initialName={
-                    suggestedName || (
-                      files.length > 0
-                        ? (files.length === 1
-                          ? files[0].file.name.replace(/\.[^/.]+$/, "")
-                          : `${files[0].file.name.replace(/\.[^/.]+$/, "")} + ${files.length - 1} more`)
-                        : (selectedDocumentIds.length > 0 ? `Selected ${selectedDocumentIds.length} document${selectedDocumentIds.length !== 1 ? "s" : ""}` : "")
-                    )
+                    suggestedName ||
+                    (files.length > 0
+                      ? files.length === 1
+                        ? files[0].file.name.replace(/\.[^/.]+$/, "")
+                        : `${files[0].file.name.replace(/\.[^/.]+$/, "")} + ${files.length - 1} more`
+                      : selectedDocumentIds.length > 0
+                        ? `Selected ${selectedDocumentIds.length} document${selectedDocumentIds.length !== 1 ? "s" : ""}`
+                        : "")
                   }
                   onBack={handleStepBack}
                   onNext={handleExtractionSubmit}

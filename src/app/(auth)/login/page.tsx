@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth, useLogin } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie } from "@/lib/utils";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,8 @@ export default function LoginPage() {
 
   // If already logged in, redirect to dashboard
   useEffect(() => {
-    const storedToken = typeof window !== "undefined" ? getCookie("token") : null;
+    const storedToken =
+      typeof window !== "undefined" ? getCookie("token") : null;
     if (token || storedToken) {
       router.replace("/dashboard");
     }
@@ -36,7 +38,9 @@ export default function LoginPage() {
         setCookie("token", token, 7, { sameSite: "lax", secure: true });
       }
       // Trigger auth refetch to populate user in TanStack cache
-      try { await refetch(); } catch {}
+      try {
+        await refetch();
+      } catch {}
       router.replace("/dashboard");
     } catch (err: any) {
       setError(err?.message ?? "Login failed");
@@ -54,11 +58,15 @@ export default function LoginPage() {
             <form onSubmit={onSubmit} className="space-y-5">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
-                <p className="text-muted-foreground text-sm">Login to your account</p>
+                <p className="text-muted-foreground text-sm">
+                  Login to your account
+                </p>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm" htmlFor="email">Email</label>
+                <label className="block text-sm" htmlFor="email">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
@@ -72,7 +80,9 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="block text-sm" htmlFor="password">Password</label>
+                  <label className="block text-sm" htmlFor="password">
+                    Password
+                  </label>
                 </div>
                 <div className="relative">
                   <input
@@ -86,7 +96,9 @@ export default function LoginPage() {
                   />
                   <button
                     type="button"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded hover:bg-zinc-100 text-muted-foreground dark:hover:bg-zinc-900"
                     onClick={() => setShowPassword((v) => !v)}
                   >
@@ -96,7 +108,12 @@ export default function LoginPage() {
               </div>
 
               <div className="flex items-center justify-end pt-1">
-                <a href="/forgot-password" className="text-sm underline hover:text-blue-600 dark:hover:text-blue-400">Forgot password?</a>
+                <a
+                  href="/forgot-password"
+                  className="text-sm underline hover:text-blue-600 dark:hover:text-blue-400"
+                >
+                  Forgot password?
+                </a>
               </div>
 
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -110,13 +127,26 @@ export default function LoginPage() {
               </button>
 
               <div className="text-muted-foreground text-center text-xs">
-                By clicking continue, you agree to our <a className="underline underline-offset-4" href="#">Terms of Service</a> and <a className="underline underline-offset-4" href="#">Privacy Policy</a>.
+                By clicking continue, you agree to our{" "}
+                <a className="underline underline-offset-4" href="#">
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a className="underline underline-offset-4" href="#">
+                  Privacy Policy
+                </a>
+                .
               </div>
             </form>
           </div>
           {/* Right: Visual */}
           <div className="hidden md:block bg-muted relative min-h-[280px]">
-            <img src="/logo.png" alt="Logo" className="absolute inset-0 w-full h-full object-contain p-10 dark:opacity-80" />
+            <Image
+              src="/logo.png"
+              alt="Logo"
+              fill
+              className="object-contain p-10 dark:opacity-80"
+            />
           </div>
         </div>
       </div>

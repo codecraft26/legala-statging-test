@@ -45,13 +45,19 @@ export default function DragDropArea({
             isDragging ? "bg-blue-100" : "bg-white"
           }`}
         >
-          <Upload className={`w-8 h-8 ${isDragging ? "text-blue-500" : "text-gray-400"}`} />
+          <Upload
+            className={`w-8 h-8 ${isDragging ? "text-blue-500" : "text-gray-400"}`}
+          />
         </div>
         <div className="space-y-2">
           <h3 className="text-lg font-medium text-gray-900">
-            {isDragging ? "Drop your files here" : "Choose files or drag & drop"}
+            {isDragging
+              ? "Drop your files here"
+              : "Choose files or drag & drop"}
           </h3>
-          <p className="text-sm text-gray-500">Supports PDF, DOC, DOCX, TXT, XLS, XLSX up to 10MB each</p>
+          <p className="text-sm text-gray-500">
+            Supports PDF, DOC, DOCX, TXT, XLS, XLSX up to 10MB each
+          </p>
         </div>
         <Button type="button" variant="outline" className="mt-6">
           <Plus className="w-4 h-4 mr-2" />
@@ -61,5 +67,3 @@ export default function DragDropArea({
     </div>
   );
 }
-
-

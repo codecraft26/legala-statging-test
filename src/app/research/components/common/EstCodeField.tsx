@@ -16,7 +16,14 @@ interface EstCodeFieldProps {
   errorText?: string | null;
 }
 
-export default function EstCodeField({ value, onChange, options, disabled, helper, errorText }: EstCodeFieldProps) {
+export default function EstCodeField({
+  value,
+  onChange,
+  options,
+  disabled,
+  helper,
+  errorText,
+}: EstCodeFieldProps) {
   return (
     <div className="relative">
       <input
@@ -42,5 +49,3 @@ export default function EstCodeField({ value, onChange, options, disabled, helpe
     </div>
   );
 }
-
-

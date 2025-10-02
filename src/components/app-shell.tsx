@@ -18,7 +18,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuth = AUTH_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`)
+    (p) =>
+      pathname === p ||
+      pathname.startsWith(`${p}/`) ||
+      pathname.startsWith(`${p}?`)
   );
 
   useEffect(() => {
@@ -41,7 +44,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Sidebar />
           </div>
           <div className="flex-1 min-w-0 overflow-x-hidden h-svh overflow-y-auto">
-            <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">{children}</div>
+            <div className="px-3 md:px-6 max-w-full min-w-0 overflow-x-hidden">
+              {children}
+            </div>
           </div>
         </div>
       )}

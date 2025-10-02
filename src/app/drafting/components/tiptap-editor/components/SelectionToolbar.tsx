@@ -33,7 +33,12 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
 
   // Use the refine hook
   const refineMutation = useRefineText();
-  const { mutateAsync: refineText, isPending: isProcessing, error: refineError, data: refineData } = refineMutation;
+  const {
+    mutateAsync: refineText,
+    isPending: isProcessing,
+    error: refineError,
+    data: refineData,
+  } = refineMutation;
 
   useEffect(() => {
     if (!editor) return;
@@ -199,9 +204,17 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       } else if (refined.length < original.length) {
         suggestions.push("Conciseness improvements");
       }
-      if (added.length) suggestions.push(`Added: ${added.slice(0, 6).join(" ")}${added.length > 6 ? " …" : ""}`);
-      if (removed.length) suggestions.push(`Removed: ${removed.slice(0, 6).join(" ")}${removed.length > 6 ? " …" : ""}`);
-      return suggestions.length ? suggestions : ["Reworded/cleaned up phrasing"];
+      if (added.length)
+        suggestions.push(
+          `Added: ${added.slice(0, 6).join(" ")}${added.length > 6 ? " …" : ""}`
+        );
+      if (removed.length)
+        suggestions.push(
+          `Removed: ${removed.slice(0, 6).join(" ")}${removed.length > 6 ? " …" : ""}`
+        );
+      return suggestions.length
+        ? suggestions
+        : ["Reworded/cleaned up phrasing"];
     } catch {
       return ["Refined phrasing and style"];
     }
@@ -222,7 +235,12 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
 
     const from = (range as any).from;
     const to = (range as any).to;
-    editor.chain().focus().deleteRange({ from, to }).insertContent(resultText).run();
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from, to })
+      .insertContent(resultText)
+      .run();
 
     setShowResult(false);
     setIsVisible(false);
@@ -438,21 +456,24 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
                 </button>
               </div>
 
-      {improvements.length > 0 && (
-        <div className="mb-2">
-          <h5 className="text-xs font-medium text-gray-600 mb-1">What changed</h5>
-          <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
-            {improvements.map((item, idx) => (
-              <li key={idx}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+              {improvements.length > 0 && (
+                <div className="mb-2">
+                  <h5 className="text-xs font-medium text-gray-600 mb-1">
+                    What changed
+                  </h5>
+                  <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5">
+                    {improvements.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {refineData?.usage && (
                 <div className="pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500">
-                    Tokens: {refineData.usage.input_tokens} in, {refineData.usage.output_tokens} out
+                    Tokens: {refineData.usage.input_tokens} in,{" "}
+                    {refineData.usage.output_tokens} out
                   </p>
                 </div>
               )}
@@ -466,7 +487,9 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
           <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">
             <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span className="leading-relaxed">
-              {refineError instanceof Error ? refineError.message : "Failed to refine text. Please try again."}
+              {refineError instanceof Error
+                ? refineError.message
+                : "Failed to refine text. Please try again."}
             </span>
           </div>
         </div>
@@ -492,6 +515,9 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
           </div>
         </div>
       )}
-    </div>
-  , typeof document !== "undefined" ? document.body : (null as unknown as Element));
+    </div>,
+    typeof document !== "undefined"
+      ? document.body
+      : (null as unknown as Element)
+  );
 }

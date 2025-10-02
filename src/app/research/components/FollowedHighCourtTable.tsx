@@ -42,46 +42,73 @@ export function FollowedHighCourtTable({
   unfollowPending: boolean;
 }) {
   const columns: ColumnDef<FollowedCase>[] = [
-    { key: "cnr", header: "CNR", width: 160, render: (row) => (
-      <div className="truncate max-w-[150px]">{row.followed?.["cino"] || row.followed?.["CNR"] || ""}</div>
-    ) },
-    { key: "case", header: "Case", width: 240, render: (row) => {
-      const type = row.followed?.["type_name"] || "";
-      const no = row.followed?.["case_no2"] ?? row.followed?.["fil_no"] ?? "";
-      const year = row.followed?.["case_year"] ?? row.followed?.["fil_year"] ?? "";
-      const combo = [type, no, year].filter(Boolean).join("/");
-      return <div className="truncate max-w-[220px]">{combo}</div>;
-    } },
-    { key: "parties", header: "Parties", width: 300, render: (row) => (
-      <div className="truncate max-w-[300px]">{row.followed?.["pet_name"] || ""} {row.followed?.["pet_name"] && row.followed?.["res_name"] ? "vs" : ""} {row.followed?.["res_name"] || ""}</div>
-    ) },
-    { key: "actions", header: "Actions", width: 160, render: (row) => (
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onView(row)}
-          disabled={detailsLoadingId === row.id}
-          className="flex items-center gap-2"
-        >
-          {detailsLoadingId === row.id ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Eye className="h-4 w-4" />
-          )}
-          View
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onUnfollow(row.id)}
-          disabled={unfollowPending}
-          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          <BookmarkX className="h-4 w-4" />
-        </Button>
-      </div>
-    ) },
+    {
+      key: "cnr",
+      header: "CNR",
+      width: 160,
+      render: (row) => (
+        <div className="truncate max-w-[150px]">
+          {row.followed?.["cino"] || row.followed?.["CNR"] || ""}
+        </div>
+      ),
+    },
+    {
+      key: "case",
+      header: "Case",
+      width: 240,
+      render: (row) => {
+        const type = row.followed?.["type_name"] || "";
+        const no = row.followed?.["case_no2"] ?? row.followed?.["fil_no"] ?? "";
+        const year =
+          row.followed?.["case_year"] ?? row.followed?.["fil_year"] ?? "";
+        const combo = [type, no, year].filter(Boolean).join("/");
+        return <div className="truncate max-w-[220px]">{combo}</div>;
+      },
+    },
+    {
+      key: "parties",
+      header: "Parties",
+      width: 300,
+      render: (row) => (
+        <div className="truncate max-w-[300px]">
+          {row.followed?.["pet_name"] || ""}{" "}
+          {row.followed?.["pet_name"] && row.followed?.["res_name"] ? "vs" : ""}{" "}
+          {row.followed?.["res_name"] || ""}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: 160,
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onView(row)}
+            disabled={detailsLoadingId === row.id}
+            className="flex items-center gap-2"
+          >
+            {detailsLoadingId === row.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            View
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onUnfollow(row.id)}
+            disabled={unfollowPending}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <BookmarkX className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -106,5 +133,3 @@ export function FollowedHighCourtTable({
     </div>
   );
 }
-
-

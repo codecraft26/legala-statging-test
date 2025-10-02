@@ -65,7 +65,7 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
     category: "Text",
     run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run(),
   },
-  
+
   // Lists
   {
     title: "Bullet List",
@@ -83,7 +83,7 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
     category: "Lists",
     run: (e) => e.chain().focus().toggleOrderedList().run(),
   },
-  
+
   // Formatting
   {
     title: "Blockquote",
@@ -109,7 +109,7 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
     category: "Formatting",
     run: (e) => e.chain().focus().setHorizontalRule().run(),
   },
-  
+
   // Media & Tables
   {
     title: "Table",
@@ -119,7 +119,10 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
     category: "Media",
     run: (e) => {
       // Insert the table first
-      e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+      e.chain()
+        .focus()
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run();
 
       // After insertion, ensure there's a paragraph after the table so users can click and type outside.
       // Use raf to ensure ProseMirror has committed the table insertion transaction.
@@ -152,10 +155,18 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
                   type: "paragraph",
                   content: [{ type: "text", text: "" }],
                 });
-                e.chain().focus().setTextSelection(afterTablePos + 1).scrollIntoView().run();
+                e.chain()
+                  .focus()
+                  .setTextSelection(afterTablePos + 1)
+                  .scrollIntoView()
+                  .run();
               } else {
                 // If a paragraph already exists, move the cursor there
-                e.chain().focus().setTextSelection(afterTablePos + 1).scrollIntoView().run();
+                e.chain()
+                  .focus()
+                  .setTextSelection(afterTablePos + 1)
+                  .scrollIntoView()
+                  .run();
               }
             } else {
               // Fallback: append a paragraph to the end of the document and move cursor there
@@ -164,7 +175,11 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
                 type: "paragraph",
                 content: [{ type: "text", text: "" }],
               });
-              e.chain().focus().setTextSelection(endPos + 1).scrollIntoView().run();
+              e.chain()
+                .focus()
+                .setTextSelection(endPos + 1)
+                .scrollIntoView()
+                .run();
             }
           } catch {
             // No-op on failure; table insertion already succeeded
@@ -173,7 +188,7 @@ export const getBaseCommands = (editor: Editor): CommandItem[] => [
       });
     },
   },
-  
+
   // Text Alignment
   {
     title: "Align Left",
@@ -288,7 +303,8 @@ export const SlashCommands = Extension.create({
 
             // Create header
             const header = document.createElement("div");
-            header.className = "px-3 py-2 border-b border-gray-100 bg-gray-50/50";
+            header.className =
+              "px-3 py-2 border-b border-gray-100 bg-gray-50/50";
             header.innerHTML = `
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 bg-black rounded-full"></div>
@@ -299,7 +315,8 @@ export const SlashCommands = Extension.create({
 
             // Create scrollable content area
             const contentArea = document.createElement("div");
-            contentArea.className = "max-h-64 overflow-y-auto slash-command-scroll";
+            contentArea.className =
+              "max-h-64 overflow-y-auto slash-command-scroll";
 
             // Group items by category
             const groupedItems = (items || []).reduce((acc: any, item: any) => {
@@ -311,150 +328,177 @@ export const SlashCommands = Extension.create({
             }, {});
 
             // Render grouped items
-            Object.entries(groupedItems).forEach(([category, categoryItems]: [string, any]) => {
-              // Category header
-              const categoryHeader = document.createElement("div");
-              categoryHeader.className = "px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50/30";
-              categoryHeader.textContent = category;
-              contentArea.appendChild(categoryHeader);
+            Object.entries(groupedItems).forEach(
+              ([category, categoryItems]: [string, any]) => {
+                // Category header
+                const categoryHeader = document.createElement("div");
+                categoryHeader.className =
+                  "px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide bg-gray-50/30";
+                categoryHeader.textContent = category;
+                contentArea.appendChild(categoryHeader);
 
-              // Category items
-              categoryItems.forEach((item: any, idx: number) => {
-                const itemIndex = Object.keys(groupedItems).indexOf(category) * 100 + idx;
-                const el = document.createElement("button");
-                el.type = "button";
-                el.className = `
+                // Category items
+                categoryItems.forEach((item: any, idx: number) => {
+                  const itemIndex =
+                    Object.keys(groupedItems).indexOf(category) * 100 + idx;
+                  const el = document.createElement("button");
+                  el.type = "button";
+                  el.className = `
                   w-full flex items-center gap-3 px-3 py-2.5 text-left
                   hover:bg-gray-50 transition-colors duration-150
                   border-l-2 border-transparent hover:border-gray-300
-                  ${selectedIndex === itemIndex ? 'bg-gray-100 border-gray-400' : ''}
+                  ${selectedIndex === itemIndex ? "bg-gray-100 border-gray-400" : ""}
                 `;
-                
-                // Create icon
-                const iconContainer = document.createElement("div");
-                iconContainer.className = "flex-shrink-0 w-5 h-5 text-gray-400";
-                
-                // Create icon SVG (simplified version)
-                const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                iconSvg.setAttribute("width", "16");
-                iconSvg.setAttribute("height", "16");
-                iconSvg.setAttribute("viewBox", "0 0 24 24");
-                iconSvg.setAttribute("fill", "none");
-                iconSvg.setAttribute("stroke", "currentColor");
-                iconSvg.setAttribute("stroke-width", "2");
-                iconSvg.setAttribute("stroke-linecap", "round");
-                iconSvg.setAttribute("stroke-linejoin", "round");
-                
-                // Add appropriate icon path based on item type
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                switch (item.title) {
-                  case "Text":
-                    path.setAttribute("d", "M4 7V4h16v3M9 20h6M12 4v16");
-                    break;
-                  case "Heading 1":
-                  case "Heading 2":
-                  case "Heading 3":
-                    path.setAttribute("d", "M4 12h16M4 6h16M4 18h16");
-                    break;
-                  case "Bullet List":
-                    path.setAttribute("d", "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01");
-                    break;
-                  case "Numbered List":
-                    path.setAttribute("d", "M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18h2v4M4 18h2");
-                    break;
-                  case "Blockquote":
-                    path.setAttribute("d", "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z");
-                    break;
-                  case "Code Block":
-                    path.setAttribute("d", "M16 18l6-6-6-6M8 6l-6 6 6 6");
-                    break;
-                  case "Divider":
-                    path.setAttribute("d", "M5 12h14");
-                    break;
-                  case "Table":
-                    path.setAttribute("d", "M12 3v18M3 12h18M3 6h18v12H3z");
-                    break;
-                  default:
-                    path.setAttribute("d", "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z");
-                }
-                iconSvg.appendChild(path);
-                iconContainer.appendChild(iconSvg);
-                
-                // Create content
-                const content = document.createElement("div");
-                content.className = "flex-1 min-w-0";
-                content.innerHTML = `
+
+                  // Create icon
+                  const iconContainer = document.createElement("div");
+                  iconContainer.className =
+                    "flex-shrink-0 w-5 h-5 text-gray-400";
+
+                  // Create icon SVG (simplified version)
+                  const iconSvg = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "svg"
+                  );
+                  iconSvg.setAttribute("width", "16");
+                  iconSvg.setAttribute("height", "16");
+                  iconSvg.setAttribute("viewBox", "0 0 24 24");
+                  iconSvg.setAttribute("fill", "none");
+                  iconSvg.setAttribute("stroke", "currentColor");
+                  iconSvg.setAttribute("stroke-width", "2");
+                  iconSvg.setAttribute("stroke-linecap", "round");
+                  iconSvg.setAttribute("stroke-linejoin", "round");
+
+                  // Add appropriate icon path based on item type
+                  const path = document.createElementNS(
+                    "http://www.w3.org/2000/svg",
+                    "path"
+                  );
+                  switch (item.title) {
+                    case "Text":
+                      path.setAttribute("d", "M4 7V4h16v3M9 20h6M12 4v16");
+                      break;
+                    case "Heading 1":
+                    case "Heading 2":
+                    case "Heading 3":
+                      path.setAttribute("d", "M4 12h16M4 6h16M4 18h16");
+                      break;
+                    case "Bullet List":
+                      path.setAttribute(
+                        "d",
+                        "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
+                      );
+                      break;
+                    case "Numbered List":
+                      path.setAttribute(
+                        "d",
+                        "M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18h2v4M4 18h2"
+                      );
+                      break;
+                    case "Blockquote":
+                      path.setAttribute(
+                        "d",
+                        "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"
+                      );
+                      break;
+                    case "Code Block":
+                      path.setAttribute("d", "M16 18l6-6-6-6M8 6l-6 6 6 6");
+                      break;
+                    case "Divider":
+                      path.setAttribute("d", "M5 12h14");
+                      break;
+                    case "Table":
+                      path.setAttribute("d", "M12 3v18M3 12h18M3 6h18v12H3z");
+                      break;
+                    default:
+                      path.setAttribute(
+                        "d",
+                        "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      );
+                  }
+                  iconSvg.appendChild(path);
+                  iconContainer.appendChild(iconSvg);
+
+                  // Create content
+                  const content = document.createElement("div");
+                  content.className = "flex-1 min-w-0";
+                  content.innerHTML = `
                   <div class="font-medium text-gray-900 text-sm">${item.title}</div>
                   <div class="text-xs text-gray-500 truncate">${item.description}</div>
                 `;
-                
-                el.appendChild(iconContainer);
-                el.appendChild(content);
-                
-                el.addEventListener("click", () => command(item));
-                el.addEventListener("mouseenter", () => {
-                  // Remove previous selection
-                  const prevSelected = contentArea.querySelector('.bg-gray-100');
-                  if (prevSelected) {
-                    prevSelected.classList.remove('bg-gray-100', 'border-gray-400');
-                    prevSelected.classList.add('border-transparent');
-                  }
-                  // Add selection to current item
-                  el.classList.remove('border-transparent');
-                  el.classList.add('bg-gray-100', 'border-gray-400');
-                  selectedIndex = itemIndex;
+
+                  el.appendChild(iconContainer);
+                  el.appendChild(content);
+
+                  el.addEventListener("click", () => command(item));
+                  el.addEventListener("mouseenter", () => {
+                    // Remove previous selection
+                    const prevSelected =
+                      contentArea.querySelector(".bg-gray-100");
+                    if (prevSelected) {
+                      prevSelected.classList.remove(
+                        "bg-gray-100",
+                        "border-gray-400"
+                      );
+                      prevSelected.classList.add("border-transparent");
+                    }
+                    // Add selection to current item
+                    el.classList.remove("border-transparent");
+                    el.classList.add("bg-gray-100", "border-gray-400");
+                    selectedIndex = itemIndex;
+                  });
+
+                  contentArea.appendChild(el);
+                  if (itemIndex === 0) el.focus();
                 });
-                
-                contentArea.appendChild(el);
-                if (itemIndex === 0) el.focus();
-              });
-            });
+              }
+            );
 
             mainContainer.appendChild(contentArea);
             container.appendChild(mainContainer);
 
             onKeyDown = ({ event }: any) => {
               const totalItems = (items || []).length;
-              
+
               if (event.key === "ArrowDown") {
                 event.preventDefault();
                 selectedIndex = Math.min(selectedIndex + 1, totalItems - 1);
                 updateSelection();
                 return true;
               }
-              
+
               if (event.key === "ArrowUp") {
                 event.preventDefault();
                 selectedIndex = Math.max(selectedIndex - 1, 0);
                 updateSelection();
                 return true;
               }
-              
+
               if (event.key === "Enter") {
                 event.preventDefault();
                 const selectedItem = (items || [])[selectedIndex];
                 if (selectedItem) command(selectedItem);
                 return true;
               }
-              
+
               if (event.key === "Escape") {
                 event.preventDefault();
                 props.editor.commands.focus();
                 return true;
               }
-              
+
               return false;
             };
 
             function updateSelection() {
-              const buttons = contentArea.querySelectorAll('button');
+              const buttons = contentArea.querySelectorAll("button");
               buttons.forEach((btn, idx) => {
-                btn.classList.remove('bg-gray-100', 'border-gray-400');
-                btn.classList.add('border-transparent');
+                btn.classList.remove("bg-gray-100", "border-gray-400");
+                btn.classList.add("border-transparent");
                 if (idx === selectedIndex) {
-                  btn.classList.remove('border-transparent');
-                  btn.classList.add('bg-gray-100', 'border-gray-400');
-                  btn.scrollIntoView({ block: 'nearest' });
+                  btn.classList.remove("border-transparent");
+                  btn.classList.add("bg-gray-100", "border-gray-400");
+                  btn.scrollIntoView({ block: "nearest" });
                 }
               });
             }
@@ -472,5 +516,3 @@ export const SlashCommands = Extension.create({
     ];
   },
 });
-
-
