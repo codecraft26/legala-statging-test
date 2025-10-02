@@ -4,7 +4,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import AutoDraft from "./components/AutoDraft";
 import { Trash2, Plus, Upload } from "lucide-react";
-import { useCreateFolder, useDeleteDocument, useDocuments, useRenameFolder, useUploadDocuments } from "@/hooks/use-documents";
+import {
+  useCreateFolder,
+  useDeleteDocument,
+  useDocuments,
+  useRenameFolder,
+  useUploadDocuments,
+} from "@/hooks/use-documents";
 import Breadcrumbs from "./components/Breadcrumbs";
 import SearchInput from "./components/SearchInput";
 import UploadArea from "./components/UploadArea";
@@ -27,7 +33,8 @@ type Item = {
 
 export default function DocumentsPage() {
   const currentWorkspace = React.useMemo(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     if (!id) return undefined as any;
     return { id, name: "Workspace" } as any;
   }, []);
@@ -60,7 +67,10 @@ export default function DocumentsPage() {
     [items, search]
   );
 
-  const { data: docsData, isLoading: docsLoading } = useDocuments(currentWorkspace?.id, currentFolderId);
+  const { data: docsData, isLoading: docsLoading } = useDocuments(
+    currentWorkspace?.id,
+    currentFolderId
+  );
   useEffect(() => {
     if (docsData) setItems(docsData as any);
   }, [docsData]);
@@ -68,20 +78,21 @@ export default function DocumentsPage() {
   useEffect(() => {
     setFolderPath([]);
     setCurrentFolderId(null);
-
   }, [currentWorkspace]);
-
 
   useEffect(() => {
     if (!currentWorkspace) return;
-
   }, [currentFolderId, currentWorkspace]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0 || !currentWorkspace) return;
     setIsUploading(true);
     try {
-      await uploadMutation.mutateAsync({ files: Array.from(files), workspaceId: currentWorkspace.id, parentId: currentFolderId });
+      await uploadMutation.mutateAsync({
+        files: Array.from(files),
+        workspaceId: currentWorkspace.id,
+        parentId: currentFolderId,
+      });
       setShowUploadArea(false);
     } catch (e) {
       // noop
@@ -95,10 +106,14 @@ export default function DocumentsPage() {
     const name = newFolderName.trim();
     if (!name) return;
     try {
-      await createFolderMutation.mutateAsync({ name, workspaceId: currentWorkspace.id, parentId: currentFolderId });
+      await createFolderMutation.mutateAsync({
+        name,
+        workspaceId: currentWorkspace.id,
+        parentId: currentFolderId,
+      });
       setNewFolderName("");
       setShowCreateFolderModal(false);
-    } catch { }
+    } catch {}
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +142,7 @@ export default function DocumentsPage() {
       return;
     try {
       await deleteMutation.mutateAsync({ id: item.id });
-    } catch { }
+    } catch {}
   };
 
   return (
@@ -203,7 +218,10 @@ export default function DocumentsPage() {
                 items={filtered as any}
                 onFolderOpen={(it: any) => {
                   setCurrentFolderId(it.id);
-                  setFolderPath((p) => [...p, { id: it.id, name: it.filename }]);
+                  setFolderPath((p) => [
+                    ...p,
+                    { id: it.id, name: it.filename },
+                  ]);
                 }}
                 onRenameFolder={(it: any) => {
                   setRenamingId(it.id);
@@ -237,9 +255,12 @@ export default function DocumentsPage() {
         onSubmit={async () => {
           if (!renameValue.trim() || !renamingId) return;
           try {
-            await renameFolderMutation.mutateAsync({ id: renamingId, name: renameValue.trim() });
+            await renameFolderMutation.mutateAsync({
+              id: renamingId,
+              name: renameValue.trim(),
+            });
             setRenamingId(null);
-          } catch { }
+          } catch {}
         }}
       />
 

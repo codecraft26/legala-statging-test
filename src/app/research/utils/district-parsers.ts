@@ -47,7 +47,9 @@ export interface ParsedCaseDetails {
   }>;
 }
 
-export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | null {
+export function parseCaseDetailsHTML(
+  htmlString: string
+): ParsedCaseDetails | null {
   try {
     if (!htmlString || typeof htmlString !== "string") {
       return null;
@@ -59,21 +61,24 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
     const courtNameElement = tempDiv.querySelector("h2");
     const courtName = courtNameElement?.textContent?.trim() || "Civil Court";
 
-    const caseDetailsCaption = Array.from(tempDiv.querySelectorAll("caption")).find((caption) =>
-      caption.textContent?.includes("Case Details")
-    );
-    const caseDetailsTable = caseDetailsCaption?.parentElement?.querySelector("tbody tr");
+    const caseDetailsCaption = Array.from(
+      tempDiv.querySelectorAll("caption")
+    ).find((caption) => caption.textContent?.includes("Case Details"));
+    const caseDetailsTable =
+      caseDetailsCaption?.parentElement?.querySelector("tbody tr");
     const caseInfo = {
       caseType: caseDetailsTable?.children[0]?.textContent?.trim() || "",
       filingNumber: caseDetailsTable?.children[1]?.textContent?.trim() || "",
       filingDate: caseDetailsTable?.children[2]?.textContent?.trim() || "",
-      registrationNumber: caseDetailsTable?.children[3]?.textContent?.trim() || "",
-      registrationDate: caseDetailsTable?.children[4]?.textContent?.trim() || "",
+      registrationNumber:
+        caseDetailsTable?.children[3]?.textContent?.trim() || "",
+      registrationDate:
+        caseDetailsTable?.children[4]?.textContent?.trim() || "",
       cnrNumber: caseDetailsTable?.children[5]?.textContent?.trim() || "",
     };
 
-    const statusCaption = Array.from(tempDiv.querySelectorAll("caption")).find((caption) =>
-      caption.textContent?.includes("Case Status")
+    const statusCaption = Array.from(tempDiv.querySelectorAll("caption")).find(
+      (caption) => caption.textContent?.includes("Case Status")
     );
     const statusTable = statusCaption?.parentElement?.querySelector("tbody tr");
     const caseStatus = {
@@ -87,8 +92,8 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
     const petitioners: Array<{ name: string; advocate?: string }> = [];
     const respondents: Array<{ name: string; advocate?: string }> = [];
 
-    const petitionerHeading = Array.from(tempDiv.querySelectorAll("h5")).find((h5) =>
-      h5.textContent?.includes("Petitioner")
+    const petitionerHeading = Array.from(tempDiv.querySelectorAll("h5")).find(
+      (h5) => h5.textContent?.includes("Petitioner")
     );
     if (petitionerHeading) {
       const petitionerSection = petitionerHeading.nextElementSibling;
@@ -107,8 +112,8 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
       }
     }
 
-    const respondentHeading = Array.from(tempDiv.querySelectorAll("h5")).find((h5) =>
-      h5.textContent?.includes("Respondent")
+    const respondentHeading = Array.from(tempDiv.querySelectorAll("h5")).find(
+      (h5) => h5.textContent?.includes("Respondent")
     );
     if (respondentHeading) {
       const respondentSection = respondentHeading.nextElementSibling;
@@ -125,8 +130,8 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
     }
 
     const acts: Array<{ act: string; sections: string }> = [];
-    const actsCaption = Array.from(tempDiv.querySelectorAll("caption")).find((caption) =>
-      caption.textContent?.includes("Acts")
+    const actsCaption = Array.from(tempDiv.querySelectorAll("caption")).find(
+      (caption) => caption.textContent?.includes("Acts")
     );
     if (actsCaption) {
       const actsTable = actsCaption.parentElement?.querySelector("tbody");
@@ -147,21 +152,29 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
       hearingDate: string;
       purposeOfHearing: string;
     }> = [];
-    const historyCaption = Array.from(tempDiv.querySelectorAll("caption")).find((caption) =>
-      caption.textContent?.includes("Case History")
+    const historyCaption = Array.from(tempDiv.querySelectorAll("caption")).find(
+      (caption) => caption.textContent?.includes("Case History")
     );
     if (historyCaption) {
       const historyTable = historyCaption.parentElement?.querySelector("tbody");
       if (historyTable) {
         const historyRows = historyTable.querySelectorAll("tr");
         historyRows.forEach((row) => {
-          const registrationNumber = (row.children[0]?.textContent || "").trim();
+          const registrationNumber = (
+            row.children[0]?.textContent || ""
+          ).trim();
           const judge = (row.children[1]?.textContent || "").trim();
           const businessOnDate = (row.children[2]?.textContent || "").trim();
           const hearingDate = (row.children[3]?.textContent || "").trim();
           const purposeOfHearing = (row.children[4]?.textContent || "").trim();
           if (registrationNumber) {
-            caseHistory.push({ registrationNumber, judge, businessOnDate, hearingDate, purposeOfHearing });
+            caseHistory.push({
+              registrationNumber,
+              judge,
+              businessOnDate,
+              hearingDate,
+              purposeOfHearing,
+            });
           }
         });
       }
@@ -174,8 +187,8 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
       partyName: string;
       issuedProcess: string;
     }> = [];
-    const processCaption = Array.from(tempDiv.querySelectorAll("caption")).find((caption) =>
-      caption.textContent?.includes("Process Details")
+    const processCaption = Array.from(tempDiv.querySelectorAll("caption")).find(
+      (caption) => caption.textContent?.includes("Process Details")
     );
     if (processCaption) {
       const processTable = processCaption.parentElement?.querySelector("tbody");
@@ -187,12 +200,27 @@ export function parseCaseDetailsHTML(htmlString: string): ParsedCaseDetails | nu
           const processTitle = (row.children[2]?.textContent || "").trim();
           const partyName = (row.children[3]?.textContent || "").trim();
           const issuedProcess = (row.children[4]?.textContent || "").trim();
-          if (processId) processDetails.push({ processId, processDate, processTitle, partyName, issuedProcess });
+          if (processId)
+            processDetails.push({
+              processId,
+              processDate,
+              processTitle,
+              partyName,
+              issuedProcess,
+            });
         });
       }
     }
 
-    return { courtName, caseInfo, caseStatus, parties: { petitioners, respondents }, acts, caseHistory, processDetails };
+    return {
+      courtName,
+      caseInfo,
+      caseStatus,
+      parties: { petitioners, respondents },
+      acts,
+      caseHistory,
+      processDetails,
+    };
   } catch {
     return null;
   }
@@ -238,7 +266,9 @@ export function parseDistrictCourtHTML(
             let respondent = "";
             if (partyParts.length >= 2) {
               petitioner = (partyParts[0] || "").replace(/<[^>]*>/g, "").trim();
-              const respondentPart = (partyParts[1] || "").replace(/<[^>]*>/g, "").trim();
+              const respondentPart = (partyParts[1] || "")
+                .replace(/<[^>]*>/g, "")
+                .trim();
               if (respondentPart.toLowerCase().includes("versus")) {
                 respondent = respondentPart.split("versus")[1]?.trim() || "";
               } else {
@@ -277,5 +307,3 @@ export function parseDistrictCourtHTML(
   }
   return courtResults;
 }
-
-

@@ -1,4 +1,4 @@
- export interface RefineRequest {
+export interface RefineRequest {
   text: string;
   instruction: string;
 }
@@ -51,7 +51,12 @@ export class RefineApi {
       const data = result?.data ?? result;
       return {
         refined_text:
-          data?.refined_text || data?.text || data?.content || result?.refined_text || result?.text || result?.content,
+          data?.refined_text ||
+          data?.text ||
+          data?.content ||
+          result?.refined_text ||
+          result?.text ||
+          result?.content,
         usage: data?.usage || result?.usage || null,
       };
     } catch (error) {

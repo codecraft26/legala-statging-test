@@ -20,7 +20,11 @@ import { useUserRole } from "@/hooks/use-user-role";
 import { getCookie } from "@/lib/utils";
 import WorkspaceSelector from "./workspace-selector";
 import { UserDropdown } from "./user-dropdown";
-import { SIDEBAR_WIDTHS, NAVIGATION_ITEMS, OWNER_ONLY_ITEMS } from "./sidebar-constants";
+import {
+  SIDEBAR_WIDTHS,
+  NAVIGATION_ITEMS,
+  OWNER_ONLY_ITEMS,
+} from "./sidebar-constants";
 
 // Icon mapping for navigation items
 const iconMap = {
@@ -47,7 +51,7 @@ const NavItem = ({
   const pathname = usePathname();
   const active = pathname === href;
   const IconComponent = iconMap[iconName];
-  
+
   return (
     <Link
       href={href}
@@ -65,13 +69,11 @@ const NavItem = ({
   );
 };
 
-
-
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
   const { isOwner, mounted } = useUserRole(user);
-  
+
   const isAuthed = Boolean(
     user || (typeof window !== "undefined" && getCookie("token"))
   );
@@ -99,7 +101,11 @@ export default function Sidebar() {
           onClick={() => setCollapsed((v) => !v)}
           className="rounded-md border p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
         >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {collapsed ? (
+            <PanelLeftOpen size={16} />
+          ) : (
+            <PanelLeftClose size={16} />
+          )}
         </button>
       </div>
 
@@ -120,16 +126,17 @@ export default function Sidebar() {
             label={item.label}
           />
         ))}
-        
-        {isOwner && OWNER_ONLY_ITEMS.map((item) => (
-          <NavItem
-            key={item.href}
-            collapsed={collapsed}
-            href={item.href}
-            iconName={item.iconName as keyof typeof iconMap}
-            label={item.label}
-          />
-        ))}
+
+        {isOwner &&
+          OWNER_ONLY_ITEMS.map((item) => (
+            <NavItem
+              key={item.href}
+              collapsed={collapsed}
+              href={item.href}
+              iconName={item.iconName as keyof typeof iconMap}
+              label={item.label}
+            />
+          ))}
       </nav>
 
       <div className="mt-auto pt-4">

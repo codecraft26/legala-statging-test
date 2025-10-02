@@ -16,7 +16,11 @@ export default function SelectionRefineMenu({ editor }: Props) {
 
   const hasSelection = editor?.state.selection && !editor.state.selection.empty;
   const refineMutation = useRefineText();
-  const { mutateAsync: refineText, isPending: loading, error: refineError } = refineMutation;
+  const {
+    mutateAsync: refineText,
+    isPending: loading,
+    error: refineError,
+  } = refineMutation;
 
   const handleRefine = async () => {
     try {
@@ -48,7 +52,12 @@ export default function SelectionRefineMenu({ editor }: Props) {
   const replaceSelection = () => {
     if (!result) return;
     const { from, to } = editor.state.selection;
-    editor.chain().focus().deleteRange({ from, to }).insertContent(result).run();
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from, to })
+      .insertContent(result)
+      .run();
     setResult(null);
   };
 
@@ -81,7 +90,9 @@ export default function SelectionRefineMenu({ editor }: Props) {
         <div className="mt-2 rounded-md border bg-white p-2 shadow-md max-w-[420px]">
           {refineError ? (
             <div className="text-xs text-red-600">
-              {refineError instanceof Error ? refineError.message : "Refine failed"}
+              {refineError instanceof Error
+                ? refineError.message
+                : "Refine failed"}
             </div>
           ) : (
             <div className="space-y-2">
@@ -108,5 +119,3 @@ export default function SelectionRefineMenu({ editor }: Props) {
     </BubbleMenu>
   );
 }
-
-

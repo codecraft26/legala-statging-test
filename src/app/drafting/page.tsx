@@ -11,20 +11,27 @@ export default function DraftingPage() {
   const queryClient = useQueryClient();
   const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = React.useState<string>("");
-  const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(null);
+  const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(
+    null
+  );
   const [documentTitle, setDocumentTitle] = React.useState<string>("New Draft");
-  const [editorContentRef, setEditorContentRef] = React.useState<(() => string) | null>(null);
+  const [editorContentRef, setEditorContentRef] = React.useState<
+    (() => string) | null
+  >(null);
 
   const createEmptyDraft = useCreateEmptyDraft(workspaceId);
   const updateDraft = useUpdateDraft(workspaceId);
 
   React.useEffect(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     setWorkspaceId(id);
     setWorkspaceName("");
   }, []);
 
-  const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName || "" } as any) : null;
+  const currentWorkspace = workspaceId
+    ? ({ id: workspaceId, name: workspaceName || "" } as any)
+    : null;
 
   const { showToast } = useToast();
 
@@ -45,7 +52,9 @@ export default function DraftingPage() {
         });
         // Ensure list refreshes
         if (workspaceId) {
-          queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["drafting", workspaceId],
+          });
         }
         showToast("Draft updated successfully!", "success");
       } else {
@@ -57,10 +66,12 @@ export default function DraftingPage() {
         setCurrentDraftId(result.id);
         // Ensure list shows new draft immediately
         if (workspaceId) {
-          queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+          queryClient.invalidateQueries({
+            queryKey: ["drafting", workspaceId],
+          });
         }
         showToast("Draft created successfully!", "success");
-        
+
         // If there's content in the editor, update the draft with it
         const content = editorContentRef ? editorContentRef() : "";
         if (content && content.trim() !== "" && content !== "<p></p>") {
@@ -69,7 +80,9 @@ export default function DraftingPage() {
             content: content,
           });
           if (workspaceId) {
-            queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+            queryClient.invalidateQueries({
+              queryKey: ["drafting", workspaceId],
+            });
           }
         }
       }
@@ -83,14 +96,17 @@ export default function DraftingPage() {
     setDocumentTitle(title);
   }, []);
 
-  const handleEditorContentChange = useCallback((getContentFn: () => string) => {
-    setEditorContentRef(() => getContentFn);
-  }, []);
+  const handleEditorContentChange = useCallback(
+    (getContentFn: () => string) => {
+      setEditorContentRef(() => getContentFn);
+    },
+    []
+  );
 
   return (
     <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       <div className="flex-1 overflow-hidden">
-        <TiptapEditor 
+        <TiptapEditor
           onDocumentTitleChange={handleDocumentTitleChange}
           onEditorContentChange={handleEditorContentChange}
           currentDraftId={currentDraftId}

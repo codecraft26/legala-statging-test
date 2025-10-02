@@ -18,43 +18,44 @@ export function useRefineText() {
 export function useRefineTextStream() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
-  const [usage, setUsage] = useState<{ input_tokens: number; output_tokens: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    input_tokens: number;
+    output_tokens: number;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const refineTextStream = useCallback(
-    async (request: RefineRequest) => {
-      try {
-        setIsStreaming(true);
-        setError(null);
-        setStreamedContent("");
-        setUsage(null);
+  const refineTextStream = useCallback(async (request: RefineRequest) => {
+    try {
+      setIsStreaming(true);
+      setError(null);
+      setStreamedContent("");
+      setUsage(null);
 
-        // Create abort controller for cancellation
-        abortControllerRef.current = new AbortController();
+      // Create abort controller for cancellation
+      abortControllerRef.current = new AbortController();
 
-        const result = await RefineApi.refineTextStream(
-          request,
-          (content) => {
-            setStreamedContent(content);
-          },
-          (usageData) => {
-            setUsage(usageData);
-          }
-        );
+      const result = await RefineApi.refineTextStream(
+        request,
+        (content) => {
+          setStreamedContent(content);
+        },
+        (usageData) => {
+          setUsage(usageData);
+        }
+      );
 
-        return result;
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to refine text";
-        setError(errorMessage);
-        throw err;
-      } finally {
-        setIsStreaming(false);
-        abortControllerRef.current = null;
-      }
-    },
-    []
-  );
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to refine text";
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setIsStreaming(false);
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   const cancelStream = useCallback(() => {
     if (abortControllerRef.current) {
@@ -117,7 +118,10 @@ export function useRefineWithState() {
   const [refinedText, setRefinedText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [usage, setUsage] = useState<{ input_tokens: number; output_tokens: number } | null>(null);
+  const [usage, setUsage] = useState<{
+    input_tokens: number;
+    output_tokens: number;
+  } | null>(null);
 
   const refine = useRefineText();
 
@@ -144,7 +148,8 @@ export function useRefineWithState() {
         setRefinedText(result.refined_text || "");
         setUsage(result.usage || null);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to refine text";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to refine text";
         setError(errorMessage);
       } finally {
         setIsProcessing(false);

@@ -2,7 +2,14 @@
 
 import React, { useState } from "react";
 import { X, ExternalLink } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import FollowButton from "./FollowButton";
 import StatusPill from "./StatusPill";
 import ResultsTable, { ColumnDef } from "./ResultsTable";
@@ -217,30 +224,52 @@ export default function HighCourtCaseDetailsModal({
               <div className="w-full overflow-x-auto border border-border rounded-md bg-card text-card-foreground">
                 {(() => {
                   const columns: ColumnDef<any>[] = [
-                    { key: "order_number", header: "ORDER #", width: 100, render: (r) => r.order_number || "N/A" },
-                    { key: "order_date", header: "DATE", width: 120, render: (r) => formatDate(r.order_date) },
-                    { key: "judge", header: "JUDGE", width: 220, render: (r) => r.judge || "N/A" },
-                    { key: "order_details", header: "LINK", width: 140, render: (r) => (
-                      r.order_details ? (
-                        <a
-                          href={r.order_details}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center space-x-1 text-black hover:text-gray-700 text-sm"
-                        >
-                          <span>View Order</span>
-                          <ExternalLink size={14} />
-                        </a>
-                      ) : (
-                        <span className="text-sm">N/A</span>
-                      )
-                    ) },
+                    {
+                      key: "order_number",
+                      header: "ORDER #",
+                      width: 100,
+                      render: (r) => r.order_number || "N/A",
+                    },
+                    {
+                      key: "order_date",
+                      header: "DATE",
+                      width: 120,
+                      render: (r) => formatDate(r.order_date),
+                    },
+                    {
+                      key: "judge",
+                      header: "JUDGE",
+                      width: 220,
+                      render: (r) => r.judge || "N/A",
+                    },
+                    {
+                      key: "order_details",
+                      header: "LINK",
+                      width: 140,
+                      render: (r) =>
+                        r.order_details ? (
+                          <a
+                            href={r.order_details}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center space-x-1 text-black hover:text-gray-700 text-sm"
+                          >
+                            <span>View Order</span>
+                            <ExternalLink size={14} />
+                          </a>
+                        ) : (
+                          <span className="text-sm">N/A</span>
+                        ),
+                    },
                   ];
                   return (
                     <ResultsTable
                       columns={columns}
                       rows={details.orders}
-                      rowKey={(row) => row.order_details || `${row.order_number}-${row.order_date}`}
+                      rowKey={(row) =>
+                        row.order_details ||
+                        `${row.order_number}-${row.order_date}`
+                      }
                       tableClassName="min-w-full"
                       headerRowClassName="bg-muted"
                     />
@@ -265,11 +294,36 @@ export default function HighCourtCaseDetailsModal({
               <div className="w-full overflow-x-auto border border-border rounded-md bg-card text-card-foreground">
                 {(() => {
                   const columns: ColumnDef<any>[] = [
-                    { key: "ia_number", header: "IA NUMBER", width: 160, render: (r) => r.ia_number || "N/A" },
-                    { key: "party", header: "PARTY", width: 220, render: (r) => r.party || "N/A" },
-                    { key: "date_of_filing", header: "FILING DATE", width: 140, render: (r) => formatDate(r.date_of_filing) },
-                    { key: "next_date", header: "NEXT DATE", width: 140, render: (r) => formatDate(r.next_date) },
-                    { key: "ia_status", header: "STATUS", width: 160, render: (r) => r.ia_status || "N/A" },
+                    {
+                      key: "ia_number",
+                      header: "IA NUMBER",
+                      width: 160,
+                      render: (r) => r.ia_number || "N/A",
+                    },
+                    {
+                      key: "party",
+                      header: "PARTY",
+                      width: 220,
+                      render: (r) => r.party || "N/A",
+                    },
+                    {
+                      key: "date_of_filing",
+                      header: "FILING DATE",
+                      width: 140,
+                      render: (r) => formatDate(r.date_of_filing),
+                    },
+                    {
+                      key: "next_date",
+                      header: "NEXT DATE",
+                      width: 140,
+                      render: (r) => formatDate(r.next_date),
+                    },
+                    {
+                      key: "ia_status",
+                      header: "STATUS",
+                      width: 160,
+                      render: (r) => r.ia_status || "N/A",
+                    },
                   ];
                   return (
                     <ResultsTable
@@ -305,17 +359,30 @@ export default function HighCourtCaseDetailsModal({
   const availableTabs = ["overview", "parties", "status", "orders", "ia"];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="sticky top-0 bg-card z-10 border-b">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle id="modal-title" className="text-lg">Case Details</CardTitle>
+              <CardTitle id="modal-title" className="text-lg">
+                Case Details
+              </CardTitle>
               <CardDescription className="mt-1">
-                {caseData.details?.case_details?.registration_number || caseData.case_no || "N/A"}
+                {caseData.details?.case_details?.registration_number ||
+                  caseData.case_no ||
+                  "N/A"}
               </CardDescription>
             </div>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close modal">
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Close modal"
+            >
               <X size={18} />
             </button>
           </div>
@@ -328,21 +395,36 @@ export default function HighCourtCaseDetailsModal({
                 {`${caseData.details?.petitioner_and_advocate?.[0]?.split("    ")[0] || "Unknown"} vs. ${caseData.details?.respondent_and_advocate?.[0] || "Unknown"}`}
               </h2>
               <FollowButton
-                isFollowing={followedCases.has(caseData.cino || caseData.case_no)}
+                isFollowing={followedCases.has(
+                  caseData.cino || caseData.case_no
+                )}
                 loading={followMutation.isPending || unfollowMutation.isPending}
                 onClick={() => handleFollowCase(caseData)}
               />
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <span className="text-sm font-medium">
-                CNR: {caseData.details?.case_details?.cnr_number || caseData.cino || "N/A"}
+                CNR:{" "}
+                {caseData.details?.case_details?.cnr_number ||
+                  caseData.cino ||
+                  "N/A"}
               </span>
-              <span className="text-sm mx-2 font-medium text-muted-foreground">|</span>
+              <span className="text-sm mx-2 font-medium text-muted-foreground">
+                |
+              </span>
               <span className="text-sm font-medium">
-                Filed: {formatDate(caseData.details?.case_details?.filing_date) || "N/A"}
+                Filed:{" "}
+                {formatDate(caseData.details?.case_details?.filing_date) ||
+                  "N/A"}
               </span>
-              <span className="text-sm mx-2 font-medium text-muted-foreground">|</span>
-              <StatusPill status={caseData.details?.case_status?.stage_of_case || "PENDING"} />
+              <span className="text-sm mx-2 font-medium text-muted-foreground">
+                |
+              </span>
+              <StatusPill
+                status={
+                  caseData.details?.case_status?.stage_of_case || "PENDING"
+                }
+              />
             </div>
           </div>
 
@@ -364,7 +446,10 @@ export default function HighCourtCaseDetailsModal({
         </CardContent>
 
         <CardFooter className="border-t p-4 flex justify-end space-x-2">
-          <button onClick={onClose} className="bg-muted text-foreground hover:bg-muted/80 px-4 py-2 rounded-md text-sm">
+          <button
+            onClick={onClose}
+            className="bg-muted text-foreground hover:bg-muted/80 px-4 py-2 rounded-md text-sm"
+          >
             Close
           </button>
         </CardFooter>
@@ -372,5 +457,3 @@ export default function HighCourtCaseDetailsModal({
     </div>
   );
 }
-
-

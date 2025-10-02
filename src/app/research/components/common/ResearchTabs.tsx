@@ -14,7 +14,11 @@ interface ResearchTabsProps<T extends string> {
   onChange: (t: T) => void;
 }
 
-export default function ResearchTabs<T extends string>({ tabs, active, onChange }: ResearchTabsProps<T>) {
+export default function ResearchTabs<T extends string>({
+  tabs,
+  active,
+  onChange,
+}: ResearchTabsProps<T>) {
   return (
     <div className="flex gap-2">
       {tabs.map((t) => (
@@ -29,5 +33,3 @@ export default function ResearchTabs<T extends string>({ tabs, active, onChange 
     </div>
   );
 }
-
-

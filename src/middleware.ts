@@ -25,8 +25,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isAuthRoute = AUTH_ROUTES.has(pathname) ||
-    Array.from(AUTH_ROUTES).some((p) => pathname === p || pathname.startsWith(`${p}/`) || pathname.startsWith(`${p}?`));
+  const isAuthRoute =
+    AUTH_ROUTES.has(pathname) ||
+    Array.from(AUTH_ROUTES).some(
+      (p) =>
+        pathname === p ||
+        pathname.startsWith(`${p}/`) ||
+        pathname.startsWith(`${p}?`)
+    );
 
   const token = request.cookies.get("token")?.value;
 
@@ -48,9 +54,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
 };
-
-

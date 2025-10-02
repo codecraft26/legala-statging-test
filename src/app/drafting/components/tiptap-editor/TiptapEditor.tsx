@@ -9,19 +9,18 @@ import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel from "./components/VariablesPanel";
 import DraftsList from "./components/DraftsList";
 import { TiptapEditorProps, VariableDef } from "./types";
-import { 
-  useEditorSetup, 
-  useEditorState, 
-  useVariables, 
-  useDocumentOperations, 
-  useVariableOperations 
+import {
+  useEditorSetup,
+  useEditorState,
+  useVariables,
+  useDocumentOperations,
+  useVariableOperations,
 } from "./hooks";
 import "./styles/EditorStyles.css";
 
-
-export default function TiptapEditor({ 
-  onDocumentTitleChange, 
-  onEditorContentChange, 
+export default function TiptapEditor({
+  onDocumentTitleChange,
+  onEditorContentChange,
   currentDraftId,
   initialTitle,
   onSave,
@@ -29,8 +28,12 @@ export default function TiptapEditor({
   onNewDraft,
 }: TiptapEditorProps = {}) {
   // State management
-  const [documentTitle, setDocumentTitle] = useState(initialTitle || "Untitled Document");
-  const [internalDraftId, setInternalDraftId] = useState<string | null>(currentDraftId || null);
+  const [documentTitle, setDocumentTitle] = useState(
+    initialTitle || "Untitled Document"
+  );
+  const [internalDraftId, setInternalDraftId] = useState<string | null>(
+    currentDraftId || null
+  );
   const [content, setContent] = useState("");
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -39,7 +42,9 @@ export default function TiptapEditor({
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showCustomFontSizeInput, setShowCustomFontSizeInput] = useState(false);
   const [showVariablesPanel, setShowVariablesPanel] = useState(true);
-  const [sidePanelView, setSidePanelView] = useState<"variables" | "drafts">("drafts");
+  const [sidePanelView, setSidePanelView] = useState<"variables" | "drafts">(
+    "drafts"
+  );
 
   // Custom hooks
   const {
@@ -62,14 +67,22 @@ export default function TiptapEditor({
 
   const handleVariableClick = useCallback(
     (variableId: string) => {
-      handleVariableClickBase(variableId, showVariablesPanel, setShowVariablesPanel);
+      handleVariableClickBase(
+        variableId,
+        showVariablesPanel,
+        setShowVariablesPanel
+      );
     },
     [handleVariableClickBase, showVariablesPanel]
   );
 
-  const { editor, contentUpdateTrigger } = useEditorSetup(content, handleVariableClick, variables);
+  const { editor, contentUpdateTrigger } = useEditorSetup(
+    content,
+    handleVariableClick,
+    variables
+  );
   const { editorState, updateEditorState } = useEditorState(editor);
-  
+
   const {
     currentWorkspaceId,
     debouncedUpdateDraftName,
@@ -84,22 +97,22 @@ export default function TiptapEditor({
     handleSaveDraftToDocument,
   } = useDocumentOperations(editor, documentTitle, variableValues, variables);
 
-  const { handleApplyAllVariables, handleInsertPlaceholder } = useVariableOperations(
-    editor,
-    variableValues,
-    placeholderStatus
-  );
+  const { handleApplyAllVariables, handleInsertPlaceholder } =
+    useVariableOperations(editor, variableValues, placeholderStatus);
 
   // Handle document title changes
-  const handleDocumentTitleChange = useCallback((newTitle: string) => {
-    setDocumentTitle(newTitle);
-    
-    // If we have a current draft, update it via API
-    const currentId = internalDraftId || currentDraftId;
-    if (currentId && newTitle.trim()) {
-      debouncedUpdateDraftName(currentId, newTitle.trim());
-    }
-  }, [internalDraftId, currentDraftId, debouncedUpdateDraftName]);
+  const handleDocumentTitleChange = useCallback(
+    (newTitle: string) => {
+      setDocumentTitle(newTitle);
+
+      // If we have a current draft, update it via API
+      const currentId = internalDraftId || currentDraftId;
+      if (currentId && newTitle.trim()) {
+        debouncedUpdateDraftName(currentId, newTitle.trim());
+      }
+    },
+    [internalDraftId, currentDraftId, debouncedUpdateDraftName]
+  );
 
   // Sync internal draft ID with prop
   useEffect(() => {
@@ -118,7 +131,7 @@ export default function TiptapEditor({
   // Callback effects for parent component communication
   const onDocumentTitleChangeRef = useRef(onDocumentTitleChange);
   onDocumentTitleChangeRef.current = onDocumentTitleChange;
-  
+
   useEffect(() => {
     if (onDocumentTitleChangeRef.current) {
       onDocumentTitleChangeRef.current(documentTitle);
@@ -128,7 +141,7 @@ export default function TiptapEditor({
   // Editor content callback effect
   const onEditorContentChangeRef = useRef(onEditorContentChange);
   onEditorContentChangeRef.current = onEditorContentChange;
-  
+
   useEffect(() => {
     if (onEditorContentChangeRef.current && editor) {
       const getContent = () => editor.getHTML();
@@ -143,14 +156,13 @@ export default function TiptapEditor({
         setContent(editor.getHTML());
         updateEditorState();
       };
-      
-      editor.on('update', handleUpdate);
+
+      editor.on("update", handleUpdate);
       return () => {
-        editor.off('update', handleUpdate);
+        editor.off("update", handleUpdate);
       };
     }
   }, [editor, updateEditorState]);
-
 
   if (!editor) return null;
 
@@ -296,7 +308,8 @@ export default function TiptapEditor({
                   try {
                     if (name) setDocumentTitle(name);
                     if (typeof content === "string") {
-                      const safeContent = content.trim() !== "" ? content : "<p></p>";
+                      const safeContent =
+                        content.trim() !== "" ? content : "<p></p>";
                       Promise.resolve().then(() => {
                         setVariables([]);
                         setVariableValues({});
@@ -311,7 +324,10 @@ export default function TiptapEditor({
                       });
                     }
                   } catch (e) {
-                    console.error("Failed to load draft content into editor:", e);
+                    console.error(
+                      "Failed to load draft content into editor:",
+                      e
+                    );
                   }
                 }}
                 onCreateNewDraft={() => {
@@ -322,7 +338,12 @@ export default function TiptapEditor({
                   setPlaceholderStatus({});
                   const safeContent = "<p></p>";
                   setContent(safeContent);
-                  editor?.chain().focus().clearContent().setContent(safeContent, false).run();
+                  editor
+                    ?.chain()
+                    .focus()
+                    .clearContent()
+                    .setContent(safeContent, false)
+                    .run();
                   if (onNewDraft) onNewDraft();
                 }}
               />
@@ -341,8 +362,12 @@ export default function TiptapEditor({
                 onSaveDocument={handleSave}
                 onSaveWithVariablesReplaced={handleSaveWithVariablesReplaced}
                 onPreviewFinal={handlePreviewFinal}
-                onSaveDraftToDocument={(fileName, workspaceId, fileFormat) => 
-                  handleSaveDraftToDocument({ fileName, workspaceId, fileFormat })
+                onSaveDraftToDocument={(fileName, workspaceId, fileFormat) =>
+                  handleSaveDraftToDocument({
+                    fileName,
+                    workspaceId,
+                    fileFormat,
+                  })
                 }
                 onClearAll={handleClearAll}
               />

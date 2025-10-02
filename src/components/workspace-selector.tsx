@@ -29,7 +29,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronDownIcon, PlusIcon, Building2Icon, CheckIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  Building2Icon,
+  CheckIcon,
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
 
@@ -37,7 +42,9 @@ export default function WorkspaceSelector() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isOwner, mounted } = useUserRole(user);
-  const [currentWorkspace, setCurrentWorkspaceState] = useState<Workspace | undefined>(undefined);
+  const [currentWorkspace, setCurrentWorkspaceState] = useState<
+    Workspace | undefined
+  >(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -48,21 +55,38 @@ export default function WorkspaceSelector() {
     queryKey: ["workspaces"],
     queryFn: async () => {
       const res = await Api.get<any>("/workspace", "no-store");
-      const list: Workspace[] = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+      const list: Workspace[] = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : [];
       return list;
     },
   });
 
-  const workspaces = useMemo(() => workspacesQuery.data || [], [workspacesQuery.data]);
+  const workspaces = useMemo(
+    () => workspacesQuery.data || [],
+    [workspacesQuery.data]
+  );
 
   useEffect(() => {
     setLoading(workspacesQuery.isLoading || workspacesQuery.isFetching);
-    setError(workspacesQuery.error ? (workspacesQuery.error as any)?.message ?? "Failed to load workspaces" : null);
-  }, [workspacesQuery.isLoading, workspacesQuery.isFetching, workspacesQuery.error]);
+    setError(
+      workspacesQuery.error
+        ? ((workspacesQuery.error as any)?.message ??
+            "Failed to load workspaces")
+        : null
+    );
+  }, [
+    workspacesQuery.isLoading,
+    workspacesQuery.isFetching,
+    workspacesQuery.error,
+  ]);
 
   useEffect(() => {
     if (!workspaces || workspaces.length === 0) return;
-    const savedId = typeof window !== "undefined" ? getCookie("workspaceId") : null;
+    const savedId =
+      typeof window !== "undefined" ? getCookie("workspaceId") : null;
     if (savedId) {
       const saved = workspaces.find((w) => w.id === savedId);
       if (saved) {
@@ -72,7 +96,10 @@ export default function WorkspaceSelector() {
     }
     // default to first
     setCurrentWorkspaceState(workspaces[0]);
-    setCookie("workspaceId", workspaces[0].id, 30, { sameSite: "lax", secure: true });
+    setCookie("workspaceId", workspaces[0].id, 30, {
+      sameSite: "lax",
+      secure: true,
+    });
   }, [workspaces]);
 
   const handleWorkspaceChange = (workspaceId: string) => {
@@ -81,7 +108,10 @@ export default function WorkspaceSelector() {
     setCurrentWorkspaceState(workspace);
     try {
       if (typeof window !== "undefined") {
-        setCookie("workspaceId", workspaceId, 30, { sameSite: "lax", secure: true });
+        setCookie("workspaceId", workspaceId, 30, {
+          sameSite: "lax",
+          secure: true,
+        });
       }
     } catch {}
     // consumers should rely on cookie + queries; minimal reload for now
@@ -99,7 +129,10 @@ export default function WorkspaceSelector() {
     onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       setCurrentWorkspaceState(created as any);
-      setCookie("workspaceId", (created as any).id, 30, { sameSite: "lax", secure: true });
+      setCookie("workspaceId", (created as any).id, 30, {
+        sameSite: "lax",
+        secure: true,
+      });
       setNewWorkspaceName("");
       setIsDialogOpen(false);
       if (typeof window !== "undefined") {
@@ -159,8 +192,8 @@ export default function WorkspaceSelector() {
               <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400 ml-2" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            className="w-56 bg-white border-gray-200 shadow-lg" 
+          <DropdownMenuContent
+            className="w-56 bg-white border-gray-200 shadow-lg"
             align="start"
             side="bottom"
             sideOffset={4}
@@ -196,9 +229,12 @@ export default function WorkspaceSelector() {
 
         <DialogContent className="sm:max-w-md bg-white">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">Create New Workspace</DialogTitle>
+            <DialogTitle className="text-gray-900">
+              Create New Workspace
+            </DialogTitle>
             <DialogDescription className="text-gray-600">
-              Create a new workspace to organize your projects and collaborate with your team.
+              Create a new workspace to organize your projects and collaborate
+              with your team.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -234,7 +270,9 @@ export default function WorkspaceSelector() {
             </Button>
             <Button
               onClick={handleCreateWorkspace}
-              disabled={!newWorkspaceName.trim() || isCreating || !(mounted && isOwner)}
+              disabled={
+                !newWorkspaceName.trim() || isCreating || !(mounted && isOwner)
+              }
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isCreating ? "Creating..." : "Create Workspace"}

@@ -4,10 +4,12 @@ export type { CreditRenewCycle } from "@/lib/credit-api";
 
 // Query keys for consistent cache management
 export const creditKeys = {
-  all: ['credit'] as const,
-  detail: () => [...creditKeys.all, 'detail'] as const,
-  extraction: (ownerId: string) => [...creditKeys.all, 'extraction', ownerId] as const,
-  research: (ownerId: string) => [...creditKeys.all, 'research', ownerId] as const,
+  all: ["credit"] as const,
+  detail: () => [...creditKeys.all, "detail"] as const,
+  extraction: (ownerId: string) =>
+    [...creditKeys.all, "extraction", ownerId] as const,
+  research: (ownerId: string) =>
+    [...creditKeys.all, "research", ownerId] as const,
 };
 
 // Hook to fetch credit details
@@ -35,14 +37,20 @@ export function useUpdateExtractionCredit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ownerId, payload }: { ownerId: string; payload: UpdateCreditPayload }) => {
+    mutationFn: async ({
+      ownerId,
+      payload,
+    }: {
+      ownerId: string;
+      payload: UpdateCreditPayload;
+    }) => {
       if (!ownerId) throw new Error("ownerId is required");
       return await CreditApi.updateExtraction(ownerId, payload);
     },
     onSuccess: () => {
       // Invalidate and refetch credit detail
       queryClient.invalidateQueries({ queryKey: creditKeys.detail() });
-      queryClient.invalidateQueries({ queryKey: creditKeys.extraction('*') });
+      queryClient.invalidateQueries({ queryKey: creditKeys.extraction("*") });
     },
     onError: (error) => {
       console.error("Failed to update extraction credit:", error);
@@ -55,14 +63,20 @@ export function useUpdateResearchCredit() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ ownerId, payload }: { ownerId: string; payload: UpdateCreditPayload }) => {
+    mutationFn: async ({
+      ownerId,
+      payload,
+    }: {
+      ownerId: string;
+      payload: UpdateCreditPayload;
+    }) => {
       if (!ownerId) throw new Error("ownerId is required");
       return await CreditApi.updateResearch(ownerId, payload);
     },
     onSuccess: () => {
       // Invalidate and refetch credit detail
       queryClient.invalidateQueries({ queryKey: creditKeys.detail() });
-      queryClient.invalidateQueries({ queryKey: creditKeys.research('*') });
+      queryClient.invalidateQueries({ queryKey: creditKeys.research("*") });
     },
     onError: (error) => {
       console.error("Failed to update research credit:", error);
@@ -82,20 +96,18 @@ export function useCredit() {
     isLoading: creditDetail.isLoading,
     isError: creditDetail.isError,
     error: creditDetail.error,
-    
+
     // Mutations
     updateExtraction: updateExtraction.mutateAsync,
     updateResearch: updateResearch.mutateAsync,
-    
+
     // Mutation states
     isUpdatingExtraction: updateExtraction.isPending,
     isUpdatingResearch: updateResearch.isPending,
     updateExtractionError: updateExtraction.error,
     updateResearchError: updateResearch.error,
-    
+
     // Utilities
     refetch: creditDetail.refetch,
   };
 }
-
-

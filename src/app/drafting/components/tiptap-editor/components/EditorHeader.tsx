@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Download, FileDown, FileText, Upload, FileType, Edit2, Save } from "lucide-react";
+import {
+  Download,
+  FileDown,
+  FileText,
+  Upload,
+  FileType,
+  Edit2,
+  Save,
+} from "lucide-react";
 
 type Props = {
   documentTitle: string;
@@ -64,9 +72,9 @@ export default function EditorHeader({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleTitleSave();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       handleTitleCancel();
     }
   };
@@ -74,17 +82,23 @@ export default function EditorHeader({
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (importRef.current && !importRef.current.contains(event.target as Node)) {
+      if (
+        importRef.current &&
+        !importRef.current.contains(event.target as Node)
+      ) {
         setShowImportDropdown(false);
       }
-      if (exportRef.current && !exportRef.current.contains(event.target as Node)) {
+      if (
+        exportRef.current &&
+        !exportRef.current.contains(event.target as Node)
+      ) {
         setShowExportDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -180,7 +194,9 @@ export default function EditorHeader({
             >
               <span className="inline-flex items-center gap-1">
                 <Save size={14} />
-                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+                <span className="hidden sm:inline">
+                  {isSaving ? "Saving..." : "Save"}
+                </span>
                 <span className="sm:hidden">{isSaving ? "..." : ""}</span>
               </span>
             </button>
@@ -190,13 +206,13 @@ export default function EditorHeader({
               title="Import"
               onClick={handleImportClick}
               className={`p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700 ${
-                showImportDropdown ? 'bg-gray-100' : ''
+                showImportDropdown ? "bg-gray-100" : ""
               }`}
             >
               <Upload size={16} />
             </button>
             {showImportDropdown && (
-              <div 
+              <div
                 className="absolute top-full right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-xl z-50 opacity-100 visible transform scale-100 transition-all duration-200 ease-out pointer-events-auto"
                 style={{ zIndex: 9999 }}
                 onMouseDown={(e) => e.stopPropagation()}
@@ -247,13 +263,13 @@ export default function EditorHeader({
               title="Export Options"
               onClick={handleExportClick}
               className={`p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-700 ${
-                showExportDropdown ? 'bg-gray-100' : ''
+                showExportDropdown ? "bg-gray-100" : ""
               }`}
             >
               <Download size={16} />
             </button>
             {showExportDropdown && (
-              <div 
+              <div
                 className="absolute top-full right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 opacity-100 visible transform scale-100 transition-all duration-200 ease-out pointer-events-auto"
                 style={{ zIndex: 9999 }}
                 onMouseDown={(e) => e.stopPropagation()}

@@ -35,11 +35,12 @@ export default function DataView({
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   // Format the data to match expected structure
-  const formattedData = extractedData?.map((item) => ({
-    fileName: item.fileName,
-    extractedData: item.extractedData,
-    usage: item.usage,
-  })) || [];
+  const formattedData =
+    extractedData?.map((item) => ({
+      fileName: item.fileName,
+      extractedData: item.extractedData,
+      usage: item.usage,
+    })) || [];
 
   // Get all unique keys from extracted data
   const allKeys = [

@@ -47,5 +47,3 @@ export const CreditApi = {
     await Api.patch(`/credit/research?${qs}`, payload as any);
   },
 };
-
-

@@ -52,23 +52,23 @@ export function UserDropdown({ collapsed }: UserDropdownProps) {
   const getUserDisplayName = () => {
     if (user?.name) return user.name;
     if (user?.email) return user.email.split("@")[0];
-    
+
     if (mounted && typeof window !== "undefined") {
       const lsUser = JSON.parse(localStorage.getItem("user") || "{}");
       return lsUser.name || lsUser.email?.split("@")[0] || "User";
     }
-    
+
     return "User";
   };
 
   const getUserEmail = () => {
     if (user?.email) return user.email;
-    
+
     if (mounted && typeof window !== "undefined") {
       const lsUser = JSON.parse(localStorage.getItem("user") || "{}");
       return lsUser.email;
     }
-    
+
     return null;
   };
 
@@ -93,7 +93,7 @@ export function UserDropdown({ collapsed }: UserDropdownProps) {
             {initials}
           </div>
         </button>
-        
+
         {userDropdownOpen && (
           <div className="absolute bottom-0 left-full ml-2 w-56 rounded-md border bg-background p-1 shadow-md z-50">
             <DropdownMenuItem asChild>

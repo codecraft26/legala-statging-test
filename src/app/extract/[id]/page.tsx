@@ -4,7 +4,18 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
-import { ChevronLeft, Download, FileText, Clock, Info, AlertCircle, Loader2, Copy, Check, User } from "lucide-react";
+import {
+  ChevronLeft,
+  Download,
+  FileText,
+  Clock,
+  Info,
+  AlertCircle,
+  Loader2,
+  Copy,
+  Check,
+  User,
+} from "lucide-react";
 import {
   useExtractionDetail,
   useRemoveExtractionAgent,
@@ -60,7 +71,9 @@ export default function ExtractionDetailPage() {
         const rowData = [
           `"${result.file.replace(/\.[^/.]+$/, "").replace(/"/g, '""')}"`,
           ...allKeys.map((key) => {
-            const value = (result.data as Record<string, unknown> | undefined)?.[key];
+            const value = (
+              result.data as Record<string, unknown> | undefined
+            )?.[key];
             return `"${value !== undefined && value !== null ? String(value).replace(/"/g, '""') : ""}"`;
           }),
         ];
@@ -229,10 +242,11 @@ export default function ExtractionDetailPage() {
               className="flex items-center gap-2 p-2 h-8"
             >
               <ChevronLeft className="w-4 h-4" />
-             
             </Button>
             <div>
-              <h1 className="text-2xl font-semibold leading-tight">{extraction.name}</h1>
+              <h1 className="text-2xl font-semibold leading-tight">
+                {extraction.name}
+              </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
                   <Clock className="w-3.5 h-3.5" />
@@ -319,14 +333,18 @@ export default function ExtractionDetailPage() {
         </div>
 
         <div className="p-5 md:p-6">
-          {activeTab === "overview" && <OverviewTab extraction={extraction as unknown as Extraction} />}
+          {activeTab === "overview" && (
+            <OverviewTab extraction={extraction as unknown as Extraction} />
+          )}
           {activeTab === "results" && (
             <ResultsTab
               extraction={extraction as unknown as Extraction}
               onCopy={handleCopy}
             />
           )}
-          {activeTab === "metadata" && <MetadataTab extraction={extraction as unknown as Extraction} />}
+          {activeTab === "metadata" && (
+            <MetadataTab extraction={extraction as unknown as Extraction} />
+          )}
         </div>
       </div>
     </div>

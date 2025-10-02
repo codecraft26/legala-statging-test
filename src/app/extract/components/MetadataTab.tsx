@@ -1,9 +1,20 @@
 import { memo } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import StatusBadge from "../components/StatusBadge";
 import type { Extraction } from "./types";
 
-const MetadataTab = memo(function MetadataTab({ extraction }: { extraction: Extraction }) {
+const MetadataTab = memo(function MetadataTab({
+  extraction,
+}: {
+  extraction: Extraction;
+}) {
   return (
     <div className="space-y-6">
       <div className="space-y-6">
@@ -14,21 +25,29 @@ const MetadataTab = memo(function MetadataTab({ extraction }: { extraction: Extr
               <TableBody>
                 <TableRow>
                   <TableCell className="font-medium w-1/3">ID</TableCell>
-                  <TableCell className="font-mono text-sm">{extraction.id}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {extraction.id}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell className="font-medium">Created</TableCell>
-                  <TableCell>{new Date(extraction.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {new Date(extraction.createdAt).toLocaleString()}
+                  </TableCell>
                 </TableRow>
                 {extraction.updatedAt && (
                   <TableRow>
                     <TableCell className="font-medium">Updated</TableCell>
-                    <TableCell>{new Date(extraction.updatedAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {new Date(extraction.updatedAt).toLocaleString()}
+                    </TableCell>
                   </TableRow>
                 )}
                 <TableRow>
                   <TableCell className="font-medium">Status</TableCell>
-                  <TableCell><StatusBadge status={extraction.status} /></TableCell>
+                  <TableCell>
+                    <StatusBadge status={extraction.status} />
+                  </TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -65,7 +84,9 @@ const MetadataTab = memo(function MetadataTab({ extraction }: { extraction: Extr
           <div>
             <h4 className="font-medium mb-3">Usage Statistics</h4>
             <div className="rounded-lg border p-4">
-              <pre className="text-sm overflow-x-auto">{JSON.stringify(extraction.usage, null, 2)}</pre>
+              <pre className="text-sm overflow-x-auto">
+                {JSON.stringify(extraction.usage, null, 2)}
+              </pre>
             </div>
           </div>
         )}
@@ -75,5 +96,3 @@ const MetadataTab = memo(function MetadataTab({ extraction }: { extraction: Extr
 });
 
 export default MetadataTab;
-
-

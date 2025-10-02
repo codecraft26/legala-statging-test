@@ -1,6 +1,13 @@
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { FileText, Copy } from "lucide-react";
 import { formatValue } from "./helpers";
 import type { Extraction } from "./types";
@@ -10,10 +17,14 @@ type ResultsTabProps = {
   onCopy: (data: unknown) => void;
 };
 
-const ResultsTab = memo(function ResultsTab({ extraction, onCopy }: ResultsTabProps) {
+const ResultsTab = memo(function ResultsTab({
+  extraction,
+  onCopy,
+}: ResultsTabProps) {
   return (
     <div className="space-y-6">
-      {extraction.extraction_result && extraction.extraction_result.length > 0 ? (
+      {extraction.extraction_result &&
+      extraction.extraction_result.length > 0 ? (
         <div className="space-y-4">
           {extraction.extraction_result.map((result) => {
             const dataEntries = result.data ? Object.entries(result.data) : [];
@@ -25,7 +36,11 @@ const ResultsTab = memo(function ResultsTab({ extraction, onCopy }: ResultsTabPr
                     <FileText className="w-4 h-4 text-muted-foreground" />
                     <h4 className="font-medium">{result.file}</h4>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => onCopy(result.data)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onCopy(result.data)}
+                  >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
@@ -61,7 +76,9 @@ const ResultsTab = memo(function ResultsTab({ extraction, onCopy }: ResultsTabPr
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">No data extracted from this document.</p>
+                    <p className="text-sm">
+                      No data extracted from this document.
+                    </p>
                   </div>
                 )}
               </div>
@@ -79,5 +96,3 @@ const ResultsTab = memo(function ResultsTab({ extraction, onCopy }: ResultsTabPr
 });
 
 export default ResultsTab;
-
-

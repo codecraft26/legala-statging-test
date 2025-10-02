@@ -36,7 +36,11 @@ export function setCookie(
   name: string,
   value: string,
   days = 7,
-  options?: { path?: string; secure?: boolean; sameSite?: "lax" | "strict" | "none" }
+  options?: {
+    path?: string;
+    secure?: boolean;
+    sameSite?: "lax" | "strict" | "none";
+  }
 ): void {
   if (typeof document === "undefined") return;
   const expires = new Date(Date.now() + days * 864e5).toUTCString();

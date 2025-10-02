@@ -5,14 +5,10 @@ import { useRouter } from "next/navigation";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ResultsTable, { ColumnDef } from "../research/components/common/ResultsTable";
-import {
-  FileText,
-  Clock,
-  Loader2,
-  Trash2,
-  RotateCcw,
-} from "lucide-react";
+import ResultsTable, {
+  ColumnDef,
+} from "../research/components/common/ResultsTable";
+import { FileText, Clock, Loader2, Trash2, RotateCcw } from "lucide-react";
 import {
   useExtractions,
   useRemoveExtractionAgent,
@@ -29,20 +25,22 @@ type Extraction = {
   progress?: number;
 };
 
-
 export default function ExtractPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState<string>("");
   useEffect(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     setWorkspaceId(id);
     // Best-effort name retrieval (optional future improvement: fetch workspace meta)
     // Keep empty string for stable markup; text can fill later without structural change
     setWorkspaceName("");
   }, []);
-  const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName } as any) : null;
+  const currentWorkspace = workspaceId
+    ? ({ id: workspaceId, name: workspaceName } as any)
+    : null;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -57,7 +55,6 @@ export default function ExtractPage() {
     isLoading: extractionsLoading,
     error: extractionsError,
   } = useExtractions(currentWorkspace?.id);
-
 
   // Convert API data to display format
   const items =
@@ -124,7 +121,9 @@ export default function ExtractPage() {
         <div className="flex items-center gap-2">
           <StatusBadge status={extraction.status} />
           {extraction.status === "processing" ? (
-            <span className="text-xs text-muted-foreground">{extraction.progress}%</span>
+            <span className="text-xs text-muted-foreground">
+              {extraction.progress}%
+            </span>
           ) : null}
         </div>
       ),
@@ -196,58 +195,58 @@ export default function ExtractPage() {
         </div>
       </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="relative w-full max-w-sm">
-              <Input
-                placeholder="Search extractions..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                // Simple refresh: clear cache by invalidating queries via a remount approach
-                // Trigger refetch by toggling pageSize temporarily
-                setPageSize((s) => (s === 10 ? 11 : 10));
-                setTimeout(() => setPageSize(10), 0);
-              }}
-              title="Refresh"
-              aria-label="Refresh"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="relative w-full max-w-sm">
+            <Input
+              placeholder="Search extractions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-
-          <div className="rounded-lg border">
-            {currentItems.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                No extractions found
-              </div>
-            ) : (
-              <ResultsTable
-                columns={columns}
-                rows={currentItems}
-                rowKey={(extraction) => extraction.id}
-                tableClassName="w-full"
-              />
-            )}
-          </div>
-
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={totalItems}
-            onPageChange={setPage}
-            onPageSizeChange={(newPageSize) => {
-              setPageSize(newPageSize);
-              setPage(1);
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              // Simple refresh: clear cache by invalidating queries via a remount approach
+              // Trigger refetch by toggling pageSize temporarily
+              setPageSize((s) => (s === 10 ? 11 : 10));
+              setTimeout(() => setPageSize(10), 0);
             }}
-            pageSizeOptions={[5, 10, 20, 50]}
-          />
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </Button>
         </div>
+
+        <div className="rounded-lg border">
+          {currentItems.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No extractions found
+            </div>
+          ) : (
+            <ResultsTable
+              columns={columns}
+              rows={currentItems}
+              rowKey={(extraction) => extraction.id}
+              tableClassName="w-full"
+            />
+          )}
+        </div>
+
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={totalItems}
+          onPageChange={setPage}
+          onPageSizeChange={(newPageSize) => {
+            setPageSize(newPageSize);
+            setPage(1);
+          }}
+          pageSizeOptions={[5, 10, 20, 50]}
+        />
+      </div>
     </main>
   );
 }

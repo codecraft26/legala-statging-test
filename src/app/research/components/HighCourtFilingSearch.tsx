@@ -3,13 +3,19 @@
 import React, { useState } from "react";
 import { Search, Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useHighByFilingNumber, useFollowResearch, useUnfollowResearch, useHighDetail, useFollowedResearch } from "@/hooks/use-research";
+import {
+  useHighByFilingNumber,
+  useFollowResearch,
+  useUnfollowResearch,
+  useHighDetail,
+  useFollowedResearch,
+} from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 // ResultsTable not used directly here after refactor
 import SearchBar from "./common/SearchBar";
 import Pagination from "./common/Pagination";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            import {
+import {
   stateCodeMapping,
   courtComplexMapping,
   courtCodeMapping,
@@ -39,7 +45,6 @@ interface HighCourtResult {
 interface CaseDetails {
   [key: string]: any;
 }
-
 
 // Case Details Modal moved to shared component
 
@@ -110,7 +115,10 @@ export default function HighCourtFilingSearch() {
   const isRowFollowed = (r: HighCourtResult): boolean => {
     const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
     const num = r.fil_no || (r.case_no ? String(parseInt(r.case_no)) : "");
-    const composite = r.type_name && num && r.fil_year ? `${r.type_name}/${num}/${r.fil_year}` : "";
+    const composite =
+      r.type_name && num && r.fil_year
+        ? `${r.type_name}/${num}/${r.fil_year}`
+        : "";
     const byComposite = composite ? followedCases.has(composite) : false;
     return byCino || byComposite;
   };
@@ -124,12 +132,12 @@ export default function HighCourtFilingSearch() {
   const rawResults: HighCourtResult[] = Array.isArray(filingQuery.data)
     ? (filingQuery.data as HighCourtResult[])
     : Array.isArray((filingQuery.data as any)?.results)
-    ? ((filingQuery.data as any).results as HighCourtResult[])
-    : Array.isArray((filingQuery.data as any)?.data)
-    ? ((filingQuery.data as any).data as HighCourtResult[])
-    : Array.isArray((filingQuery.data as any)?.cases)
-    ? ((filingQuery.data as any).cases as HighCourtResult[])
-    : [];
+      ? ((filingQuery.data as any).results as HighCourtResult[])
+      : Array.isArray((filingQuery.data as any)?.data)
+        ? ((filingQuery.data as any).data as HighCourtResult[])
+        : Array.isArray((filingQuery.data as any)?.cases)
+          ? ((filingQuery.data as any).cases as HighCourtResult[])
+          : [];
 
   // Filter search results based on searchQuery
   const filteredResults = rawResults.filter((result: HighCourtResult) =>
@@ -186,18 +194,28 @@ export default function HighCourtFilingSearch() {
     }
     const raw: any = detailQuery.data;
     if (!raw) return;
-    const normalized = typeof raw?.data === "string"
-      ? parseHighCourtHtml(raw.data)
-      : typeof raw === "string"
-        ? parseHighCourtHtml(raw)
-        : raw;
+    const normalized =
+      typeof raw?.data === "string"
+        ? parseHighCourtHtml(raw.data)
+        : typeof raw === "string"
+          ? parseHighCourtHtml(raw)
+          : raw;
     setSelectedCase({
-      ...(currentPageResults.find((r) => String(r.cino || r.case_no) === caseId) || ({} as any)),
+      ...(currentPageResults.find(
+        (r) => String(r.cino || r.case_no) === caseId
+      ) || ({} as any)),
       details: normalized,
     } as any);
     setShowCaseDetails(true);
     setLoadingDetails(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams, currentPageResults]);
+  }, [
+    detailQuery.data,
+    detailQuery.error,
+    detailQuery.isLoading,
+    detailQuery.isFetching,
+    detailParams,
+    currentPageResults,
+  ]);
 
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
@@ -205,7 +223,12 @@ export default function HighCourtFilingSearch() {
     // Build formatted case number: YYYY + SS + CCCCCCCC + YYYY
     const year = Number(result.fil_year) || new Date().getFullYear();
     const state = Number(result.state_cd) || 26;
-    const rawNo = (result.fil_no ? Number(result.fil_no) : (result.case_no ? Number(result.case_no) : 0)) || 0;
+    const rawNo =
+      (result.fil_no
+        ? Number(result.fil_no)
+        : result.case_no
+          ? Number(result.case_no)
+          : 0) || 0;
     const formattedCaseNo = Number(
       `${year}${String(state).padStart(2, "0")}${String(rawNo).padStart(8, "0")}${year}`
     );
@@ -226,7 +249,7 @@ export default function HighCourtFilingSearch() {
   const handleFollowCase = (caseData: HighCourtResult) => {
     const caseId = caseData.cino || caseData.case_no;
     const workspaceId = getCookie("workspaceId");
-    
+
     if (!workspaceId) {
       alert("Please select a workspace to follow cases");
       return;
@@ -319,7 +342,9 @@ export default function HighCourtFilingSearch() {
                 placeholder="5293619"
                 required
               />
-              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Example: 5293619</div>
+              <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+                Example: 5293619
+              </div>
             </div>
 
             <div>
@@ -368,83 +393,102 @@ export default function HighCourtFilingSearch() {
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
-              <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{filingQuery.error instanceof Error ? filingQuery.error.message : "An error occurred while searching"}</p>
+              <p className="text-red-700 dark:text-red-400 font-medium">
+                Search Error
+              </p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
+                {filingQuery.error instanceof Error
+                  ? filingQuery.error.message
+                  : "An error occurred while searching"}
+              </p>
             </div>
           </div>
         </div>
       )}
 
       {/* Success Message */}
-      {!filingQuery.isLoading && !filingQuery.isFetching && filteredResults.length > 0 && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
-            <p className="text-green-700">
-              Found {filteredResults.length} case
-              {filteredResults.length !== 1 ? "s" : ""} matching your search
-              criteria.
-            </p>
+      {!filingQuery.isLoading &&
+        !filingQuery.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full flex-shrink-0"></div>
+              <p className="text-green-700">
+                Found {filteredResults.length} case
+                {filteredResults.length !== 1 ? "s" : ""} matching your search
+                criteria.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Results Section */}
-      {!filingQuery.isLoading && !filingQuery.isFetching && filteredResults.length > 0 && (
-        <div className="mt-6">
-          <div className="flex flex-col gap-3 mb-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Search Results</h3>
-              <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search" />
-            </div>
-          </div>
-
-          {filteredResults.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <div>
-                  <p className="text-yellow-700 font-medium">
-                    No results found
-                  </p>
-                  <p className="text-yellow-600 text-sm mt-1">
-                    {searchQuery
-                      ? "No cases match your search filter."
-                      : "No cases found for your search criteria."}
-                  </p>
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
-                    >
-                      Clear search filter
-                    </button>
-                  )}
-                </div>
+      {!filingQuery.isLoading &&
+        !filingQuery.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-6">
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Search Results</h3>
+                <SearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search"
+                />
               </div>
             </div>
-          ) : (
-            <HighCourtAdvocateResultsTable
-              rows={currentPageResults as any}
-              isRowFollowed={isRowFollowed as any}
-              loadingDetailsId={loadingDetails}
-              onClickDetails={handleViewDetails as any}
-              onClickFollow={handleFollowCase as any}
-              followLoading={followMutation.isPending || unfollowMutation.isPending}
-            />
-          )}
-        {/* Footer Pagination */}
-        {filteredResults.length > 0 && (
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-            onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
-          />
+
+            {filteredResults.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-yellow-700 font-medium">
+                      No results found
+                    </p>
+                    <p className="text-yellow-600 text-sm mt-1">
+                      {searchQuery
+                        ? "No cases match your search filter."
+                        : "No cases found for your search criteria."}
+                    </p>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
+                      >
+                        Clear search filter
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <HighCourtAdvocateResultsTable
+                rows={currentPageResults as any}
+                isRowFollowed={isRowFollowed as any}
+                loadingDetailsId={loadingDetails}
+                onClickDetails={handleViewDetails as any}
+                onClickFollow={handleFollowCase as any}
+                followLoading={
+                  followMutation.isPending || unfollowMutation.isPending
+                }
+              />
+            )}
+            {/* Footer Pagination */}
+            {filteredResults.length > 0 && (
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                onPageSizeChange={(n) => {
+                  setPageSize(n);
+                  setPage(1);
+                }}
+              />
+            )}
+          </div>
         )}
-        </div>
-      )}
 
       {/* No Data Found State */}
       {!filingQuery.isLoading &&

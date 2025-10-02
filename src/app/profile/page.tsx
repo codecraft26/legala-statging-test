@@ -30,9 +30,16 @@ export default function ProfilePage() {
 
   useEffect(() => {
     setLoading(profileQuery.isLoading || creditQuery.isLoading);
-    setError(profileQuery.error ? (profileQuery.error as any)?.message ?? null : null);
+    setError(
+      profileQuery.error ? ((profileQuery.error as any)?.message ?? null) : null
+    );
     setCredit(creditQuery.data || null);
-  }, [profileQuery.isLoading, creditQuery.isLoading, profileQuery.error, creditQuery.data]);
+  }, [
+    profileQuery.isLoading,
+    creditQuery.isLoading,
+    profileQuery.error,
+    creditQuery.data,
+  ]);
 
   if (!user || loading) {
     return (
@@ -62,7 +69,9 @@ export default function ProfilePage() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">Profile</h1>
-            <p className="text-sm text-muted-foreground">Account overview and workspace details</p>
+            <p className="text-sm text-muted-foreground">
+              Account overview and workspace details
+            </p>
           </div>
         </div>
       </div>
@@ -80,7 +89,9 @@ export default function ProfilePage() {
           </div>
           <div className="rounded-md border p-4">
             <p className="text-xs text-muted-foreground">Email</p>
-            <p className="text-sm mt-1 break-all">{(user as any).email ?? "—"}</p>
+            <p className="text-sm mt-1 break-all">
+              {(user as any).email ?? "—"}
+            </p>
           </div>
           {(user as any).role ? (
             <div className="rounded-md border p-4">
@@ -95,8 +106,10 @@ export default function ProfilePage() {
       {(() => {
         const role = String((user as any)?.role || "").toLowerCase();
         if (role !== "owner" && role !== "admin") return null;
-        const extraction = (credit as any)?.extractionCredit || (credit as any)?.extraction;
-        const research = (credit as any)?.researchCredit || (credit as any)?.research;
+        const extraction =
+          (credit as any)?.extractionCredit || (credit as any)?.extraction;
+        const research =
+          (credit as any)?.researchCredit || (credit as any)?.research;
         return (
           <div className="rounded-lg border p-6 space-y-4">
             <h2 className="text-lg font-medium">Credits</h2>
@@ -109,13 +122,21 @@ export default function ProfilePage() {
                       <p>Credit: {extraction.credit ?? "—"}</p>
                       <p>Default: {extraction.defaultCredit ?? "—"}</p>
                       <p>Renew: {extraction.renew ?? "—"}</p>
-                      <p>Remaining: {extraction.credit && extraction.usage?.totalUsage ? 
-                        (extraction.credit - Number(extraction.usage.totalUsage)) : "—"}</p>
+                      <p>
+                        Remaining:{" "}
+                        {extraction.credit && extraction.usage?.totalUsage
+                          ? extraction.credit -
+                            Number(extraction.usage.totalUsage)
+                          : "—"}
+                      </p>
                     </div>
                     {extraction.usage?.totalUsage ? (
-                      <p className="text-xs text-muted-foreground">Total usage: {extraction.usage.totalUsage}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total usage: {extraction.usage.totalUsage}
+                      </p>
                     ) : null}
-                    {Array.isArray(extraction.usage?.users) && extraction.usage.users.length ? (
+                    {Array.isArray(extraction.usage?.users) &&
+                    extraction.usage.users.length ? (
                       <div className="mt-3">
                         <p className="font-medium text-xs mb-2">Member usage</p>
                         <div className="overflow-x-auto rounded border">
@@ -133,21 +154,33 @@ export default function ProfilePage() {
                               {extraction.usage.users.map((u: any) => (
                                 <tr key={u.userId} className="border-t">
                                   <td className="px-3 py-2">{u.name || "—"}</td>
-                                  <td className="px-3 py-2">{u.email || "—"}</td>
+                                  <td className="px-3 py-2">
+                                    {u.email || "—"}
+                                  </td>
                                   <td className="px-3 py-2">{u.role || "—"}</td>
                                   <td className="px-3 py-2">{u.usage ?? 0}</td>
                                   <td className="px-3 py-2">
-                                    {Array.isArray(u.types) && u.types.length ? (
+                                    {Array.isArray(u.types) &&
+                                    u.types.length ? (
                                       <div className="flex flex-wrap gap-1">
                                         {u.types.map((t: any, idx: number) => (
-                                          <span key={idx} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
-                                            <span className="text-[10px] text-muted-foreground">{t?.name || "—"}</span>
-                                            <span className="text-[10px]">{t?.usage ?? 0}</span>
+                                          <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
+                                          >
+                                            <span className="text-[10px] text-muted-foreground">
+                                              {t?.name || "—"}
+                                            </span>
+                                            <span className="text-[10px]">
+                                              {t?.usage ?? 0}
+                                            </span>
                                           </span>
                                         ))}
                                       </div>
                                     ) : (
-                                      <span className="text-muted-foreground">—</span>
+                                      <span className="text-muted-foreground">
+                                        —
+                                      </span>
                                     )}
                                   </td>
                                 </tr>
@@ -159,7 +192,9 @@ export default function ProfilePage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No extraction credit data.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No extraction credit data.
+                  </p>
                 )}
               </div>
               <div className="rounded-md border p-4">
@@ -170,13 +205,20 @@ export default function ProfilePage() {
                       <p>Credit: {research.credit ?? "—"}</p>
                       <p>Default: {research.defaultCredit ?? "—"}</p>
                       <p>Renew: {research.renew ?? "—"}</p>
-                      <p>Remaining: {research.credit && research.usage?.totalUsage ? 
-                        (research.credit - Number(research.usage.totalUsage)) : "—"}</p>
+                      <p>
+                        Remaining:{" "}
+                        {research.credit && research.usage?.totalUsage
+                          ? research.credit - Number(research.usage.totalUsage)
+                          : "—"}
+                      </p>
                     </div>
                     {research.usage?.totalUsage ? (
-                      <p className="text-xs text-muted-foreground">Total usage: {research.usage.totalUsage}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total usage: {research.usage.totalUsage}
+                      </p>
                     ) : null}
-                    {Array.isArray(research.usage?.users) && research.usage.users.length ? (
+                    {Array.isArray(research.usage?.users) &&
+                    research.usage.users.length ? (
                       <div className="mt-3">
                         <p className="font-medium text-xs mb-2">Member usage</p>
                         <div className="overflow-x-auto rounded border">
@@ -193,7 +235,9 @@ export default function ProfilePage() {
                               {research.usage.users.map((u: any) => (
                                 <tr key={u.userId} className="border-t">
                                   <td className="px-3 py-2">{u.name || "—"}</td>
-                                  <td className="px-3 py-2">{u.email || "—"}</td>
+                                  <td className="px-3 py-2">
+                                    {u.email || "—"}
+                                  </td>
                                   <td className="px-3 py-2">{u.role || "—"}</td>
                                   <td className="px-3 py-2">{u.usage ?? 0}</td>
                                 </tr>
@@ -205,7 +249,9 @@ export default function ProfilePage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No research credit data.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No research credit data.
+                  </p>
                 )}
               </div>
             </div>

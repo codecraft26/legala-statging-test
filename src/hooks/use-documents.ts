@@ -3,13 +3,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api-client";
 
-
 export function useRenameDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (args: { id: string; name: string }) => {
       const { id, name } = args;
-      return await Api.patch<any, { name: string }>(`/document?id=${encodeURIComponent(id)}`, { name });
+      return await Api.patch<any, { name: string }>(
+        `/document?id=${encodeURIComponent(id)}`,
+        { name }
+      );
     },
     onSuccess: () => {
       // Invalidate any document lists/details
@@ -28,25 +30,42 @@ export type DocumentItem = {
   createdAt?: string;
 };
 
-export function useDocuments(workspaceId?: string | null, parentId?: string | null) {
+export function useDocuments(
+  workspaceId?: string | null,
+  parentId?: string | null
+) {
   return useQuery<DocumentItem[]>({
     enabled: Boolean(workspaceId),
     queryKey: ["documents", workspaceId, parentId || null],
     queryFn: async () => {
-      const query: string[] = [`workspaceId=${encodeURIComponent(String(workspaceId))}`];
+      const query: string[] = [
+        `workspaceId=${encodeURIComponent(String(workspaceId))}`,
+      ];
       if (parentId) {
         const enc = encodeURIComponent(parentId);
         query.push(`parentId=${enc}`);
         query.push(`folderId=${enc}`);
       }
-      const res = await Api.get<any>(`/document?${query.join("&")}`, "no-store");
-      const rawList: any[] = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+      const res = await Api.get<any>(
+        `/document?${query.join("&")}`,
+        "no-store"
+      );
+      const rawList: any[] = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data)
+          ? res.data
+          : [];
       return rawList.map((d: any) => ({
         id: String(d?.id ?? ""),
-        type: String(d?.type ?? "file").toLowerCase() === "folder" ? "folder" : "file",
+        type:
+          String(d?.type ?? "file").toLowerCase() === "folder"
+            ? "folder"
+            : "file",
         filename: String(d?.name ?? d?.filename ?? ""),
         parent_folder_id: d?.parentId ?? d?.parent_folder_id ?? null,
-        user: d?.user ? { name: d.user.name, email: d.user.email, role: d.user.role } : undefined,
+        user: d?.user
+          ? { name: d.user.name, email: d.user.email, role: d.user.role }
+          : undefined,
         createdAt: d?.createdAt,
       })) as DocumentItem[];
     },
@@ -56,7 +75,11 @@ export function useDocuments(workspaceId?: string | null, parentId?: string | nu
 export function useUploadDocuments() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { files: File[]; workspaceId: string; parentId?: string | null }) => {
+    mutationFn: async (args: {
+      files: File[];
+      workspaceId: string;
+      parentId?: string | null;
+    }) => {
       const { files, workspaceId, parentId } = args;
       const form = new FormData();
       files.forEach((f) => form.append("files", f));
@@ -65,7 +88,13 @@ export function useUploadDocuments() {
       return await Api.post("/document/upload/files", form, true);
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["documents", variables.workspaceId, variables.parentId || null] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "documents",
+          variables.workspaceId,
+          variables.parentId || null,
+        ],
+      });
     },
   });
 }
@@ -73,12 +102,26 @@ export function useUploadDocuments() {
 export function useCreateFolder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { name: string; workspaceId: string; parentId?: string | null }) => {
+    mutationFn: async (args: {
+      name: string;
+      workspaceId: string;
+      parentId?: string | null;
+    }) => {
       const { name, workspaceId, parentId } = args;
-      return await Api.post("/document", { name, workspaceId, parentId: parentId || undefined });
+      return await Api.post("/document", {
+        name,
+        workspaceId,
+        parentId: parentId || undefined,
+      });
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["documents", variables.workspaceId, variables.parentId || null] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "documents",
+          variables.workspaceId,
+          variables.parentId || null,
+        ],
+      });
     },
   });
 }
@@ -100,11 +143,13 @@ export function useRenameFolder() {
   return useMutation({
     mutationFn: async (args: { id: string; name: string }) => {
       const { id, name } = args;
-      return await Api.patch<any, { name: string }>(`/document?id=${encodeURIComponent(id)}`, { name });
+      return await Api.patch<any, { name: string }>(
+        `/document?id=${encodeURIComponent(id)}`,
+        { name }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
-

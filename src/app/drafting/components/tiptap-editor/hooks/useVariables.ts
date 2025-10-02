@@ -1,25 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Editor } from "@tiptap/react";
 import { VariableDef } from "../types";
-import { 
-  extractVariablesFromContent, 
-  normalizeBracketPlaceholders 
+import {
+  extractVariablesFromContent,
+  normalizeBracketPlaceholders,
 } from "../utils";
 
 export const useVariables = (editor: Editor | null, content: string) => {
   const [variables, setVariables] = useState<VariableDef[]>([]);
-  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
-  const [placeholderStatus, setPlaceholderStatus] = useState<Record<string, string>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {}
+  );
+  const [placeholderStatus, setPlaceholderStatus] = useState<
+    Record<string, string>
+  >({});
   const [editingVariable, setEditingVariable] = useState<string | null>(null);
-  const [highlightedVariable, setHighlightedVariable] = useState<string | null>(null);
+  const [highlightedVariable, setHighlightedVariable] = useState<string | null>(
+    null
+  );
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Derive variables from content placeholders like {{variable_id}}
   useEffect(() => {
     if (!editor) return;
-    
+
     let html = editor.getHTML() || "";
-    const { curlyMatches, bracketMatches, bracketToCurly } = extractVariablesFromContent(html);
+    const { curlyMatches, bracketMatches, bracketToCurly } =
+      extractVariablesFromContent(html);
 
     // Normalize bracket placeholders to curly syntax
     const normalizedHtml = normalizeBracketPlaceholders(html, bracketToCurly);
@@ -42,14 +49,16 @@ export const useVariables = (editor: Editor | null, content: string) => {
 
     const existingIds = new Set(variables.map((v) => v.unique_id));
     const newDefs: VariableDef[] = [];
-    
+
     foundIds.forEach((id) => {
       if (!existingIds.has(id)) {
         // Try to find a pretty label from bracket source, else default to id
         const prettyLabelEntry = Object.entries(bracketToCurly).find(
           ([, to]) => to === `{{${id}}}`
         );
-        const label = prettyLabelEntry ? prettyLabelEntry[0].slice(1, -1).trim() : id;
+        const label = prettyLabelEntry
+          ? prettyLabelEntry[0].slice(1, -1).trim()
+          : id;
         newDefs.push({ unique_id: id, label, type: "text" });
       }
     });
@@ -60,7 +69,8 @@ export const useVariables = (editor: Editor | null, content: string) => {
 
     // Update placeholder status map
     if (variables.length > 0 || newDefs.length > 0) {
-      const allVars = newDefs.length > 0 ? [...variables, ...newDefs] : variables;
+      const allVars =
+        newDefs.length > 0 ? [...variables, ...newDefs] : variables;
       const foundSet = new Set(
         (html.match(/\{\{[^}]+\}\}/g) || []).map((p) => p.slice(2, -2).trim())
       );
@@ -87,7 +97,11 @@ export const useVariables = (editor: Editor | null, content: string) => {
   }, []);
 
   const handleVariableClick = useCallback(
-    (variableId: string, showVariablesPanel: boolean, setShowVariablesPanel: (show: boolean) => void) => {
+    (
+      variableId: string,
+      showVariablesPanel: boolean,
+      setShowVariablesPanel: (show: boolean) => void
+    ) => {
       if (!showVariablesPanel) {
         setShowVariablesPanel(true);
       }

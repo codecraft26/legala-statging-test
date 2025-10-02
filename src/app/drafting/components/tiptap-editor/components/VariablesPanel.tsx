@@ -230,9 +230,10 @@ export default function VariablesPanel({
         {variables.length > 0 && (
           <div className="mt-4 space-y-2">
             <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded-md">
-              <strong>Actions:</strong> Preview to check final result, Apply variables to see changes.
+              <strong>Actions:</strong> Preview to check final result, Apply
+              variables to see changes.
             </div>
-            
+
             {onPreviewFinal && (
               <button
                 onClick={onPreviewFinal}
@@ -242,7 +243,7 @@ export default function VariablesPanel({
                 <span>Preview</span>
               </button>
             )}
-            
+
             {onApplyAllVariables && (
               <button
                 onClick={onApplyAllVariables}

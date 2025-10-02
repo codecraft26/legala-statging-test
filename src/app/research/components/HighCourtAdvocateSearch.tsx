@@ -2,7 +2,14 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { Search, Eye, Loader2 } from "lucide-react";
-import { useHighByAdvocate, useFollowResearch, useUnfollowResearch, useHighDetail, useFollowedResearch, researchKeys } from "@/hooks/use-research";
+import {
+  useHighByAdvocate,
+  useFollowResearch,
+  useUnfollowResearch,
+  useHighDetail,
+  useFollowedResearch,
+  researchKeys,
+} from "@/hooks/use-research";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCookie } from "@/lib/utils";
 import {
@@ -13,7 +20,10 @@ import {
 import SearchBar from "./common/SearchBar";
 import Pagination from "./common/Pagination";
 
-import { parseHighCourtHtml, ParsedHighCourtDetails } from "../utils/highCourtParser";
+import {
+  parseHighCourtHtml,
+  ParsedHighCourtDetails,
+} from "../utils/highCourtParser";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
 import HighCourtAdvocateSearchForm from "./common/HighCourtAdvocateSearchForm";
 import HighCourtAdvocateResultsTable from "./common/HighCourtAdvocateResultsTable";
@@ -43,7 +53,6 @@ interface HighCourtResult {
 }
 
 // moved parseHighCourtHtml to ../utils/highCourtParser
-
 
 // moved to ./common/HighCourtCaseDetailsModal
 
@@ -111,13 +120,24 @@ export default function HighCourtAdvocateSearch() {
   }, [followedQuery.data]);
 
   // Helper to check if a row is already followed
-  const isRowFollowed = useCallback((r: HighCourtResult): boolean => {
-    const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
-    const num = r.case_no2 != null ? String(r.case_no2) : (r.case_no ? String(parseInt(r.case_no)) : "");
-    const composite = r.type_name && num && r.case_year != null ? `${r.type_name}/${num}/${r.case_year}` : "";
-    const byComposite = composite ? followedCases.has(composite) : false;
-    return byCino || byComposite;
-  }, [followedCases]);
+  const isRowFollowed = useCallback(
+    (r: HighCourtResult): boolean => {
+      const byCino = r.cino ? followedCases.has(String(r.cino)) : false;
+      const num =
+        r.case_no2 != null
+          ? String(r.case_no2)
+          : r.case_no
+            ? String(parseInt(r.case_no))
+            : "";
+      const composite =
+        r.type_name && num && r.case_year != null
+          ? `${r.type_name}/${num}/${r.case_year}`
+          : "";
+      const byComposite = composite ? followedCases.has(composite) : false;
+      return byCino || byComposite;
+    },
+    [followedCases]
+  );
 
   // Filter search results based on searchQuery
   const rawResults: HighCourtResult[] = useMemo(() => {
@@ -133,7 +153,9 @@ export default function HighCourtAdvocateSearch() {
     const q = searchQuery.toLowerCase();
     if (!q) return rawResults;
     return rawResults.filter((result: HighCourtResult) =>
-      Object.values(result).some((value: any) => String(value).toLowerCase().includes(q))
+      Object.values(result).some((value: any) =>
+        String(value).toLowerCase().includes(q)
+      )
     );
   }, [rawResults, searchQuery]);
 
@@ -141,8 +163,8 @@ export default function HighCourtAdvocateSearch() {
   const total = filteredResults.length;
   const { totalPages, currentPageResults } = useMemo(() => {
     const totalPagesCalc = Math.max(1, Math.ceil(total / pageSize));
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = Math.min(startIndex + pageSize, total);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, total);
     return {
       totalPages: totalPagesCalc,
       currentPageResults: filteredResults.slice(startIndex, endIndex),
@@ -154,25 +176,35 @@ export default function HighCourtAdvocateSearch() {
     setPage(1);
   }, [advocateQuery.isFetching, searchQuery, searchParams]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (!advocateName.trim()) return;
+      if (!advocateName.trim()) return;
 
-    const nextParams = {
-      court_code: parseInt(courtCode),
-      state_code: parseInt(stateCode),
-      court_complex_code: parseInt(courtComplexCode),
-      advocate_name: advocateName.trim(),
-      f: filterType,
-    } as const;
+      const nextParams = {
+        court_code: parseInt(courtCode),
+        state_code: parseInt(stateCode),
+        court_complex_code: parseInt(courtComplexCode),
+        advocate_name: advocateName.trim(),
+        f: filterType,
+      } as const;
 
-    setSearchParams(nextParams as any);
-    // Force refetch even if searching the same inputs again
-    queryClient.invalidateQueries({
-      queryKey: researchKeys.list(researchKeys.high(), nextParams),
-    });
-  }, [advocateName, courtCode, stateCode, courtComplexCode, filterType, queryClient]);
+      setSearchParams(nextParams as any);
+      // Force refetch even if searching the same inputs again
+      queryClient.invalidateQueries({
+        queryKey: researchKeys.list(researchKeys.high(), nextParams),
+      });
+    },
+    [
+      advocateName,
+      courtCode,
+      stateCode,
+      courtComplexCode,
+      filterType,
+      queryClient,
+    ]
+  );
 
   const detailQuery = useHighDetail(detailParams);
 
@@ -187,18 +219,28 @@ export default function HighCourtAdvocateSearch() {
     }
     const raw: any = detailQuery.data;
     if (!raw) return;
-    const normalized = typeof raw?.data === "string"
-      ? parseHighCourtHtml(raw.data)
-      : typeof raw === "string"
-        ? parseHighCourtHtml(raw)
-        : raw;
+    const normalized =
+      typeof raw?.data === "string"
+        ? parseHighCourtHtml(raw.data)
+        : typeof raw === "string"
+          ? parseHighCourtHtml(raw)
+          : raw;
     setSelectedCase({
-      ...(currentPageResults.find((r) => String(r.cino || r.case_no) === caseId) || ({} as any)),
+      ...(currentPageResults.find(
+        (r) => String(r.cino || r.case_no) === caseId
+      ) || ({} as any)),
       details: normalized,
     } as any);
     setShowCaseDetails(true);
     setLoadingDetails(null);
-  }, [detailQuery.data, detailQuery.error, detailQuery.isLoading, detailQuery.isFetching, detailParams, currentPageResults]);
+  }, [
+    detailQuery.data,
+    detailQuery.error,
+    detailQuery.isLoading,
+    detailQuery.isFetching,
+    detailParams,
+    currentPageResults,
+  ]);
 
   const handleViewDetails = useCallback((result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
@@ -206,7 +248,12 @@ export default function HighCourtAdvocateSearch() {
     // Build formatted case number: YYYY + SS + CCCCCCCC + YYYY
     const year = Number(result.case_year) || new Date().getFullYear();
     const state = Number(result.state_cd) || 26;
-    const rawNo = (result.case_no2 != null ? Number(result.case_no2) : (result.case_no ? Number(result.case_no) : 0)) || 0;
+    const rawNo =
+      (result.case_no2 != null
+        ? Number(result.case_no2)
+        : result.case_no
+          ? Number(result.case_no)
+          : 0) || 0;
     const formattedCaseNo = Number(
       `${year}${String(state).padStart(2, "0")}${String(rawNo).padStart(8, "0")}${year}`
     );
@@ -224,28 +271,31 @@ export default function HighCourtAdvocateSearch() {
   // TanStack Query mutations for follow/unfollow
   // (defined above)
 
-  const handleFollowCase = useCallback((caseData: HighCourtResult) => {
-    const caseId = caseData.cino || caseData.case_no;
-    const workspaceId = getCookie("workspaceId");
-    
-    if (!workspaceId) {
-      alert("Please select a workspace to follow cases");
-      return;
-    }
+  const handleFollowCase = useCallback(
+    (caseData: HighCourtResult) => {
+      const caseId = caseData.cino || caseData.case_no;
+      const workspaceId = getCookie("workspaceId");
 
-    if (isRowFollowed(caseData)) {
-      return;
-    } else {
-      // Send the entire row as the followed payload (preserve all fields)
-      const followedData = { ...caseData } as any;
+      if (!workspaceId) {
+        alert("Please select a workspace to follow cases");
+        return;
+      }
 
-      followMutation.mutate({
-        court: "High_Court",
-        followed: followedData,
-        workspaceId: workspaceId,
-      });
-    }
-  }, [followMutation, isRowFollowed]);
+      if (isRowFollowed(caseData)) {
+        return;
+      } else {
+        // Send the entire row as the followed payload (preserve all fields)
+        const followedData = { ...caseData } as any;
+
+        followMutation.mutate({
+          court: "High_Court",
+          followed: followedData,
+          workspaceId: workspaceId,
+        });
+      }
+    },
+    [followMutation, isRowFollowed]
+  );
 
   return (
     <div className="p-6">
@@ -279,91 +329,103 @@ export default function HighCourtAdvocateSearch() {
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
             <div>
-              <p className="text-red-700 dark:text-red-400 font-medium">Search Error</p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">{advocateQuery.error instanceof Error ? advocateQuery.error.message : "An error occurred while searching"}</p>
+              <p className="text-red-700 dark:text-red-400 font-medium">
+                Search Error
+              </p>
+              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
+                {advocateQuery.error instanceof Error
+                  ? advocateQuery.error.message
+                  : "An error occurred while searching"}
+              </p>
             </div>
           </div>
         </div>
       )}
 
       {/* Success Message */}
-      {!advocateQuery.isLoading && !advocateQuery.isFetching && filteredResults.length > 0 && (
-        <div className="mt-4 p-4 bg-muted border border-border rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0"></div>
-            <p className="text-foreground">
-              Found {filteredResults.length} case
-              {filteredResults.length !== 1 ? "s" : ""} matching your search
-              criteria.
-            </p>
+      {!advocateQuery.isLoading &&
+        !advocateQuery.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-4 p-4 bg-muted border border-border rounded-md">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0"></div>
+              <p className="text-foreground">
+                Found {filteredResults.length} case
+                {filteredResults.length !== 1 ? "s" : ""} matching your search
+                criteria.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Results Section */}
-      {!advocateQuery.isLoading && !advocateQuery.isFetching && filteredResults.length > 0 && (
-        <div className="mt-6">
-          <div className="flex flex-col gap-3 mb-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Search Results</h3>
-              <SearchBar 
-                value={searchQuery} 
-                onChange={setSearchQuery} 
-                placeholder="Search cases..."
-                className="w-64"
-              />
-            </div>
-          </div>
-
-          {currentPageResults.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                <div>
-                  <p className="text-yellow-700 font-medium">
-                    No results found
-                  </p>
-                  <p className="text-yellow-600 text-sm mt-1">
-                    {searchQuery
-                      ? "No cases match your search filter."
-                      : "No cases found for your search criteria."}
-                  </p>
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
-                    >
-                      Clear search filter
-                    </button>
-                  )}
-                </div>
+      {!advocateQuery.isLoading &&
+        !advocateQuery.isFetching &&
+        filteredResults.length > 0 && (
+          <div className="mt-6">
+            <div className="flex flex-col gap-3 mb-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium">Search Results</h3>
+                <SearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search cases..."
+                  className="w-64"
+                />
               </div>
             </div>
-          ) : (
-            <HighCourtAdvocateResultsTable
-              rows={currentPageResults as any}
-              isRowFollowed={isRowFollowed as any}
-              loadingDetailsId={loadingDetails}
-              onClickDetails={handleViewDetails as any}
-              onClickFollow={handleFollowCase as any}
-              followLoading={followMutation.isPending || unfollowMutation.isPending}
-            />
-          )}
-          {/* Footer Pagination */}
-          {currentPageResults.length > 0 && (
-            <Pagination
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              onPageSizeChange={(newPageSize) => {
-                setPageSize(newPageSize);
-                setPage(1);
-              }}
-            />
-          )}
-        </div>
-      )}
+
+            {currentPageResults.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <p className="text-yellow-700 font-medium">
+                      No results found
+                    </p>
+                    <p className="text-yellow-600 text-sm mt-1">
+                      {searchQuery
+                        ? "No cases match your search filter."
+                        : "No cases found for your search criteria."}
+                    </p>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
+                      >
+                        Clear search filter
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <HighCourtAdvocateResultsTable
+                rows={currentPageResults as any}
+                isRowFollowed={isRowFollowed as any}
+                loadingDetailsId={loadingDetails}
+                onClickDetails={handleViewDetails as any}
+                onClickFollow={handleFollowCase as any}
+                followLoading={
+                  followMutation.isPending || unfollowMutation.isPending
+                }
+              />
+            )}
+            {/* Footer Pagination */}
+            {currentPageResults.length > 0 && (
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                onPageSizeChange={(newPageSize) => {
+                  setPageSize(newPageSize);
+                  setPage(1);
+                }}
+              />
+            )}
+          </div>
+        )}
 
       {/* No Data Found State */}
       {!advocateQuery.isLoading &&

@@ -45,8 +45,12 @@ export default function UploadArea({
         className={`border-2 border-dashed rounded-lg p-8 text-center ${isDragOver ? "border-blue-500 bg-blue-50" : "border-muted bg-accent"} ${isUploading ? "opacity-60 pointer-events-none" : ""}`}
       >
         <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
-        <h3 className="text-sm mt-2">{isUploading ? "Uploading…" : "Upload Files"}</h3>
-        <p className="text-xs text-muted-foreground mb-3">Drag and drop or click to browse</p>
+        <h3 className="text-sm mt-2">
+          {isUploading ? "Uploading…" : "Upload Files"}
+        </h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          Drag and drop or click to browse
+        </p>
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
@@ -66,5 +70,3 @@ export default function UploadArea({
     </div>
   );
 }
-
-

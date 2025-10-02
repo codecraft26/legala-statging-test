@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     try {
       const response = await forgotMutation.mutateAsync({ email });
- 
+
       setMessage(response?.message || "Reset email sent");
       setEmailSent(true);
     } catch (err: any) {

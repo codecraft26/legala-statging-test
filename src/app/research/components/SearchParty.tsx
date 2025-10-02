@@ -46,8 +46,13 @@ export default function SearchParty({ court }: { court: string }) {
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
       <div className="space-y-2">
         {results.map((r) => (
-          <div key={r.id} className="rounded-md border border-border bg-card p-3 shadow-sm">
-            <div className="text-sm font-medium text-card-foreground">{r.title}</div>
+          <div
+            key={r.id}
+            className="rounded-md border border-border bg-card p-3 shadow-sm"
+          >
+            <div className="text-sm font-medium text-card-foreground">
+              {r.title}
+            </div>
             <div className="text-xs text-muted-foreground">
               {new Date(r.date).toLocaleDateString()}
             </div>

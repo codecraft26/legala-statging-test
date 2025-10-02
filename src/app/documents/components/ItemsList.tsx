@@ -18,7 +18,12 @@ interface ItemsListProps {
   onDelete: (item: DocItem) => void;
 }
 
-export default function ItemsList({ items, onFolderOpen, onRenameFolder, onDelete }: ItemsListProps) {
+export default function ItemsList({
+  items,
+  onFolderOpen,
+  onRenameFolder,
+  onDelete,
+}: ItemsListProps) {
   if (!items.length) return null;
   return (
     <div className="space-y-2">
@@ -46,7 +51,10 @@ export default function ItemsList({ items, onFolderOpen, onRenameFolder, onDelet
                 {it.type === "file" && it.user && (
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs text-muted-foreground truncate">
-                      Uploaded by <span className="font-medium text-foreground">{it.user.name || it.user.email}</span>
+                      Uploaded by{" "}
+                      <span className="font-medium text-foreground">
+                        {it.user.name || it.user.email}
+                      </span>
                     </p>
                     {it.user.role && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -54,7 +62,9 @@ export default function ItemsList({ items, onFolderOpen, onRenameFolder, onDelet
                       </span>
                     )}
                     {it.createdAt && (
-                      <span className="text-xs text-muted-foreground">• {new Date(it.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs text-muted-foreground">
+                        • {new Date(it.createdAt).toLocaleDateString()}
+                      </span>
                     )}
                   </div>
                 )}
@@ -88,5 +98,3 @@ export default function ItemsList({ items, onFolderOpen, onRenameFolder, onDelet
     </div>
   );
 }
-
-

@@ -219,7 +219,9 @@ export class HighCourtAPI {
       if (!response.ok) {
         const errorText = await response.text();
         console.error("High Court API Error Response:", errorText);
-        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${errorText}`
+        );
       }
 
       return await response.json();

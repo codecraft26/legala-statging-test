@@ -359,7 +359,7 @@ export default function EditorToolbar(props: Props) {
                 <Minus size={16} />
               </ToolbarButton>
             </div>
-            
+
             {onSave && (
               <button
                 onClick={onSave}
@@ -368,7 +368,9 @@ export default function EditorToolbar(props: Props) {
                 title="Save Draft"
               >
                 <Save size={14} />
-                <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save"}</span>
+                <span className="hidden sm:inline">
+                  {isSaving ? "Saving..." : "Save"}
+                </span>
                 <span className="sm:hidden">{isSaving ? "..." : ""}</span>
               </button>
             )}

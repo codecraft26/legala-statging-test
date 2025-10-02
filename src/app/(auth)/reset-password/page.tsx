@@ -84,7 +84,10 @@ function ResetPasswordInner() {
     }
 
     try {
-      const response = await resetMutation.mutateAsync({ password, token: token! });
+      const response = await resetMutation.mutateAsync({
+        password,
+        token: token!,
+      });
       // @ts-expect-error string optional
       setMessage(response?.message || "Password updated successfully");
       setPasswordReset(true);
@@ -272,7 +275,13 @@ function ResetPasswordInner() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-svh flex items-center justify-center p-6">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-svh flex items-center justify-center p-6">
+          Loading...
+        </div>
+      }
+    >
       <ResetPasswordInner />
     </Suspense>
   );

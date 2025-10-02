@@ -37,7 +37,7 @@ export const useEditorSetup = (
       TextStyle,
       FontFamily,
       FontSize,
-      TextAlign.configure({ 
+      TextAlign.configure({
         types: ["heading", "paragraph"],
         alignments: ["left", "center", "right", "justify"],
         defaultAlignment: "left",
@@ -94,7 +94,7 @@ export const useEditorSetup = (
   }, [editor, content]);
 
   const updateContent = useCallback((newContent: string) => {
-    setContentUpdateTrigger(prev => prev + 1);
+    setContentUpdateTrigger((prev) => prev + 1);
   }, []);
 
   return { editor, contentUpdateTrigger, updateContent };

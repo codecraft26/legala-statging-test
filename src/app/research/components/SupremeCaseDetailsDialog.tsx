@@ -2,7 +2,12 @@
 
 import React from "react";
 import { X, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { parseHtmlContent, SupremeCaseData } from "../utils/supreme-parser";
 
@@ -29,7 +34,11 @@ function renderCellContent(cell: any, cellIndex: number) {
     return (
       <span
         className="block whitespace-pre-wrap break-words break-all leading-5"
-        style={{ overflowWrap: "anywhere", wordBreak: "break-word", whiteSpace: "pre-wrap" }}
+        style={{
+          overflowWrap: "anywhere",
+          wordBreak: "break-word",
+          whiteSpace: "pre-wrap",
+        }}
       >
         {cell}
       </span>
@@ -55,7 +64,9 @@ export default function SupremeCaseDetailsDialog({
 
   const availableTabs = React.useMemo(() => {
     if (!caseData) return [];
-    return Object.keys(caseData).filter((key) => (caseData as any)[key]?.success);
+    return Object.keys(caseData).filter(
+      (key) => (caseData as any)[key]?.success
+    );
   }, [caseData]);
 
   const safeActive = React.useMemo(() => {
@@ -89,7 +100,9 @@ export default function SupremeCaseDetailsDialog({
             );
           }
           return (
-            <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{JSON.stringify(json, null, 2)}</pre>
+            <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">
+              {JSON.stringify(json, null, 2)}
+            </pre>
           );
         } catch {
           // If JSON parsing fails, treat as regular text
@@ -98,7 +111,10 @@ export default function SupremeCaseDetailsDialog({
 
       // Handle HTML content
       const tables = parseHtmlContent(tabPayload);
-      if (tables.length === 0 || (tables.length === 1 && tables[0].length === 0)) {
+      if (
+        tables.length === 0 ||
+        (tables.length === 1 && tables[0].length === 0)
+      ) {
         return (
           <div className="p-4 text-sm text-muted-foreground">
             No structured content available for this section.
@@ -109,9 +125,15 @@ export default function SupremeCaseDetailsDialog({
       return (
         <div className="space-y-6">
           {tables.map((table, tableIndex) => (
-            <div key={tableIndex} className="rounded-lg border border-border overflow-hidden">
+            <div
+              key={tableIndex}
+              className="rounded-lg border border-border overflow-hidden"
+            >
               <div className="bg-muted/40 px-4 py-2 border-b border-border">
-                <h3 className="font-medium text-sm">{safeActive.replace(/_/g, " ").toUpperCase()} - Table {tableIndex + 1}</h3>
+                <h3 className="font-medium text-sm">
+                  {safeActive.replace(/_/g, " ").toUpperCase()} - Table{" "}
+                  {tableIndex + 1}
+                </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-full border-collapse table-fixed">
@@ -130,19 +152,27 @@ export default function SupremeCaseDetailsDialog({
                     </thead>
                   )}
                   <tbody>
-                    {table.slice(table[0] ? 1 : 0).map((row: any, rowIndex: number) => (
-                      <tr key={rowIndex} className="odd:bg-background even:bg-muted/20">
-                        {row.map((cell: any, cellIndex: number) => (
-                          <td
-                            key={cellIndex}
-                            className={`border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5 ${cellIndex === 0 ? "w-56 md:w-64 text-muted-foreground" : "w-auto"}`}
-                            style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-                          >
-                            {renderCellContent(cell, cellIndex)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
+                    {table
+                      .slice(table[0] ? 1 : 0)
+                      .map((row: any, rowIndex: number) => (
+                        <tr
+                          key={rowIndex}
+                          className="odd:bg-background even:bg-muted/20"
+                        >
+                          {row.map((cell: any, cellIndex: number) => (
+                            <td
+                              key={cellIndex}
+                              className={`border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5 ${cellIndex === 0 ? "w-56 md:w-64 text-muted-foreground" : "w-auto"}`}
+                              style={{
+                                overflowWrap: "anywhere",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {renderCellContent(cell, cellIndex)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -151,7 +181,7 @@ export default function SupremeCaseDetailsDialog({
         </div>
       );
     }
-    
+
     return (
       <div className="p-4 text-sm text-muted-foreground">
         Unexpected content format for this section.
@@ -168,7 +198,9 @@ export default function SupremeCaseDetailsDialog({
           <DialogHeader className="px-4 py-3 border-b">
             <DialogTitle className="text-base">Supreme Court Case</DialogTitle>
           </DialogHeader>
-          <div className="p-4 text-sm text-muted-foreground">No content available.</div>
+          <div className="p-4 text-sm text-muted-foreground">
+            No content available.
+          </div>
         </DialogContent>
       </Dialog>
     );
@@ -210,5 +242,3 @@ export default function SupremeCaseDetailsDialog({
     </Dialog>
   );
 }
-
-
