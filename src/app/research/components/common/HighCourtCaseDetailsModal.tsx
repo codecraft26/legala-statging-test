@@ -365,7 +365,7 @@ export default function HighCourtCaseDetailsModal({
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <Card className="w-full max-w-[1200px] h-[88vh] overflow-hidden flex flex-col">
         <CardHeader className="sticky top-0 bg-card z-10 border-b">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -388,7 +388,7 @@ export default function HighCourtCaseDetailsModal({
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 md:p-6">
+        <CardContent className="p-4 md:p-6 flex-1 overflow-y-auto">
           <div className="mb-6">
             <div className="flex justify-between items-start">
               <h2 className="text-xl font-bold mb-2">

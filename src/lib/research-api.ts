@@ -196,20 +196,23 @@ export class HighCourtAPI {
     try {
       // Format payload according to backend expectations
       const payload = {
-        case_no: Number(data.case_no),
-        state_code: Number(data.state_code),
-        cino: String(data.cino).trim(),
-        court_code: Number(data.court_code),
-        national_court_code: String(data.national_court_code).trim(),
-        dist_cd: Number(data.dist_cd),
-      };
+        case_no: String(data.case_no).trim(),
+        state_code: String(data.state_code).trim(),
+        cino: String(data.cino || "").trim(),
+        court_code: String(data.court_code).trim(),
+        national_court_code: String(data.national_court_code || "").trim(),
+        dist_cd: String(data.dist_cd).trim(),
+      } as const;
 
       // eslint-disable-next-line no-console
       console.warn("High Court Case Detail API call initiated");
 
       const response = await fetch(`${API_BASE_URL}/high-court/case-detail`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: {
+          ...getAuthHeaders(),
+          Accept: "application/json",
+        },
         body: JSON.stringify(payload),
       });
 

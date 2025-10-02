@@ -10,11 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type DistrictsApiResponse = {
-  status: number;
-  data: Array<{ state: string; districts: string[] }>;
-};
-
 export default function DistrictPartySearch() {
   const [stateName, setStateName] = useState<string>("");
   const [district, setDistrict] = useState<string>("");

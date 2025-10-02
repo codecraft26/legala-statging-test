@@ -33,38 +33,37 @@ export default function HighCourtAdvocateResultsTable({
   followLoading: boolean;
 }) {
   const columns: ColumnDef<HighCourtResult>[] = [
-    { key: "cino", header: "CNR", width: 160, render: (r) => r.cino || "N/A" },
+    { key: "cino", header: "CNR", width: 140, render: (r) => r.cino || "N/A" },
     {
       key: "case_no",
-      header: "CASE NUMBER",
-      width: 140,
+      header: "CASE NO.",
+      width: 120,
       render: (r) => r.case_no || "N/A",
     },
     {
       key: "title",
       header: "TITLE",
-      width: 240,
-      render: (r) => (
-        <div
-          className="max-w-[220px] truncate"
-          title={`${r.pet_name || ""} vs ${r.res_name || ""}`}
-        >
-          {r.pet_name && r.res_name
-            ? `${r.pet_name} vs ${r.res_name}`
-            : r.pet_name || r.res_name || "N/A"}
-        </div>
-      ),
-    },
-    {
-      key: "type_name",
-      header: "TYPE",
-      width: 120,
-      render: (r) => r.type_name || "N/A",
+      width: 260,
+      render: (r) =>
+        (() => {
+          const fullTitle =
+            r.pet_name && r.res_name
+              ? `${r.pet_name} vs ${r.res_name}`
+              : r.pet_name || r.res_name || "N/A";
+          return (
+            <div
+              className="max-w-[260px] whitespace-normal break-words leading-snug"
+              title={fullTitle}
+            >
+              {fullTitle}
+            </div>
+          );
+        })(),
     },
     {
       key: "date_of_decision",
       header: "DECISION DATE",
-      width: 140,
+      width: 120,
       render: (r) =>
         r.date_of_decision
           ? new Date(r.date_of_decision).toLocaleDateString("en-IN")
@@ -73,7 +72,7 @@ export default function HighCourtAdvocateResultsTable({
     {
       key: "follow",
       header: "FOLLOW",
-      width: 120,
+      width: 70,
       render: (r) => (
         <FollowButton
           isFollowing={isRowFollowed(r)}
@@ -86,22 +85,19 @@ export default function HighCourtAdvocateResultsTable({
     {
       key: "actions",
       header: "ACTIONS",
-      width: 140,
+      width: 70,
       render: (r) => {
         const caseId = r.cino || r.case_no;
         return (
           <button
-            className="border border-border rounded px-2 py-1 bg-background text-foreground"
+            className="border border-border rounded px-1 py-1 bg-background text-foreground"
             onClick={() => onClickDetails(r)}
             disabled={loadingDetailsId === caseId}
           >
             {loadingDetailsId === caseId ? (
               <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <div className="flex items-center gap-1">
-                <Eye className="w-3 h-3" />
-                <span className="hidden sm:inline">Details</span>
-              </div>
+              <Eye className="w-4 h-4" />
             )}
           </button>
         );
@@ -115,8 +111,9 @@ export default function HighCourtAdvocateResultsTable({
         columns={columns}
         rows={rows}
         rowKey={(row) => row.cino || row.case_no}
-        tableClassName="min-w-full"
+        tableClassName="table-fixed w-full"
         headerRowClassName="bg-muted"
+        compact
       />
     </div>
   );

@@ -152,7 +152,10 @@ export default function HighCourtFilingSearch() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const startIndex = (page - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, total);
-  const currentPageResults = filteredResults.slice(startIndex, endIndex);
+  const currentPageResults = React.useMemo(
+    () => filteredResults.slice(startIndex, endIndex),
+    [filteredResults, startIndex, endIndex]
+  );
 
   React.useEffect(() => {
     setPage(1);
@@ -183,11 +186,13 @@ export default function HighCourtFilingSearch() {
   };
 
   const detailQuery = useHighDetail(detailParams);
+  const lastProcessedCaseRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     if (!detailParams) return;
     if (detailQuery.isLoading || detailQuery.isFetching) return;
     const caseId = String(detailParams.cino || detailParams.case_no);
+    if (lastProcessedCaseRef.current === caseId) return;
     if (detailQuery.error) {
       console.error("Failed to fetch case details:", detailQuery.error);
       setLoadingDetails(null);
@@ -201,38 +206,44 @@ export default function HighCourtFilingSearch() {
         : typeof raw === "string"
           ? parseHighCourtHtml(raw)
           : raw;
-    setSelectedCase({
-      ...(currentPageResults.find(
-        (r) => String(r.cino || r.case_no) === caseId
-      ) || ({} as any)),
-      details: normalized,
-    } as any);
+    const baseCase = currentPageResults.find(
+      (r) => String(r.cino || r.case_no) === caseId
+    );
+    if (!baseCase) {
+      // If the case is no longer in the current page, just attach identifiers
+      setSelectedCase({
+        cino: String(detailParams.cino || ""),
+        case_no: String(detailParams.case_no || ""),
+        details: normalized,
+      } as any);
+    } else {
+      setSelectedCase({ ...(baseCase as any), details: normalized } as any);
+    }
     setShowCaseDetails(true);
+    lastProcessedCaseRef.current = caseId;
     setLoadingDetails(null);
-  }, [
-    detailQuery.data,
-    detailQuery.error,
-    detailQuery.isLoading,
-    detailQuery.isFetching,
-    detailParams,
-    currentPageResults,
-  ]);
+  }, [detailQuery.data, detailQuery.error, detailParams]);
 
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
     setLoadingDetails(caseId);
-    // Build formatted case number: YYYY + SS + CCCCCCCC + YYYY
-    const year = Number(result.fil_year) || new Date().getFullYear();
+    // Build formatted case number: prefer existing case_no else YYYY + SS + CCCCCCCC + YYYY
+    const year =
+      Number((result as any).case_year) ||
+      Number(result.fil_year) ||
+      new Date().getFullYear();
     const state = Number(result.state_cd) || 26;
     const rawNo =
-      (result.fil_no
-        ? Number(result.fil_no)
+      (result as any).fil_no != null
+        ? Number((result as any).fil_no)
         : result.case_no
           ? Number(result.case_no)
-          : 0) || 0;
-    const formattedCaseNo = Number(
-      `${year}${String(state).padStart(2, "0")}${String(rawNo).padStart(8, "0")}${year}`
-    );
+          : 0;
+    const formattedCaseNo = result.case_no
+      ? Number(result.case_no)
+      : Number(
+          `${year}${String(state).padStart(2, "0")}${String(rawNo || 0).padStart(8, "0")}${year}`
+        );
     const natCode = (result.cino && result.cino.substring(0, 6)) || "DLHC01";
     setDetailParams({
       case_no: formattedCaseNo,

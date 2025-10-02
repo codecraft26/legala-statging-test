@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Eye, Loader2 } from "lucide-react";
-import SearchBar from "./common/SearchBar";
-import Pagination from "./common/Pagination";
 import {
   useDistrictByParty,
   useDistrictDetail,
