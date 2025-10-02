@@ -71,12 +71,6 @@ export default function DocumentsImportModal({
           ))}
         </div>
 
-        {folderPath.length > 0 && (
-          <Button onClick={onBack} variant="ghost" size="sm" className="mb-4 text-blue-600 hover:text-blue-700">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        )}
 
         {isFetching ? (
           <div className="flex items-center justify-center h-32">

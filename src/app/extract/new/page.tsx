@@ -13,14 +13,16 @@ import {
 import ProgressBar from "../components/ProgressBar";
 import FileUpload from "../components/FileUpload";
 import TagInput from "../components/TagInput";
-import DataView from "../components/DataView";
 import {
   useCreateExtractionFiles,
+  useCreateExtractionDocuments,
   useExtractionPolling,
 } from "@/hooks/use-extraction";
+import { useToast } from "@/components/ui/toast";
 
 export default function NewExtractionPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = useState<string>("");
   
@@ -33,12 +35,14 @@ export default function NewExtractionPage() {
   const currentWorkspace = workspaceId ? ({ id: workspaceId, name: workspaceName } as any) : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [files, setFiles] = useState<{ file: File }[]>([]);
-  const [extractedData, setExtractedData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentExtractionId, setCurrentExtractionId] = useState<string | null>(null);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [suggestedName, setSuggestedName] = useState<string>("");
 
-  const { mutate: createExtraction, isPending: isExtracting } = useCreateExtractionFiles();
+  const { mutate: createExtractionFiles, isPending: isExtractingFiles } = useCreateExtractionFiles();
+  const { mutate: createExtractionDocs, isPending: isExtractingDocs } = useCreateExtractionDocuments();
 
   const { data: pollingData } = useExtractionPolling(
     currentExtractionId || undefined,
@@ -49,29 +53,22 @@ export default function NewExtractionPage() {
   useEffect(() => {
     if (pollingData) {
       if (pollingData.status === "COMPLETED") {
-        // Extraction completed, show results
-        setCurrentStep(3);
+        // Extraction completed, redirect to details page
         setIsLoading(false);
         setCurrentExtractionId(null);
-
-        // Transform the extraction results into the expected format
-        const results =
-          pollingData.extraction_result?.map((result) => ({
-            fileName: result.file,
-            extractedData: result.data,
-            usage: pollingData.usage,
-          })) || [];
-
-        setExtractedData(results);
+        showToast("Extraction completed successfully!", "success");
+        
+        // Redirect to the extraction details page
+        router.push(`/extract/${pollingData.id}`);
       } else if (pollingData.status === "FAILED") {
         // Extraction failed
         setIsLoading(false);
         setCurrentExtractionId(null);
         console.error("Extraction failed:", pollingData);
-        alert(`Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`);
+        showToast(`Extraction failed: ${(pollingData as any).error || "Unknown error occurred"}`, "error");
       }
     }
-  }, [pollingData]);
+  }, [pollingData, router, showToast]);
 
   const handleBackToList = () => {
     router.push("/extract");
@@ -86,7 +83,7 @@ export default function NewExtractionPage() {
   };
 
   const handleStepNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 2) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -101,33 +98,56 @@ export default function NewExtractionPage() {
     setProgress(10);
 
     try {
-      createExtraction(
-        {
-          files: files.map((f) => f.file),
-          name,
-          tags: tags,
-          instruction: instructions,
-          workspaceId: currentWorkspace.id,
-        },
-        {
-          onSuccess: (data) => {
-            setCurrentExtractionId(data.data.id);
-            setProgress(30);
-            // Polling will handle the rest
+      if (selectedDocumentIds.length > 0 && files.length === 0) {
+        createExtractionDocs(
+          {
+            documentId: selectedDocumentIds,
+            name,
+            tags,
+            instruction: instructions,
+            workspaceId: currentWorkspace.id,
           },
-          onError: (error) => {
-            console.error("Extraction failed:", error);
-            setIsLoading(false);
-            setProgress(0);
-            alert(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`);
+          {
+            onSuccess: (data) => {
+              setCurrentExtractionId(data.data.id);
+              setProgress(30);
+            },
+            onError: (error) => {
+              console.error("Extraction failed:", error);
+              setIsLoading(false);
+              setProgress(0);
+              showToast(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`, "error");
+            },
+          }
+        );
+      } else {
+        createExtractionFiles(
+          {
+            files: files.map((f) => f.file),
+            name,
+            tags: tags,
+            instruction: instructions,
+            workspaceId: currentWorkspace.id,
           },
-        }
-      );
+          {
+            onSuccess: (data) => {
+              setCurrentExtractionId(data.data.id);
+              setProgress(30);
+            },
+            onError: (error) => {
+              console.error("Extraction failed:", error);
+              setIsLoading(false);
+              setProgress(0);
+              showToast(`Failed to start extraction: ${error?.message || "Unknown error occurred"}`, "error");
+            },
+          }
+        );
+      }
     } catch (error) {
       console.error("Error starting extraction:", error);
       setIsLoading(false);
       setProgress(0);
-      alert(`Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`);
+      showToast(`Error starting extraction: ${error instanceof Error ? error.message : "Unknown error occurred"}`, "error");
     }
   };
 
@@ -139,10 +159,9 @@ export default function NewExtractionPage() {
           <Button
             variant="ghost"
             onClick={handleBackToList}
-            className="flex items-center gap-2 p-2 h-8"
+            className="flex items-center p-2 h-8"
           >
             <ChevronLeft className="w-4 h-4" />
-           
           </Button>
           <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
             {currentStep === 1 ? (
@@ -157,16 +176,12 @@ export default function NewExtractionPage() {
             <h1 className="text-2xl font-semibold">
               {currentStep === 1
                 ? "Upload Documents"
-                : currentStep === 2
-                  ? "Configure Extraction"
-                  : "Review Results"}
+                : "Configure Extraction"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {currentStep === 1
                 ? "Select your files for processing"
-                : currentStep === 2
-                  ? "Define keywords and parameters"
-                  : "Analyze extracted data"}
+                : "Define keywords and parameters"}
             </p>
           </div>
         </div>
@@ -180,7 +195,7 @@ export default function NewExtractionPage() {
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          {isLoading || isExtracting ? (
+          {isLoading || isExtractingFiles || isExtractingDocs ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="relative mb-8">
                 <div className="w-16 h-16 border-4 border-gray-200 rounded-full"></div>
@@ -213,26 +228,24 @@ export default function NewExtractionPage() {
                   files={files}
                   setFiles={setFiles}
                   onNext={handleStepNext}
+                  selectedDocumentIds={selectedDocumentIds}
+                  onSelectedDocumentsChange={setSelectedDocumentIds}
+                  onSuggestedNameChange={setSuggestedName}
                 />
               )}
               {currentStep === 2 && (
                 <TagInput
                   initialName={
-                    files.length > 0
-                      ? files.length === 1
-                        ? files[0].file.name.replace(/\.[^/.]+$/, "")
-                        : `${files[0].file.name.replace(/\.[^/.]+$/, "")} + ${files.length - 1} more`
-                      : ""
+                    suggestedName || (
+                      files.length > 0
+                        ? (files.length === 1
+                          ? files[0].file.name.replace(/\.[^/.]+$/, "")
+                          : `${files[0].file.name.replace(/\.[^/.]+$/, "")} + ${files.length - 1} more`)
+                        : (selectedDocumentIds.length > 0 ? `Selected ${selectedDocumentIds.length} document${selectedDocumentIds.length !== 1 ? "s" : ""}` : "")
+                    )
                   }
                   onBack={handleStepBack}
                   onNext={handleExtractionSubmit}
-                />
-              )}
-              {currentStep === 3 && (
-                <DataView
-                  extractedData={extractedData}
-                  uploadedFiles={files}
-                  onBack={handleStepBack}
                 />
               )}
             </div>

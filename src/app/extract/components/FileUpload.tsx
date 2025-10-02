@@ -16,6 +16,9 @@ interface FileUploadProps {
   files: { file: File }[];
   setFiles: (v: { file: File }[]) => void;
   onNext: () => void;
+  selectedDocumentIds: string[];
+  onSelectedDocumentsChange: (ids: string[]) => void;
+  onSuggestedNameChange?: (name: string) => void;
 }
 
 // DocumentItem type imported from DocumentsImportModal
@@ -24,6 +27,9 @@ export default function FileUpload({
   files,
   setFiles,
   onNext,
+  selectedDocumentIds,
+  onSelectedDocumentsChange,
+  onSuggestedNameChange,
 }: FileUploadProps) {
   const currentWorkspace = React.useMemo(() => {
     const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
@@ -33,7 +39,7 @@ export default function FileUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [documentFiles, setDocumentFiles] = useState<DocumentItem[]>([]);
-  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  // selection moved to parent
   const [isFetchingDocuments, setIsFetchingDocuments] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -148,57 +154,24 @@ export default function FileUpload({
   };
 
   const importDocuments = async () => {
-    if (selectedDocuments.length === 0) return;
-
+    if (selectedDocumentIds.length === 0) return;
     try {
       setIsImporting(true);
-      const documentsToImport = documentFiles.filter(
-        (item) => item.type === "file" && selectedDocuments.includes(item.id)
-      );
-
-      const importedFiles = await Promise.all(
-        documentsToImport.map(async (doc) => {
-          let blob: Blob;
-
-          // Check if s3_key_original is available
-          if (!doc.s3_key_original) {
-            throw new Error(
-              `Document "${doc.filename}" cannot be downloaded - missing storage reference. Please re-upload this document.`
-            );
-          }
-
-          try {
-            const response = await Api.get<{ url: string }>(
-              `/get-signed-url?key=${encodeURIComponent(doc.s3_key_original)}`
-            );
-            const signedUrl = response.url;
-            const fileResponse = await fetch(signedUrl);
-            if (!fileResponse.ok) {
-              throw new Error(
-                `Failed to fetch document "${doc.filename}": ${fileResponse.statusText}`
-              );
-            }
-            blob = await fileResponse.blob();
-          } catch (signedUrlError) {
-            console.error("Failed to download document:", signedUrlError);
-            throw new Error(
-              `Cannot download document "${doc.filename}". Please try again or contact support.`
-            );
-          }
-
-          const file = new File([blob], doc.filename, {
-            type: blob.type || "application/octet-stream",
-          });
-
-          return file;
-        })
-      );
-
-      handleFilesAdded(importedFiles);
+      // No download; let parent submit document IDs directly
       setShowDocumentModal(false);
-      setSelectedDocuments([]);
+      // Suggest a name from selected documents
+      const selected = documentFiles.filter(
+        (i) => i.type === "file" && selectedDocumentIds.includes(i.id)
+      );
+      if (selected.length > 0) {
+        const first = selected[0].filename;
+        const base = first.replace(/\.[^/.]+$/, "");
+        const suggestion =
+          selected.length === 1 ? base : `${base} + ${selected.length - 1} more`;
+        onSuggestedNameChange && onSuggestedNameChange(suggestion);
+      }
     } catch (error) {
-      console.error("Error importing documents:", error);
+      console.error("Error confirming document selection:", error);
     } finally {
       setIsImporting(false);
     }
@@ -253,7 +226,7 @@ export default function FileUpload({
         open={showDocumentModal}
         onClose={() => {
           setShowDocumentModal(false);
-          setSelectedDocuments([]);
+          onSelectedDocumentsChange([]);
           setCurrentFolderId(null);
           setFolderPath([]);
         }}
@@ -261,28 +234,53 @@ export default function FileUpload({
         isImporting={isImporting}
         folderPath={folderPath}
         items={documentFiles}
-        selectedIds={selectedDocuments}
+        selectedIds={selectedDocumentIds}
         onBack={handleBackClick}
         onCrumbClick={handleBreadcrumbClick}
         onFolderClick={handleFolderClick}
-        onToggleSelect={(id) =>
-          setSelectedDocuments((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-          )
-        }
+        onToggleSelect={(id) => {
+          const next = selectedDocumentIds.includes(id)
+            ? selectedDocumentIds.filter((x) => x !== id)
+            : [...selectedDocumentIds, id];
+          onSelectedDocumentsChange(next);
+          // Update suggestion live while selecting
+          const selected = documentFiles.filter(
+            (i) => i.type === "file" && next.includes(i.id)
+          );
+          if (selected.length > 0) {
+            const first = selected[0].filename;
+            const base = first.replace(/\.[^/.]+$/, "");
+            const suggestion =
+              selected.length === 1 ? base : `${base} + ${selected.length - 1} more`;
+            onSuggestedNameChange && onSuggestedNameChange(suggestion);
+          } else {
+            onSuggestedNameChange && onSuggestedNameChange("");
+          }
+        }}
         onImport={importDocuments}
       />
 
       {/* Continue Button */}
       <div className="flex justify-between items-center pt-4">
         <div className="text-sm text-gray-500">
-          {files.length > 0 && (
+          {(files.length > 0 || selectedDocumentIds.length > 0) && (
             <span>
-              {files.length} file{files.length !== 1 ? "s" : ""} selected
+              {files.length > 0
+                ? `${files.length} file${files.length !== 1 ? "s" : ""}`
+                : (() => {
+                    const selected = documentFiles.filter(
+                      (i) => i.type === "file" && selectedDocumentIds.includes(i.id)
+                    );
+                    if (selected.length === 0) return "";
+                    const first = selected[0].filename;
+                    return selected.length === 1
+                      ? first
+                      : `${first} + ${selected.length - 1} more`;
+                  })()}
             </span>
           )}
         </div>
-        <Button onClick={onNext} disabled={files.length === 0}>
+        <Button onClick={onNext} disabled={files.length === 0 && selectedDocumentIds.length === 0}>
           Continue
           <ChevronRight className="w-4 h-4 ml-2" />
         </Button>
