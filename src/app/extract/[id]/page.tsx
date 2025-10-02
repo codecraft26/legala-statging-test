@@ -1,35 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  ChevronLeft,
-  Download,
-  FileText,
-  Clock,
-  Info,
-  AlertCircle,
-  Loader2,
-  Copy,
-  Check,
-  Tag,
-  MessageSquare,
-  User,
-} from "lucide-react";
+import { Table } from "@/components/ui/table";
+import { ChevronLeft, Download, FileText, Clock, Info, AlertCircle, Loader2, Copy, Check, User } from "lucide-react";
 import {
   useExtractionDetail,
   useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
 import { useToast } from "@/components/ui/toast";
+import StatusBadge from "../components/StatusBadge";
+import OverviewTab from "../components/OverviewTab";
+import ResultsTab from "../components/ResultsTab";
+import MetadataTab from "../components/MetadataTab";
+import type { Extraction } from "../components/types";
+
+// local tab components moved to extract/components
 
 export default function ExtractionDetailPage() {
   const params = useParams();
@@ -46,23 +33,25 @@ export default function ExtractionDetailPage() {
 
   const { mutate: removeExtraction } = useRemoveExtractionAgent();
 
-  const handleCopy = (content: any) => {
-    navigator.clipboard.writeText(JSON.stringify(content, null, 2));
+  const handleCopy = useCallback((content: unknown) => {
+    navigator.clipboard.writeText(JSON.stringify(content ?? {}, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, []);
 
-  const downloadAsCsv = () => {
-    if (!extraction?.extraction_result) return;
-
-    // Get all unique keys from all results
-    const allKeys = [
+  const allKeys = useMemo(() => {
+    if (!extraction?.extraction_result) return [] as string[];
+    return [
       ...new Set(
         extraction.extraction_result.flatMap((result) =>
           result.data ? Object.keys(result.data) : []
         )
       ),
-    ];
+    ] as string[];
+  }, [extraction?.extraction_result]);
+
+  const downloadAsCsv = useCallback(() => {
+    if (!extraction?.extraction_result) return;
 
     const headers = ["Document Name", ...allKeys];
     const rows = [
@@ -71,8 +60,8 @@ export default function ExtractionDetailPage() {
         const rowData = [
           `"${result.file.replace(/\.[^/.]+$/, "").replace(/"/g, '""')}"`,
           ...allKeys.map((key) => {
-            const value = result.data?.[key];
-            return `"${value ? String(value).replace(/"/g, '""') : ""}"`;
+            const value = (result.data as Record<string, unknown> | undefined)?.[key];
+            return `"${value !== undefined && value !== null ? String(value).replace(/"/g, '""') : ""}"`;
           }),
         ];
         return rowData.join(",");
@@ -87,9 +76,9 @@ export default function ExtractionDetailPage() {
     link.download = `extraction_${extraction.name.replace(/[^a-z0-9]/gi, "_")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [extraction?.extraction_result, extraction?.name, allKeys]);
 
-  const downloadAsJson = () => {
+  const downloadAsJson = useCallback(() => {
     if (!extraction) return;
 
     const dataToExport = {
@@ -101,11 +90,10 @@ export default function ExtractionDetailPage() {
         tags: extraction.tags,
         instruction: extraction.instruction,
       },
-      results:
-        extraction.extraction_result?.map((result) => ({
-          file: result.file,
-          data: result.data,
-        })),
+      results: extraction.extraction_result?.map((result) => ({
+        file: result.file,
+        data: result.data,
+      })),
     };
 
     const jsonContent =
@@ -118,9 +106,9 @@ export default function ExtractionDetailPage() {
       `extraction_${extraction.name.replace(/[^a-z0-9]/gi, "_")}.json`
     );
     link.click();
-  };
+  }, [extraction]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     removeExtraction(id, {
       onSuccess: () => {
         showToast("Extraction deleted successfully", "success");
@@ -136,7 +124,7 @@ export default function ExtractionDetailPage() {
         );
       },
     });
-  };
+  }, [id, removeExtraction, router, showToast]);
 
   const formatValue = (value: any, key: string) => {
     if (!value) return "-";
@@ -264,7 +252,7 @@ export default function ExtractionDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {getStatusBadge(extraction.status)}
+            <StatusBadge status={extraction.status} />
             <Button variant="outline" size="sm" onClick={downloadAsJson}>
               <Download className="w-4 h-4 mr-1.5" /> JSON
             </Button>
@@ -331,233 +319,14 @@ export default function ExtractionDetailPage() {
         </div>
 
         <div className="p-5 md:p-6">
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Status and Progress */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="text-sm font-medium text-gray-500 mb-1">
-                    Status
-                  </div>
-                  <div>{getStatusBadge(extraction.status)}</div>
-                </div>
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="text-sm font-medium text-gray-500 mb-1">
-                    Documents
-                  </div>
-                  <div className="text-lg font-semibold">
-                    {extraction.extraction_result?.length}
-                  </div>
-                </div>
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="text-sm font-medium text-gray-500 mb-1">
-                    Usage
-                  </div>
-                  <div className="text-lg font-semibold">
-                    {extraction.usage} tokens
-                  </div>
-                </div>
-              </div>
-
-              {/* Tags */}
-              {extraction.tags && extraction.tags.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <Tag className="w-5 h-5" />
-                    Tags
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {extraction.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center px-2.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Instructions */}
-              {extraction.instruction && (
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    Instructions
-                  </h3>
-                  <div className="bg-muted rounded-lg p-4">
-                    <p className="whitespace-pre-wrap text-gray-700">
-                      {extraction.instruction}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Processing Status */}
-              {extraction.status === "PROCESSING" && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-blue-800">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <h3 className="font-medium">Processing in Progress</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-blue-700">
-                    Your documents are currently being processed. This page will
-                    automatically update when complete.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Results Tab */}
+          {activeTab === "overview" && <OverviewTab extraction={extraction as unknown as Extraction} />}
           {activeTab === "results" && (
-            <div className="space-y-6">
-              {extraction.extraction_result &&
-              extraction.extraction_result.length > 0 ? (
-                <div className="space-y-4">
-                  {extraction.extraction_result.map((result, index) => {
-                    const dataEntries = result.data ? Object.entries(result.data) : [];
-                    
-                    return (
-                      <div key={result.id} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                            <h4 className="font-medium">{result.file}</h4>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCopy(result.data)}
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        
-                        {dataEntries.length > 0 ? (
-                          <div className="rounded-lg border">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Field</TableHead>
-                                  <TableHead>Value</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {dataEntries.map(([key, value]) => (
-                                  <TableRow key={key}>
-                                    <TableCell className="font-medium">
-                                      {key
-                                        .replace(/_/g, " ")
-                                        .replace(/([A-Z])/g, " $1")
-                                        .toLowerCase()
-                                        .replace(/^\w/, c => c.toUpperCase())}
-                                    </TableCell>
-                                    <TableCell>
-                                      <pre className="whitespace-pre-wrap font-sans leading-relaxed text-sm">
-                                        {formatValue(value, key)}
-                                      </pre>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p className="text-sm">No data extracted from this document.</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No results available yet.</p>
-                  {extraction.status === "PROCESSING" && (
-                    <p className="text-sm mt-2">
-                      Results will appear here once processing is complete.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <ResultsTab
+              extraction={extraction as unknown as Extraction}
+              onCopy={handleCopy}
+            />
           )}
-
-          {/* Metadata Tab */}
-          {activeTab === "metadata" && (
-            <div className="space-y-6">
-              <div className="space-y-6">
-                {/* Extraction Details Table */}
-                <div>
-                  <h4 className="font-medium mb-3">Extraction Details</h4>
-                  <div className="rounded-lg border">
-                    <Table>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium w-1/3">ID</TableCell>
-                          <TableCell className="font-mono text-sm">{extraction.id}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">Created</TableCell>
-                          <TableCell>{new Date(extraction.createdAt).toLocaleString()}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">Updated</TableCell>
-                          <TableCell>{new Date(extraction.updatedAt).toLocaleString()}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">Status</TableCell>
-                          <TableCell>{getStatusBadge(extraction.status)}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-
-                {/* User Information Table */}
-                {extraction.user && (
-                  <div>
-                    <h4 className="font-medium mb-3">User Information</h4>
-                    <div className="rounded-lg border">
-                      <Table>
-                        <TableBody>
-                          <TableRow>
-                            <TableCell className="font-medium w-1/3">Name</TableCell>
-                            <TableCell>{extraction.user.name}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">Email</TableCell>
-                            <TableCell>{extraction.user.email}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell className="font-medium">Role</TableCell>
-                            <TableCell>{extraction.user.role}</TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Usage Statistics */}
-                {extraction.usage && (
-                  <div>
-                    <h4 className="font-medium mb-3">Usage Statistics</h4>
-                    <div className="rounded-lg border p-4">
-                      <pre className="text-sm overflow-x-auto">
-                        {JSON.stringify(extraction.usage, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {activeTab === "metadata" && <MetadataTab extraction={extraction as unknown as Extraction} />}
         </div>
       </div>
     </div>
