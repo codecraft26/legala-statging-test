@@ -56,6 +56,8 @@ export default function SupremeCaseDetailsDialog({
   if (!caseData) return null;
 
   const availableTabs = Object.keys(caseData).filter((key) => (caseData as any)[key]?.success);
+  console.log("Available tabs:", availableTabs);
+  console.log("Case data structure:", caseData);
   if (availableTabs.length === 0) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,17 +74,44 @@ export default function SupremeCaseDetailsDialog({
   const tabPayload = (caseData as any)[safeActive]?.data?.data as string | undefined;
 
   const content: React.ReactNode = React.useMemo(() => {
-    if (typeof tabPayload === "string" && tabPayload.startsWith("{")) {
-      try {
-        const json = JSON.parse(tabPayload);
-        return (
-          <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{JSON.stringify(json, null, 2)}</pre>
-        );
-      } catch {
-        return <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{tabPayload}</pre>;
+    if (!tabPayload) {
+      return (
+        <div className="p-4 text-sm text-muted-foreground">
+          No content available for this section.
+        </div>
+      );
+    }
+
+    if (typeof tabPayload === "string") {
+      // Handle JSON responses
+      if (tabPayload.startsWith("{") || tabPayload.startsWith("[")) {
+        try {
+          const json = JSON.parse(tabPayload);
+          if (json.message === "No records found") {
+            return (
+              <div className="p-4 text-sm text-muted-foreground">
+                No records found for this section.
+              </div>
+            );
+          }
+          return (
+            <pre className="bg-muted p-4 rounded-md overflow-x-auto text-xs">{JSON.stringify(json, null, 2)}</pre>
+          );
+        } catch {
+          // If JSON parsing fails, treat as regular text
+        }
       }
-    } else if (typeof tabPayload === "string") {
+
+      // Handle HTML content
       const tables = parseHtmlContent(tabPayload);
+      if (tables.length === 0 || (tables.length === 1 && tables[0].length === 0)) {
+        return (
+          <div className="p-4 text-sm text-muted-foreground">
+            No structured content available for this section.
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-6">
           {tables.map((table, tableIndex) => (
@@ -128,7 +157,12 @@ export default function SupremeCaseDetailsDialog({
         </div>
       );
     }
-    return null;
+    
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Unexpected content format for this section.
+      </div>
+    );
   }, [tabPayload, safeActive]);
 
   return (

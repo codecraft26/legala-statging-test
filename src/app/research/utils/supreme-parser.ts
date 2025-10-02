@@ -129,7 +129,9 @@ export const createSupremeCourtCaseData = (
       "earlier_court_details",
       "tagged_matters",
       "listing_dates",
+      // Recognize both keys for IA content
       "interlocutory_application",
+      "interlocutory_application_documents",
       "court_fees",
       "notices",
       "defects",
@@ -138,6 +140,7 @@ export const createSupremeCourtCaseData = (
       "drop_note",
       "office_report",
       "similarities",
+      "caveat",
     ];
 
     sections.forEach((section) => {
@@ -179,6 +182,16 @@ export const createSupremeCourtCaseData = (
       "tagged_matters",
       "listing_dates",
       "interlocutory_application",
+      "interlocutory_application_documents",
+      "court_fees",
+      "notices",
+      "defects",
+      "judgement_orders",
+      "mention_memo",
+      "drop_note",
+      "office_report",
+      "similarities",
+      "caveat",
     ];
 
     standardTabs.forEach((tab) => {

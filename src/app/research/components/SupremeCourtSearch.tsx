@@ -131,11 +131,25 @@ export default function SupremeCourtSearch() {
         ? ((payload as any).case_details || (payload as any).html || (payload as any).content || (payload as any).data?.case_details)
         : undefined;
       let normalized: any = null;
-      if (typeof html === "string") {
+      if (payload && typeof payload === "object") {
+        // Server returned separate sections. Wrap each into the dialog's expected shape.
+        const wrapped: Record<string, { success: boolean; data: { data: string } }> = {};
+        Object.keys(payload as Record<string, unknown>).forEach((key) => {
+          const value: any = (payload as any)[key];
+          if (value == null) return;
+          // Accept raw HTML string or JSON string; otherwise stringify objects safely
+          const content = typeof value === "string" ? value : JSON.stringify(value);
+          wrapped[key] = { success: true, data: { data: content } };
+        });
+        // If nothing was wrapped but we have a single html, fall back to html mode below
+        if (Object.keys(wrapped).length > 0) {
+          normalized = wrapped;
+          console.log("Wrapped API response into tabs:", Object.keys(wrapped));
+        }
+      }
+      if (!normalized && typeof html === "string") {
+        // Fallback: single big HTML → auto-split into tabs best-effort
         normalized = createSupremeCourtCaseData(html);
-      } else if (payload && typeof payload === "object") {
-        // If server already returned structured tabs with success flags
-        normalized = payload as any;
       }
       if (normalized) {
         setSelectedCase(normalized);
