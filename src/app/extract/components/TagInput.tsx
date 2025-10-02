@@ -27,6 +27,18 @@ export default function TagInput({
   const [agent, setAgent] = useState(initialName); // Set agent name to match initial name
   const [name, setName] = useState(initialName); // Set extraction name to initial name
 
+  // Suggested tags (reference from old React flow)
+  const suggestedTags = [
+    "agreement date",
+    "parties involved",
+    "address",
+    "organization involved",
+    "important dates",
+    "amount",
+    "partner capital contribution %",
+    "amount contributed for all partners",
+  ];
+
   const addTag = () => {
     const v = input.trim();
     if (!v || tags.includes(v)) return;
@@ -118,23 +130,67 @@ export default function TagInput({
             </Button>
           </div>
 
-          {/* Tags Display */}
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                >
-                  {tag}
-                  <button
-                    onClick={() => removeTag(tag)}
-                    className="text-blue-600 hover:text-blue-800"
+          {/* Suggested Tags */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Suggested tags</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">click to add</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {suggestedTags.map((t) => {
+                const isAdded = tags.includes(t);
+                return (
+                  <Button
+                    key={t}
+                    type="button"
+                    variant={isAdded ? "secondary" : "outline"}
+                    size="sm"
+                    className={`justify-between ${isAdded ? "opacity-70" : ""}`}
+                    disabled={isAdded}
+                    onClick={() => {
+                      if (!isAdded) setTags((prev) => [...prev, t]);
+                    }}
                   >
-                    <X className="w-3 h-3" />
-                  </button>
+                    <span className="truncate text-left">{t}</span>
+                    {!isAdded && <Plus className="w-3 h-3 ml-2 opacity-60" />}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Selected Tags */}
+          {tags.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Selected Tags</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
+                  {tags.length}
                 </span>
-              ))}
+              </div>
+              <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-lg border">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => removeTag(tag)}
+                      className="text-blue-600 hover:text-blue-800"
+                      aria-label={`Remove ${tag}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 bg-muted/20 rounded-lg border border-dashed">
+              <Tag className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No tags added yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Add custom tags or select from suggestions above</p>
             </div>
           )}
 

@@ -5,8 +5,6 @@ import {
   extractionApi,
   CreateExtractionFilesRequest,
   CreateExtractionDocumentsRequest,
-  ExtractionAgentWithResults,
-  ExtractionResultDetail,
 } from "@/lib/extraction-api";
 
 // Query keys
