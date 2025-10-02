@@ -222,11 +222,7 @@ export default function HighCourtFilingSearch() {
     setShowCaseDetails(true);
     lastProcessedCaseRef.current = caseId;
     setLoadingDetails(null);
-  }, [
-    detailQuery.data,
-    detailQuery.error,
-    detailParams,
-  ]);
+  }, [detailQuery.data, detailQuery.error, detailParams]);
 
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
@@ -246,7 +242,7 @@ export default function HighCourtFilingSearch() {
     const formattedCaseNo = result.case_no
       ? Number(result.case_no)
       : Number(
-          `${year}${String(state).padStart(2, "0")}${String((rawNo || 0)).padStart(8, "0")}${year}`
+          `${year}${String(state).padStart(2, "0")}${String(rawNo || 0).padStart(8, "0")}${year}`
         );
     const natCode = (result.cino && result.cino.substring(0, 6)) || "DLHC01";
     setDetailParams({

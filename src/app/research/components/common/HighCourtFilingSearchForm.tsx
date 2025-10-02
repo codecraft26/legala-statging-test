@@ -42,46 +42,60 @@ export default function HighCourtFilingSearchForm({
       <form onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Court Type</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Court Type
+            </label>
             <select
               value={courtCode}
               onChange={(e) => setCourtCode(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
             >
               {courtCodeMapping.map((court) => (
-                <option key={court.code} value={court.code}>{court.name}</option>
+                <option key={court.code} value={court.code}>
+                  {court.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">State</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              State
+            </label>
             <select
               value={stateCode}
               onChange={(e) => setStateCode(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
             >
               {stateCodeMapping.map((state) => (
-                <option key={state.code} value={state.code}>{state.name}</option>
+                <option key={state.code} value={state.code}>
+                  {state.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Court Complex</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Court Complex
+            </label>
             <select
               value={courtComplexCode}
               onChange={(e) => setCourtComplexCode(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
             >
               {courtComplexMapping.map((complex) => (
-                <option key={complex.code} value={complex.code}>{complex.name}</option>
+                <option key={complex.code} value={complex.code}>
+                  {complex.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Case Number *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Case Number *
+            </label>
             <input
               type="number"
               value={caseNo}
@@ -90,18 +104,24 @@ export default function HighCourtFilingSearchForm({
               placeholder="5293619"
               required
             />
-            <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">Example: 5293619</div>
+            <div className="text-sm text-gray-500 dark:text-zinc-400 mt-1">
+              Example: 5293619
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">Registration Year</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-zinc-300">
+              Registration Year
+            </label>
             <select
               value={rgYear}
               onChange={(e) => setRgYear(e.target.value)}
               className="w-full border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-black"
             >
               {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
+                <option key={y} value={y}>
+                  {y}
+                </option>
               ))}
             </select>
           </div>
@@ -130,5 +150,3 @@ export default function HighCourtFilingSearchForm({
     </div>
   );
 }
-
-

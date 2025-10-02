@@ -262,7 +262,7 @@ export default function HighCourtAdvocateSearch() {
     const formattedCaseNo = result.case_no
       ? Number(result.case_no)
       : Number(
-          `${year}${String(state).padStart(2, "0")}${String((rawNo || 0)).padStart(8, "0")}${year}`
+          `${year}${String(state).padStart(2, "0")}${String(rawNo || 0).padStart(8, "0")}${year}`
         );
     const natCode = (result.cino && result.cino.substring(0, 6)) || "DLHC01";
     setDetailParams({

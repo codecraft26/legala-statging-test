@@ -9,7 +9,6 @@ import {
   useUnfollowResearch,
 } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
 import SearchBar from "./common/SearchBar";
 import FollowButton from "./common/FollowButton";

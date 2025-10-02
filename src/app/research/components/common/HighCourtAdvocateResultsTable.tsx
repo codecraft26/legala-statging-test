@@ -44,7 +44,7 @@ export default function HighCourtAdvocateResultsTable({
       key: "title",
       header: "TITLE",
       width: 260,
-      render: (r) => (
+      render: (r) =>
         (() => {
           const fullTitle =
             r.pet_name && r.res_name
@@ -58,8 +58,7 @@ export default function HighCourtAdvocateResultsTable({
               {fullTitle}
             </div>
           );
-        })()
-      ),
+        })(),
     },
     {
       key: "date_of_decision",

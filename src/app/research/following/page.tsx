@@ -5,18 +5,8 @@ import ResearchShell from "@/components/research-shell";
 import { FollowedDistrictTable } from "../components/FollowedDistrictTable";
 import { FollowedHighCourtTable } from "../components/FollowedHighCourtTable";
 import { FollowedSupremeTable } from "../components/FollowedSupremeTable";
-import {
-  Bookmark,
-  BookmarkX,
-  ExternalLink,
-  Calendar,
-  User,
-  FileText,
-  Eye,
-  Loader2,
-} from "lucide-react";
+import { Bookmark, ExternalLink } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import {
   useFollowedResearch,
   useUnfollowResearch,
