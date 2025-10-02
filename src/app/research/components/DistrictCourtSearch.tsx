@@ -275,16 +275,29 @@ export default function DistrictCourtSearch() {
     return filtered;
   }, [searchResults, searchQuery]);
 
-  // Ensure pagination state exists for each court and stays in range
+  // Ensure pagination state exists for each court and stays in range without causing loops
   useEffect(() => {
-    const nextPages: Record<string, number> = {};
-    Object.entries(filteredResults).forEach(([courtName, cases]) => {
-      const totalPages = Math.max(1, Math.ceil(cases.length / pageSize));
-      const current = pageByCourt[courtName] || 1;
-      nextPages[courtName] = Math.min(Math.max(1, current), totalPages);
+    setPageByCourt((prev) => {
+      const nextPages: Record<string, number> = {};
+      Object.entries(filteredResults).forEach(([courtName, cases]) => {
+        const totalPages = Math.max(1, Math.ceil(cases.length / pageSize));
+        const current = prev[courtName] || 1;
+        const clamped = Math.min(Math.max(1, current), totalPages);
+        nextPages[courtName] = clamped;
+      });
+
+      // If nothing actually changed, return previous state to avoid extra renders
+      const prevKeys = Object.keys(prev);
+      const nextKeys = Object.keys(nextPages);
+      if (
+        prevKeys.length === nextKeys.length &&
+        nextKeys.every((k) => prev[k] === nextPages[k])
+      ) {
+        return prev;
+      }
+      return nextPages;
     });
-    setPageByCourt(nextPages);
-  }, [filteredResults, pageSize, pageByCourt]);
+  }, [filteredResults, pageSize]);
 
   // Handle EST code selection
   const handleEstCodeToggle = (estCode: string) => {
