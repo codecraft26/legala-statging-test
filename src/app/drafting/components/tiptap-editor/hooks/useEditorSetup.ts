@@ -22,7 +22,8 @@ import { SlashCommands } from "../slash-commands";
 export const useEditorSetup = (
   content: string,
   onVariableClick: (variableId: string) => void,
-  variables: any[]
+  variables: any[],
+  onOpenAIModal?: () => void
 ) => {
   const [contentUpdateTrigger, setContentUpdateTrigger] = useState(0);
 
@@ -61,7 +62,9 @@ export const useEditorSetup = (
       }),
       Gapcursor,
       TrailingNode.configure({ node: "paragraph" }),
-      SlashCommands,
+      SlashCommands.configure({
+        onOpenAIModal,
+      }),
     ],
     editorProps: {
       attributes: {
@@ -74,13 +77,13 @@ export const useEditorSetup = (
 
   // Update variable highlighting when variables change
   useEffect(() => {
-    if (editor) {
+    if (editor && variables) {
       const variableHighlightExt = editor.extensionManager.extensions.find(
         (ext) => ext.name === "variableHighlight"
       );
       if (variableHighlightExt) {
         variableHighlightExt.options.currentVariables = variables;
-        editor.view.dispatch(editor.state.tr);
+        // Don't dispatch - just update the options, the extension will handle re-rendering
       }
     }
   }, [editor, variables]);

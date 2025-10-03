@@ -6,7 +6,7 @@ import {
   normalizeBracketPlaceholders,
 } from "../utils";
 
-export const useVariables = (editor: Editor | null, content: string) => {
+export const useVariables = (editor: Editor | null) => {
   const [variables, setVariables] = useState<VariableDef[]>([]);
   const [variableValues, setVariableValues] = useState<Record<string, string>>(
     {}
@@ -18,69 +18,197 @@ export const useVariables = (editor: Editor | null, content: string) => {
   const [highlightedVariable, setHighlightedVariable] = useState<string | null>(
     null
   );
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [isExtracting, setIsExtracting] = useState(false);
+  const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
+  const isProcessingRef = useRef(false);
+  const [triggerUpdate, setTriggerUpdate] = useState(0);
+  const extractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const extractionSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Derive variables from content placeholders like {{variable_id}}
+  // Debounced variable extraction to prevent performance issues with large documents
+  useEffect(() => {
+    if (!editor) {
+      setIsExtracting(false);
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (extractionTimeoutRef.current) {
+      clearTimeout(extractionTimeoutRef.current);
+    }
+    
+    // Set loading state
+    setIsExtracting(true);
+    console.log("useVariables: Starting variable extraction, isExtracting set to true");
+    
+    // Safety timeout to prevent stuck extraction state (10 seconds)
+    extractionSafetyTimeoutRef.current = setTimeout(() => {
+      console.log("useVariables: Safety timeout reached, forcing isExtracting to false");
+      setIsExtracting(false);
+    }, 10000);
+    
+    // Debounce the extraction to prevent excessive processing
+    extractionTimeoutRef.current = setTimeout(() => {
+      extractVariables();
+    }, 500); // 500ms debounce
+    
+    return () => {
+      if (extractionTimeoutRef.current) {
+        clearTimeout(extractionTimeoutRef.current);
+      }
+      if (extractionSafetyTimeoutRef.current) {
+        clearTimeout(extractionSafetyTimeoutRef.current);
+      }
+      // Reset extraction state on cleanup
+      setIsExtracting(false);
+      console.log("useVariables: Cleanup - isExtracting set to false");
+    };
+  }, [editor, triggerUpdate]);
+
+  const extractVariables = useCallback(() => {
+    try {
+      if (!editor) {
+        setIsExtracting(false);
+        if (extractionSafetyTimeoutRef.current) {
+          clearTimeout(extractionSafetyTimeoutRef.current);
+          extractionSafetyTimeoutRef.current = null;
+        }
+        return;
+      }
+      
+      // Reset processing flag if it's been stuck
+      if (isProcessingRef.current) {
+        console.log("useVariables: Processing flag was stuck, resetting...");
+        isProcessingRef.current = false;
+      }
+
+      let html = editor.getHTML() || "";
+      console.log("useVariables: Processing content:", html.substring(0, 200) + "...");
+      console.log("useVariables: Full content length:", html.length);
+      console.log("useVariables: Content contains variables:", html.includes("{{"));
+      
+      const { curlyMatches, bracketMatches, bracketToCurly } =
+        extractVariablesFromContent(html);
+      
+      console.log("useVariables: Curly matches found:", curlyMatches);
+      console.log("useVariables: Bracket matches found:", bracketMatches);
+
+      // Normalize bracket placeholders to curly syntax
+      const normalizedHtml = normalizeBracketPlaceholders(html, bracketToCurly);
+      if (normalizedHtml !== html) {
+        isProcessingRef.current = true;
+        editor.chain().focus().setContent(normalizedHtml, false).run();
+        html = normalizedHtml;
+        // Reset the flag after a short delay
+        setTimeout(() => {
+          isProcessingRef.current = false;
+        }, 100);
+      }
+
+      // Recompute matches after potential normalization
+      const matches = html.match(/\{\{([^}]+)\}\}/g) || curlyMatches;
+      const foundIds = Array.from(
+        new Set(
+          matches
+            .map((m) => (m.slice(2, -2) || "").trim())
+            .filter((id) => id.length > 0)
+        )
+      );
+
+      console.log("useVariables: Found variable IDs:", foundIds);
+      console.log("useVariables: Current variables:", variables);
+
+      if (foundIds.length === 0 && variables.length === 0) {
+        setIsExtracting(false);
+        if (extractionSafetyTimeoutRef.current) {
+          clearTimeout(extractionSafetyTimeoutRef.current);
+          extractionSafetyTimeoutRef.current = null;
+        }
+        return;
+      }
+
+      const existingIds = new Set(variables.map((v) => v.unique_id));
+      const newDefs: VariableDef[] = [];
+
+      foundIds.forEach((id) => {
+        if (!existingIds.has(id)) {
+          // Try to find a pretty label from bracket source, else default to id
+          const prettyLabelEntry = Object.entries(bracketToCurly).find(
+            ([, to]) => to === `{{${id}}}`
+          );
+          const label = prettyLabelEntry
+            ? prettyLabelEntry[0].slice(1, -1).trim()
+            : id;
+          newDefs.push({ unique_id: id, label, type: "text" });
+        }
+      });
+
+      if (newDefs.length > 0) {
+        console.log("useVariables: Adding new variables:", newDefs);
+        setVariables((prev) => [...prev, ...newDefs]);
+      }
+
+      // Update placeholder status map
+      if (variables.length > 0 || newDefs.length > 0) {
+        const allVars =
+          newDefs.length > 0 ? [...variables, ...newDefs] : variables;
+        const foundSet = new Set(
+          (html.match(/\{\{[^}]+\}\}/g) || []).map((p) => p.slice(2, -2).trim())
+        );
+        const status: Record<string, string> = {};
+        allVars.forEach((v) => {
+          status[v.unique_id] = foundSet.has(v.unique_id) ? "Found" : "Missing";
+        });
+        setPlaceholderStatus(status);
+      }
+      
+      // Clear loading state and safety timeout
+      setIsExtracting(false);
+      if (extractionSafetyTimeoutRef.current) {
+        clearTimeout(extractionSafetyTimeoutRef.current);
+        extractionSafetyTimeoutRef.current = null;
+      }
+      console.log("useVariables: Variable extraction completed, isExtracting set to false");
+    } catch (error) {
+      console.error("useVariables: Error during variable extraction:", error);
+      setIsExtracting(false);
+      if (extractionSafetyTimeoutRef.current) {
+        clearTimeout(extractionSafetyTimeoutRef.current);
+        extractionSafetyTimeoutRef.current = null;
+      }
+      console.log("useVariables: Error occurred, isExtracting set to false");
+    }
+  }, [editor, variables, triggerUpdate]);
+
+  // Listen to editor updates to trigger variable extraction
   useEffect(() => {
     if (!editor) return;
 
-    let html = editor.getHTML() || "";
-    const { curlyMatches, bracketMatches, bracketToCurly } =
-      extractVariablesFromContent(html);
+    const handleUpdate = () => {
+      console.log("useVariables: Editor update detected, triggering variable extraction");
+      setTriggerUpdate(prev => prev + 1);
+    };
 
-    // Normalize bracket placeholders to curly syntax
-    const normalizedHtml = normalizeBracketPlaceholders(html, bracketToCurly);
-    if (normalizedHtml !== html) {
-      editor.chain().focus().setContent(normalizedHtml, false).run();
-      html = normalizedHtml;
-    }
+    const handleSelectionUpdate = () => {
+      console.log("useVariables: Editor selection update detected, triggering variable extraction");
+      setTriggerUpdate(prev => prev + 1);
+    };
 
-    // Recompute matches after potential normalization
-    const matches = html.match(/\{\{([^}]+)\}\}/g) || curlyMatches;
-    const foundIds = Array.from(
-      new Set(
-        matches
-          .map((m) => (m.slice(2, -2) || "").trim())
-          .filter((id) => id.length > 0)
-      )
-    );
+    const handleTransaction = () => {
+      console.log("useVariables: Editor transaction detected, triggering variable extraction");
+      setTriggerUpdate(prev => prev + 1);
+    };
 
-    if (foundIds.length === 0 && variables.length === 0) return;
-
-    const existingIds = new Set(variables.map((v) => v.unique_id));
-    const newDefs: VariableDef[] = [];
-
-    foundIds.forEach((id) => {
-      if (!existingIds.has(id)) {
-        // Try to find a pretty label from bracket source, else default to id
-        const prettyLabelEntry = Object.entries(bracketToCurly).find(
-          ([, to]) => to === `{{${id}}}`
-        );
-        const label = prettyLabelEntry
-          ? prettyLabelEntry[0].slice(1, -1).trim()
-          : id;
-        newDefs.push({ unique_id: id, label, type: "text" });
-      }
-    });
-
-    if (newDefs.length > 0) {
-      setVariables((prev) => [...prev, ...newDefs]);
-    }
-
-    // Update placeholder status map
-    if (variables.length > 0 || newDefs.length > 0) {
-      const allVars =
-        newDefs.length > 0 ? [...variables, ...newDefs] : variables;
-      const foundSet = new Set(
-        (html.match(/\{\{[^}]+\}\}/g) || []).map((p) => p.slice(2, -2).trim())
-      );
-      const status: Record<string, string> = {};
-      allVars.forEach((v) => {
-        status[v.unique_id] = foundSet.has(v.unique_id) ? "Found" : "Missing";
-      });
-      setPlaceholderStatus(status);
-    }
-  }, [editor, content, variables]);
+    editor.on("update", handleUpdate);
+    editor.on("selectionUpdate", handleSelectionUpdate);
+    editor.on("transaction", handleTransaction);
+    
+    return () => {
+      editor.off("update", handleUpdate);
+      editor.off("selectionUpdate", handleSelectionUpdate);
+      editor.off("transaction", handleTransaction);
+    };
+  }, [editor]);
 
   const handleChangeVariableValue = useCallback((id: string, value: string) => {
     setVariableValues((prev) => ({ ...prev, [id]: value }));
@@ -94,6 +222,11 @@ export const useVariables = (editor: Editor | null, content: string) => {
     setVariableValues({});
     setEditingVariable(null);
     setHighlightedVariable(null);
+  }, []);
+
+  const handleForceExtraction = useCallback(() => {
+    console.log("useVariables: Force extraction triggered");
+    setTriggerUpdate(prev => prev + 1);
   }, []);
 
   const handleVariableClick = useCallback(
@@ -139,10 +272,12 @@ export const useVariables = (editor: Editor | null, content: string) => {
     setEditingVariable,
     highlightedVariable,
     setHighlightedVariable,
+    isExtracting,
     inputRefs,
     handleChangeVariableValue,
     handleEditVariable,
     handleClearAll,
     handleVariableClick,
+    handleForceExtraction,
   };
 };

@@ -20,6 +20,7 @@ import {
   Strikethrough,
   Link,
   Image,
+  Sparkles,
 } from "lucide-react";
 
 type CommandItem = {
@@ -31,7 +32,27 @@ type CommandItem = {
   run: (editor: Editor) => void;
 };
 
-export const getBaseCommands = (editor: Editor): CommandItem[] => [
+export const getBaseCommands = (editor: Editor, onOpenAIModal?: () => void): CommandItem[] => [
+  // AI & Generation
+  {
+    title: "AskAI",
+    description: "Generate content with AI assistance",
+    keywords: ["ai", "generate", "ask", "assistant", "help", "write"],
+    icon: Sparkles,
+    category: "AI",
+    run: (e) => {
+      if (onOpenAIModal) {
+        onOpenAIModal();
+      } else {
+        // Fallback to custom event
+        const event = new CustomEvent('open-ai-modal', {
+          detail: { editor: e }
+        });
+        window.dispatchEvent(event);
+      }
+    },
+  },
+
   // Text & Headings
   {
     title: "Text",
@@ -228,6 +249,7 @@ export const SlashCommands = Extension.create({
   name: "slashCommands",
   addOptions() {
     return {
+      onOpenAIModal: undefined,
       suggestion: {
         char: "/",
         allowSpaces: false,
@@ -243,8 +265,14 @@ export const SlashCommands = Extension.create({
           props.run(editor);
         },
         items: ({ query, editor }: any) => {
-          const items = getBaseCommands(editor);
-          if (!query) return items;
+          // Get the callback from the extension options
+          const extension = editor.extensionManager.extensions.find((ext: any) => ext.name === 'slashCommands');
+          const onOpenAIModal = extension?.options?.onOpenAIModal;
+          
+          const items = getBaseCommands(editor, onOpenAIModal);
+          if (!query) {
+            return items;
+          }
           const q = String(query || "").toLowerCase();
           return items.filter(
             (i) =>

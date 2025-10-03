@@ -87,13 +87,32 @@ export const useDocumentOperations = (
   const importWord = useCallback(
     async (file: File) => {
       try {
+        // Check file size (limit to 10MB for performance)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+          alert(`File too large. Please use files smaller than 10MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          return null;
+        }
+
+        console.log(`Importing Word document: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
+        
         const arr = await file.arrayBuffer();
         const mammoth = (await import("mammoth")) as any;
+        
+        // Add progress indication for large files
+        if (file.size > 1024 * 1024) { // 1MB
+          console.log("Processing large document, this may take a moment...");
+        }
+        
         const result = await mammoth.convertToHtml({ arrayBuffer: arr });
         const html = result.value || "<p></p>";
+        
+        console.log(`Document converted to HTML (${html.length} characters)`);
+        
         editor?.chain().focus().setContent(html, false).run();
         return file.name.replace(/\.[^.]+$/, "");
       } catch (e: any) {
+        console.error("Word import error:", e);
         alert(`Failed to import Word document: ${e?.message || e}`);
         return null;
       }
