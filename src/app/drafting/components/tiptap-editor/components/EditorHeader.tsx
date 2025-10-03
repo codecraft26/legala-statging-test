@@ -294,6 +294,7 @@ export default function EditorHeader({
           </div>
         </div>
       </div>
+
     </div>
   );
 }

@@ -343,6 +343,49 @@ export const useDocumentOperations = (
     [editor]
   );
 
+  const handleDocumentImport = useCallback(
+    async (file: File, documentInfo: any) => {
+      if (!editor) return;
+
+      try {
+        const fileName = file.name;
+        const fileExtension = fileName.split('.').pop()?.toLowerCase();
+        
+        let content = "";
+        
+        if (fileExtension === 'txt') {
+          content = await file.text();
+        } else if (fileExtension === 'docx') {
+          // Use mammoth to extract text content from DOCX files
+          const mammoth = await import("mammoth");
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.convertToHtml({ arrayBuffer });
+          
+          // Extract plain text from HTML
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = result.value;
+          content = tempDiv.textContent || tempDiv.innerText || "";
+          
+          // If no text content, fallback to filename
+          if (!content.trim()) {
+            content = `[Document: ${fileName}]`;
+          }
+        } else {
+          content = `[Document: ${fileName}]`;
+        }
+
+        // Insert the content at the current cursor position
+        editor.commands.insertContent(content);
+        
+        showToast(`Document "${fileName}" imported successfully`, "success");
+      } catch (error) {
+        console.error("Error importing document:", error);
+        showToast("Failed to import document", "error");
+      }
+    },
+    [editor, showToast]
+  );
+
   const handleSaveDraftToDocument = useCallback(
     async (params: SaveDraftToDocumentParams) => {
       if (!editor) return;
@@ -413,5 +456,6 @@ export const useDocumentOperations = (
     handlePreviewFinal,
     handleDraftFromDocuments,
     handleSaveDraftToDocument,
+    handleDocumentImport,
   };
 };

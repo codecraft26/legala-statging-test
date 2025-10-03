@@ -1,19 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Clock, User, Plus } from "lucide-react";
+import { FileText, Clock, User, Plus, Database } from "lucide-react";
 import { useDraftingList, useDraftingDetail } from "@/hooks/use-drafting";
+import DocumentSelector from "../../DocumentSelector";
 
 type Props = {
   workspaceId?: string;
   onLoadDraftContent?: (data: { name?: string; content?: string }) => void;
   onCreateNewDraft?: () => void;
+  onDocumentImport?: (file: File, documentInfo: any) => void;
 };
 
 export default function DraftsList({
   workspaceId,
   onLoadDraftContent,
   onCreateNewDraft,
+  onDocumentImport,
 }: Props) {
   const drafting = useDraftingList(workspaceId);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
@@ -76,14 +79,30 @@ export default function DraftsList({
             <FileText size={18} className="text-black" />
             <h3 className="text-lg font-semibold text-gray-900">Drafts</h3>
           </div>
-          <button
-            onClick={handleCreateNewDraft}
-            className="flex items-center gap-1 px-3 py-1.5 bg-black hover:bg-zinc-800 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-            title="Start a new draft"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">New</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {onDocumentImport && (
+              <DocumentSelector
+                onDocumentSelect={onDocumentImport}
+                trigger={
+                  <button
+                    className="flex items-center gap-1 px-3 py-1.5 bg-black hover:bg-zinc-800 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                    title="Import from DataHub"
+                  >
+                    <Database size={16} />
+                    <span className="hidden sm:inline">DataHub</span>
+                  </button>
+                }
+              />
+            )}
+            <button
+              onClick={handleCreateNewDraft}
+              className="flex items-center gap-1 px-3 py-1.5 bg-black hover:bg-zinc-800 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+              title="Start a new draft"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">New</span>
+            </button>
+          </div>
         </div>
         <p className="text-sm text-gray-600 mt-1">
           {drafting.isLoading

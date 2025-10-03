@@ -13,7 +13,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import FontFamily from "@tiptap/extension-font-family";
 import TextStyle from "@tiptap/extension-text-style";
-import Gapcursor from "@tiptap/extension-gapcursor";
 import { TrailingNode } from "../extensions/TrailingNode";
 import { FontSize } from "../extensions/FontSize";
 import { VariableHighlight } from "../extensions/VariableHighlight";
@@ -29,6 +28,7 @@ export const useEditorSetup = (
 
   const editor = useEditor({
     autofocus: true,
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
@@ -60,7 +60,6 @@ export const useEditorSetup = (
         onVariableClick,
         currentVariables: variables,
       }),
-      Gapcursor,
       TrailingNode.configure({ node: "paragraph" }),
       SlashCommands.configure({
         onOpenAIModal,

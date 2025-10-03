@@ -25,6 +25,7 @@ export type DocumentItem = {
   id: string;
   type: "file" | "folder";
   filename: string;
+  filePath?: string;
   parent_folder_id?: string | null;
   user?: { name?: string; email?: string; role?: string };
   createdAt?: string;
@@ -62,6 +63,7 @@ export function useDocuments(
             ? "folder"
             : "file",
         filename: String(d?.name ?? d?.filename ?? ""),
+        filePath: d?.filePath,
         parent_folder_id: d?.parentId ?? d?.parent_folder_id ?? null,
         user: d?.user
           ? { name: d.user.name, email: d.user.email, role: d.user.role }

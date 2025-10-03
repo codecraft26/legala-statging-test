@@ -37,10 +37,6 @@ export default function TiptapEditor({
   );
   const [content, setContent] = useState("");
   
-  // Debug logging
-  useEffect(() => {
-    console.log("TiptapEditor: Content state changed:", content.substring(0, 100) + "...");
-  }, [content]);
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
@@ -136,6 +132,7 @@ export default function TiptapEditor({
     handlePreviewFinal,
     handleDraftFromDocuments,
     handleSaveDraftToDocument,
+    handleDocumentImport,
   } = useDocumentOperations(editor, documentTitle, variableValues, variables);
 
   const { handleApplyAllVariables, handleInsertPlaceholder } =
@@ -195,7 +192,6 @@ export default function TiptapEditor({
     if (editor) {
       const handleUpdate = ({ editor }: { editor: any }) => {
         const newContent = editor.getHTML();
-        console.log("TiptapEditor: Editor update triggered, new content:", newContent.substring(0, 100) + "...");
         setContent(newContent);
         updateEditorState();
       };
@@ -294,11 +290,7 @@ export default function TiptapEditor({
               <SelectionToolbar
                 editor={editor}
                 onRefine={(originalText, refinedText, instruction) => {
-                  console.warn("Text refined:", {
-                    originalText,
-                    refinedText,
-                    instruction,
-                  });
+                  // Text refinement completed
                 }}
               />
               <SelectionRefineMenu editor={editor} />
@@ -389,6 +381,7 @@ export default function TiptapEditor({
                     .run();
                   if (onNewDraft) onNewDraft();
                 }}
+                onDocumentImport={handleDocumentImport}
               />
             ) : (
               <VariablesPanel

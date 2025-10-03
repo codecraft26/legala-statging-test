@@ -39,11 +39,9 @@ export const useVariables = (editor: Editor | null) => {
     
     // Set loading state
     setIsExtracting(true);
-    console.log("useVariables: Starting variable extraction, isExtracting set to true");
     
     // Safety timeout to prevent stuck extraction state (10 seconds)
     extractionSafetyTimeoutRef.current = setTimeout(() => {
-      console.log("useVariables: Safety timeout reached, forcing isExtracting to false");
       setIsExtracting(false);
     }, 10000);
     
@@ -61,7 +59,6 @@ export const useVariables = (editor: Editor | null) => {
       }
       // Reset extraction state on cleanup
       setIsExtracting(false);
-      console.log("useVariables: Cleanup - isExtracting set to false");
     };
   }, [editor, triggerUpdate]);
 
@@ -78,20 +75,14 @@ export const useVariables = (editor: Editor | null) => {
       
       // Reset processing flag if it's been stuck
       if (isProcessingRef.current) {
-        console.log("useVariables: Processing flag was stuck, resetting...");
         isProcessingRef.current = false;
       }
 
       let html = editor.getHTML() || "";
-      console.log("useVariables: Processing content:", html.substring(0, 200) + "...");
-      console.log("useVariables: Full content length:", html.length);
-      console.log("useVariables: Content contains variables:", html.includes("{{"));
       
       const { curlyMatches, bracketMatches, bracketToCurly } =
         extractVariablesFromContent(html);
       
-      console.log("useVariables: Curly matches found:", curlyMatches);
-      console.log("useVariables: Bracket matches found:", bracketMatches);
 
       // Normalize bracket placeholders to curly syntax
       const normalizedHtml = normalizeBracketPlaceholders(html, bracketToCurly);
@@ -115,8 +106,6 @@ export const useVariables = (editor: Editor | null) => {
         )
       );
 
-      console.log("useVariables: Found variable IDs:", foundIds);
-      console.log("useVariables: Current variables:", variables);
 
       if (foundIds.length === 0 && variables.length === 0) {
         setIsExtracting(false);
@@ -144,7 +133,6 @@ export const useVariables = (editor: Editor | null) => {
       });
 
       if (newDefs.length > 0) {
-        console.log("useVariables: Adding new variables:", newDefs);
         setVariables((prev) => [...prev, ...newDefs]);
       }
 
@@ -168,7 +156,6 @@ export const useVariables = (editor: Editor | null) => {
         clearTimeout(extractionSafetyTimeoutRef.current);
         extractionSafetyTimeoutRef.current = null;
       }
-      console.log("useVariables: Variable extraction completed, isExtracting set to false");
     } catch (error) {
       console.error("useVariables: Error during variable extraction:", error);
       setIsExtracting(false);
@@ -176,7 +163,6 @@ export const useVariables = (editor: Editor | null) => {
         clearTimeout(extractionSafetyTimeoutRef.current);
         extractionSafetyTimeoutRef.current = null;
       }
-      console.log("useVariables: Error occurred, isExtracting set to false");
     }
   }, [editor, variables, triggerUpdate]);
 
@@ -185,17 +171,14 @@ export const useVariables = (editor: Editor | null) => {
     if (!editor) return;
 
     const handleUpdate = () => {
-      console.log("useVariables: Editor update detected, triggering variable extraction");
       setTriggerUpdate(prev => prev + 1);
     };
 
     const handleSelectionUpdate = () => {
-      console.log("useVariables: Editor selection update detected, triggering variable extraction");
       setTriggerUpdate(prev => prev + 1);
     };
 
     const handleTransaction = () => {
-      console.log("useVariables: Editor transaction detected, triggering variable extraction");
       setTriggerUpdate(prev => prev + 1);
     };
 
@@ -225,7 +208,6 @@ export const useVariables = (editor: Editor | null) => {
   }, []);
 
   const handleForceExtraction = useCallback(() => {
-    console.log("useVariables: Force extraction triggered");
     setTriggerUpdate(prev => prev + 1);
   }, []);
 
