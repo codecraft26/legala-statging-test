@@ -4,14 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Copy,
-  Eye,
-  User,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Copy, Eye } from "lucide-react";
 import type { Extraction, ExtractionResult } from "./types";
 import { useRouter } from "next/navigation";
 
@@ -122,9 +115,6 @@ export default function HierarchicalResultsView({
                       <ChevronRight className="w-3.5 h-3.5" />
                     )}
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-primary/10 rounded flex items-center justify-center">
-                        <User className="w-3.5 h-3.5 text-primary" />
-                      </div>
                       <div>
                         <span className="font-semibold text-base">
                           {extraction.name}
