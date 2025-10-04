@@ -43,25 +43,25 @@ export default function DocumentListItem({
 
   return (
     <div
-      className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer min-h-[80px] ${
+      className={`flex items-center justify-between px-2 py-1.5 border rounded hover:bg-gray-50 cursor-pointer min-h-[36px] ${
         isSelected ? "bg-blue-50 border-blue-200" : ""
       }`}
       onClick={handleClick}
     >
-      <div className="flex items-center space-x-3 flex-1 min-w-0">
+      <div className="flex items-center space-x-1.5 flex-1 min-w-0">
         {document.type === "folder" ? (
-          <Folder className="w-5 h-5 text-blue-500 flex-shrink-0" />
+          <Folder className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
         ) : (
           <FileText
-            className={`w-5 h-5 flex-shrink-0 ${isPDF ? "text-red-500" : "text-gray-500"}`}
+            className={`w-3.5 h-3.5 flex-shrink-0 ${isPDF ? "text-red-500" : "text-gray-500"}`}
           />
         )}
         <div className="min-w-0 flex-1">
-          <div className="font-medium break-words" title={document.filename}>
+          <div className="font-medium text-xs truncate" title={document.filename}>
             {document.filename}
           </div>
           {document.user && (
-            <div className="text-sm text-gray-500 break-words">
+            <div className="text-xs text-gray-500 truncate">
               by {document.user.name} •{" "}
               {new Date(document.createdAt || "").toLocaleDateString()}
             </div>
@@ -69,11 +69,11 @@ export default function DocumentListItem({
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 flex-shrink-0">
+      <div className="flex items-center space-x-1 flex-shrink-0">
         {document.type === "file" && (
           <Badge
             variant={isPDF ? "destructive" : "secondary"}
-            className="text-xs"
+            className="text-xs px-1 py-0.5 h-4"
           >
             {fileExtension}
           </Badge>
@@ -90,6 +90,7 @@ export default function DocumentListItem({
           <Button
             size="sm"
             variant="ghost"
+            className="h-6 px-1.5 text-xs"
             onClick={(e) => {
               e.stopPropagation();
               onImport?.(document);
@@ -97,14 +98,14 @@ export default function DocumentListItem({
             disabled={isLoading}
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
               "Import"
             )}
           </Button>
         )}
         {document.type === "folder" && (
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <ChevronRight className="w-3 h-3 text-gray-400" />
         )}
       </div>
     </div>

@@ -84,16 +84,16 @@ export default function FolderBrowser({
                 <button
                   key={folder.id}
                   onClick={() => onFolderClick(folder)}
-                  className="w-full flex items-center space-x-2 p-2 text-left hover:bg-gray-50 rounded-md min-h-[50px]"
+                  className="w-full flex items-center space-x-1.5 px-1.5 py-1 text-left hover:bg-gray-50 rounded min-h-[28px]"
                 >
-                  <Folder className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <Folder className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                   <span
-                    className="text-sm break-words flex-1"
+                    className="text-xs break-words flex-1 truncate"
                     title={folder.filename}
                   >
                     {folder.filename}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <ChevronRight className="w-3 h-3 text-gray-400 flex-shrink-0" />
                 </button>
               ))}
 

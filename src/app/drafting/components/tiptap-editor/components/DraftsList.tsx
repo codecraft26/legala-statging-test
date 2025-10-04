@@ -131,33 +131,33 @@ export default function DraftsList({
             </p>
           </div>
         ) : (
-          <div className="p-2 space-y-1 pb-40">
+          <div className="p-0.5 space-y-0 pb-40">
             {(drafting.data || []).map((draft) => (
               <button
                 key={draft.id}
                 onClick={() => handleDraftClick(draft.id)}
-                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 hover:shadow-md ${
+                className={`w-full text-left px-1.5 py-1.5 rounded border transition-all duration-200 hover:shadow-sm ${
                   selectedDraftId === draft.id
                     ? "bg-gray-100 border-gray-300 shadow-sm"
                     : "bg-white border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center justify-between gap-1">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate text-sm">
+                    <h4 className="font-medium text-gray-900 truncate text-xs" title={draft.name || draft.instruction || "Untitled Draft"}>
                       {draft.name || draft.instruction || "Untitled Draft"}
                     </h4>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <User size={12} />
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500">
+                      <div className="flex items-center gap-0.5">
+                        <User size={8} />
                         <span className="truncate">
                           {draft.user?.name ||
                             (draft.user?.email || "").split("@")[0] ||
                             "Unknown"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock size={12} />
+                      <div className="flex items-center gap-0.5">
+                        <Clock size={8} />
                         <span>
                           {formatDate(draft.updatedAt || draft.createdAt)}
                         </span>
@@ -165,7 +165,7 @@ export default function DraftsList({
                     </div>
                   </div>
                   <div
-                    className={`flex-shrink-0 w-2 h-2 rounded-full ${
+                    className={`flex-shrink-0 w-1 h-1 rounded-full ${
                       selectedDraftId === draft.id ? "bg-black" : "bg-gray-300"
                     }`}
                   ></div>
