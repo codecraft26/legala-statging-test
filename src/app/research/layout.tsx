@@ -42,6 +42,12 @@ export default function ResearchLayout({
       return (
         <div className="bg-muted/50 overflow-hidden ml-2 rounded-lg">
           <Link
+            href="/research/highcourt/partyname"
+            className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
+          >
+            Search by Party Name
+          </Link>
+          <Link
             href="/research/highcourt/advocatename"
             className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
           >

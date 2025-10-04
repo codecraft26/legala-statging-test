@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Api } from "@/lib/api-client";
 import { getCookie } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Invite {
   id: string;
@@ -28,6 +29,7 @@ export default function InvitesPage() {
   const [sending, setSending] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const { user } = useAuth();
 
   const fetchInvites = async () => {
     try {
@@ -118,7 +120,16 @@ export default function InvitesPage() {
 
   return (
     <main className="max-w-5xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Invitations</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Invitations</h1>
+        {user?.role === "Owner" && user?.remainingInvite !== undefined && (
+          <div className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-2">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              <span className="font-medium">Remaining Invites:</span> {user.remainingInvite}
+            </p>
+          </div>
+        )}
+      </div>
       <form onSubmit={sendInvite} className="flex flex-col gap-2">
         <div className="flex gap-3">
           <input

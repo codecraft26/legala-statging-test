@@ -10,6 +10,14 @@ export interface AuthUser {
   name?: string;
   email?: string;
   role?: string;
+  remainingInvite?: number;
+  invite?: number;
+  workspace?: Array<{
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
   [key: string]: any;
 }
 

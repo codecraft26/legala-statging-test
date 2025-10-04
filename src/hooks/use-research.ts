@@ -90,6 +90,54 @@ export function useHighByParty(
   });
 }
 
+export function useHighCourts() {
+  return useQuery({
+    queryKey: ["highCourts"],
+    queryFn: () => HighCourtAPI.getCourts(),
+    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
+    gcTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useHighCourtInfo(courtName: string, benchName: string) {
+  return useQuery({
+    queryKey: ["highCourtInfo", courtName, benchName],
+    queryFn: () => HighCourtAPI.getCourtInfo(courtName, benchName),
+    enabled: !!courtName && !!benchName,
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useHighCaseStatusByParty(
+  params: {
+    court_code: string;
+    state_code: string;
+    court_complex_code: string;
+    petres_name: string;
+    rgyear: string;
+  } | null
+) {
+  return useQuery({
+    queryKey: ["highCaseStatusByParty", params],
+    queryFn: () => HighCourtAPI.searchCaseStatusByParty(params!),
+    enabled: !!params,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: (failureCount, error) => {
+      // Don't retry on captcha errors
+      if (error?.message?.includes("captcha")) {
+        return false;
+      }
+      // Retry up to 2 times for other errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
 export function useHighByFilingNumber(
   params: {
     court_code: number;

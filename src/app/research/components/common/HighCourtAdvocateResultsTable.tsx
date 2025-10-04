@@ -30,7 +30,7 @@ export default function HighCourtAdvocateResultsTable({
   loadingDetailsId: string | null;
   onClickDetails: (r: HighCourtResult) => void;
   onClickFollow: (r: HighCourtResult) => void;
-  followLoading: boolean;
+  followLoading: string | null;
 }) {
   const columns: ColumnDef<HighCourtResult>[] = [
     { key: "cino", header: "CNR", width: 140, render: (r) => r.cino || "N/A" },
@@ -73,14 +73,18 @@ export default function HighCourtAdvocateResultsTable({
       key: "follow",
       header: "FOLLOW",
       width: 70,
-      render: (r) => (
-        <FollowButton
-          isFollowing={isRowFollowed(r)}
-          loading={followLoading}
-          onClick={() => onClickFollow(r)}
-          compact
-        />
-      ),
+      render: (r) => {
+        const caseId = r.cino || r.case_no;
+        const isLoading = followLoading === caseId;
+        return (
+          <FollowButton
+            isFollowing={isRowFollowed(r)}
+            loading={isLoading}
+            onClick={() => onClickFollow(r)}
+            compact
+          />
+        );
+      },
     },
     {
       key: "actions",
