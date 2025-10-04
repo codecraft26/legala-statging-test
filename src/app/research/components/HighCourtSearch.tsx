@@ -466,7 +466,7 @@ export default function HighCourtSearch() {
                   dist_cd: 0,
                 } as any)
               }
-              followLoading={!!followLoading}
+              followLoading={followLoading}
             />
           )}
 

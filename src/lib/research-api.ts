@@ -3,11 +3,10 @@
  * Provides access to Supreme Court, High Court, and District Court case search functionality
  */
 
-import { getApiBaseUrl } from "./utils";
+import { getApiBaseUrl, getResearchApiBaseUrl, getCookie } from "./utils";
 
 const API_BASE_URL = `${getApiBaseUrl()}/research`;
-
-import { getCookie } from "@/lib/utils";
+const RESEARCH_API_BASE_URL = getResearchApiBaseUrl();
 
 const getAuthHeaders = () => {
   const token = typeof window !== "undefined" ? getCookie("token") || "" : "";
@@ -103,6 +102,131 @@ export class SupremeCourtAPI {
 
 // High Court API Client
 export class HighCourtAPI {
+  static async getCourts() {
+    try {
+      const response = await fetch(`${RESEARCH_API_BASE_URL}/hc/courts`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      
+      // Check if response is HTML (error page)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error("Received HTML response instead of JSON:", responseText.substring(0, 200));
+        throw new Error("Server returned HTML instead of JSON. This usually indicates an authentication or server error.");
+      }
+
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", responseText.substring(0, 200));
+        throw new Error("Invalid JSON response from server");
+      }
+    } catch (error) {
+      console.error("Error fetching courts:", error);
+      throw error;
+    }
+  }
+
+  static async getCourtInfo(courtName: string, benchName: string) {
+    try {
+      const response = await fetch(
+        `${RESEARCH_API_BASE_URL}/hc/court-info?name=${encodeURIComponent(courtName)}&bench=${encodeURIComponent(benchName)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      
+      // Check if response is HTML (error page)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error("Received HTML response instead of JSON:", responseText.substring(0, 200));
+        throw new Error("Server returned HTML instead of JSON. This usually indicates an authentication or server error.");
+      }
+
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", responseText.substring(0, 200));
+        throw new Error("Invalid JSON response from server");
+      }
+    } catch (error) {
+      console.error("Error fetching court info:", error);
+      throw error;
+    }
+  }
+
+  static async searchCaseStatusByParty(data: {
+    court_code: string;
+    state_code: string;
+    court_complex_code: string;
+    petres_name: string;
+    rgyear: string;
+  }) {
+    try {
+      // Create FormData for the request
+      const formData = new FormData();
+      formData.append('court_code', data.court_code);
+      formData.append('state_code', data.state_code);
+      formData.append('court_complex_code', data.court_complex_code);
+      formData.append('petres_name', data.petres_name);
+      formData.append('rgyear', data.rgyear);
+
+      const response = await fetch(`${RESEARCH_API_BASE_URL}/hc/case-status`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      
+      // Check if response is HTML (error page)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error("Received HTML response instead of JSON:", responseText.substring(0, 200));
+        throw new Error("Server returned HTML instead of JSON. This usually indicates an authentication or server error.");
+      }
+
+      try {
+        const result = JSON.parse(responseText);
+        
+        // Check for captcha error
+        if (result.success === false && result.error && result.error.includes("Captcha")) {
+          throw new Error("Server requires captcha verification. Please try again later or contact support.");
+        }
+        
+        // Check for other API errors
+        if (result.success === false && result.error) {
+          throw new Error(`API Error: ${result.error}`);
+        }
+        
+        return result;
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", responseText.substring(0, 200));
+        throw new Error("Invalid JSON response from server");
+      }
+    } catch (error) {
+      console.error("Error searching case status by party:", error);
+      throw error;
+    }
+  }
   static async searchByAdvocate(data: {
     court_code: number;
     state_code: number;
@@ -175,10 +299,25 @@ export class HighCourtAPI {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error("API Error Response:", errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      const responseText = await response.text();
+      
+      // Check if response is HTML (error page)
+      if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+        console.error("Received HTML response instead of JSON:", responseText.substring(0, 200));
+        throw new Error("Server returned HTML instead of JSON. This usually indicates an authentication or server error.");
+      }
+
+      try {
+        return JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("Failed to parse JSON response:", responseText.substring(0, 200));
+        throw new Error("Invalid JSON response from server");
+      }
     } catch (error) {
       console.error("Error searching by party:", error);
       throw error;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Search, Eye, Loader2 } from "lucide-react";
 import {
   useHighByAdvocate,
@@ -8,15 +8,12 @@ import {
   useUnfollowResearch,
   useHighDetail,
   useFollowedResearch,
+  useHighCourts,
+  useHighCourtInfo,
   researchKeys,
 } from "@/hooks/use-research";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCookie } from "@/lib/utils";
-import {
-  stateCodeMapping,
-  courtComplexMapping,
-  courtCodeMapping,
-} from "../utils/courtMappings";
 import SearchBar from "./common/SearchBar";
 import Pagination from "./common/Pagination";
 
@@ -25,7 +22,6 @@ import {
   ParsedHighCourtDetails,
 } from "../utils/highCourtParser";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
-import HighCourtAdvocateSearchForm from "./common/HighCourtAdvocateSearchForm";
 import HighCourtAdvocateResultsTable from "./common/HighCourtAdvocateResultsTable";
 
 interface HighCourtResult {
@@ -59,9 +55,6 @@ interface HighCourtResult {
 export default function HighCourtAdvocateSearch() {
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [advocateName, setAdvocateName] = useState("");
-  const [courtCode, setCourtCode] = useState("1");
-  const [stateCode, setStateCode] = useState("26");
-  const [courtComplexCode, setCourtComplexCode] = useState("1");
   const [filterType, setFilterType] = useState<"P" | "R" | "Both">("Both");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCase, setSelectedCase] = useState<HighCourtResult | null>(
@@ -70,6 +63,7 @@ export default function HighCourtAdvocateSearch() {
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [loadingFollow, setLoadingFollow] = useState<string | null>(null);
   const [detailParams, setDetailParams] = useState<{
     case_no: number;
     state_code: number;
@@ -88,17 +82,77 @@ export default function HighCourtAdvocateSearch() {
     f: "P" | "R" | "Both";
   } | null>(null);
 
+  // Court and bench selection states
+  const [selectedCourt, setSelectedCourt] = useState("");
+  const [courtSearch, setCourtSearch] = useState("");
+  const [showCourtDropdown, setShowCourtDropdown] = useState(false);
+  const [benches, setBenches] = useState<string[]>([]);
+  const [selectedBench, setSelectedBench] = useState("");
+  const [courtCode, setCourtCode] = useState<number | null>(null);
+  const [stateCode, setStateCode] = useState<number | null>(null);
+  const [courtComplexCode, setCourtComplexCode] = useState<number | null>(null);
+
+  const courtInputRef = useRef<HTMLDivElement>(null);
+
   const queryClient = useQueryClient();
   const advocateQuery = useHighByAdvocate(searchParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
   const followedQuery = useFollowedResearch(workspaceId || "", "High_Court");
 
+  // Use the courts hook
+  const courtsQuery = useHighCourts();
+  const courts = useMemo(() => courtsQuery.data?.courts || [], [courtsQuery.data?.courts]);
+
+  // Use the court info hook
+  const courtInfoQuery = useHighCourtInfo(selectedCourt, selectedBench);
+
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       setWorkspaceId(getCookie("workspaceId"));
     }
   }, []);
+
+  // Handle click outside to close court dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (courtInputRef.current && !courtInputRef.current.contains(event.target as Node)) {
+        setShowCourtDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Update benches when selectedCourt changes
+  useEffect(() => {
+    if (selectedCourt) {
+      const court = courts.find((c: any) => c.name === selectedCourt);
+      setBenches(court ? court.benches : []);
+      setSelectedBench(""); // Reset bench selection when court changes
+      setCourtCode(null); // Reset court code
+      setStateCode(null); // Reset state code
+    } else {
+      setBenches([]);
+      setSelectedBench("");
+      setCourtCode(null);
+      setStateCode(null);
+    }
+  }, [selectedCourt, courts]);
+
+  // Update court codes when court info is fetched
+  useEffect(() => {
+    if (courtInfoQuery.data) {
+      const courtInfo = courtInfoQuery.data;
+      setCourtCode(courtInfo.court_code || null);
+      setStateCode(courtInfo.state_cd || null);
+      setCourtComplexCode(courtInfo.court_code || null); // Use court_code for court complex code
+    } else if (courtInfoQuery.error) {
+      setCourtCode(null);
+      setStateCode(null);
+      setCourtComplexCode(null);
+    }
+  }, [courtInfoQuery.data, courtInfoQuery.error]);
 
   // Build followed set using cino and reconstructed case_no (TYPE/NO/YEAR)
   React.useEffect(() => {
@@ -181,11 +235,19 @@ export default function HighCourtAdvocateSearch() {
       e.preventDefault();
 
       if (!advocateName.trim()) return;
+      if (!selectedCourt || !selectedBench) {
+        alert("Please select both court and bench");
+        return;
+      }
+      if (!courtCode || !stateCode || !courtComplexCode) {
+        alert("Court details are still loading. Please wait a moment and try again.");
+        return;
+      }
 
       const nextParams = {
-        court_code: parseInt(courtCode),
-        state_code: parseInt(stateCode),
-        court_complex_code: parseInt(courtComplexCode),
+        court_code: courtCode,
+        state_code: stateCode,
+        court_complex_code: courtComplexCode,
         advocate_name: advocateName.trim(),
         f: filterType,
       } as const;
@@ -198,6 +260,8 @@ export default function HighCourtAdvocateSearch() {
     },
     [
       advocateName,
+      selectedCourt,
+      selectedBench,
       courtCode,
       stateCode,
       courtComplexCode,
@@ -291,14 +355,30 @@ export default function HighCourtAdvocateSearch() {
       if (isRowFollowed(caseData)) {
         return;
       } else {
+        // Set loading state for this specific case
+        setLoadingFollow(caseId);
+        
         // Send the entire row as the followed payload (preserve all fields)
         const followedData = { ...caseData } as any;
 
-        followMutation.mutate({
-          court: "High_Court",
-          followed: followedData,
-          workspaceId: workspaceId,
-        });
+        followMutation.mutate(
+          {
+            court: "High_Court",
+            followed: followedData,
+            workspaceId: workspaceId,
+          },
+          {
+            onSuccess: () => {
+              // Clear loading state
+              setLoadingFollow(null);
+            },
+            onError: (error) => {
+              console.error("Failed to follow case:", error);
+              // Clear loading state on error
+              setLoadingFollow(null);
+            },
+          }
+        );
       }
     },
     [followMutation, isRowFollowed]
@@ -311,23 +391,123 @@ export default function HighCourtAdvocateSearch() {
       </h2>
 
       <div className="bg-white dark:bg-zinc-900 p-6 rounded-md border border-gray-200 dark:border-zinc-800 max-w-2xl">
-        <HighCourtAdvocateSearchForm
-          courtCode={courtCode}
-          setCourtCode={setCourtCode}
-          stateCode={stateCode}
-          setStateCode={setStateCode}
-          courtComplexCode={courtComplexCode}
-          setCourtComplexCode={setCourtComplexCode}
-          advocateName={advocateName}
-          setAdvocateName={setAdvocateName}
-          filterType={filterType}
-          setFilterType={setFilterType}
-          courtCodeMapping={courtCodeMapping}
-          stateCodeMapping={stateCodeMapping}
-          courtComplexMapping={courtComplexMapping}
-          onSubmit={handleSubmit}
-          isSearching={advocateQuery.isLoading || advocateQuery.isFetching}
-        />
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            {/* Court Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Court
+              </label>
+              <div className="relative" ref={courtInputRef}>
+                <input
+                  type="text"
+                  value={courtSearch}
+                  onChange={(e) => {
+                    setCourtSearch(e.target.value);
+                    setShowCourtDropdown(true);
+                  }}
+                  onFocus={() => setShowCourtDropdown(true)}
+                  placeholder="Search for a court..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
+                />
+                {showCourtDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {courts
+                      .filter((court: any) =>
+                        court.name.toLowerCase().includes(courtSearch.toLowerCase())
+                      )
+                      .map((court: any) => (
+                        <div
+                          key={court.name}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                          onClick={() => {
+                            setSelectedCourt(court.name);
+                            setCourtSearch(court.name);
+                            setShowCourtDropdown(false);
+                          }}
+                        >
+                          {court.name}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bench Selection */}
+            {selectedCourt && benches.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Bench
+                </label>
+                <select
+                  value={selectedBench}
+                  onChange={(e) => setSelectedBench(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">Select a bench</option>
+                  {benches.map((bench) => (
+                    <option key={bench} value={bench}>
+                      {bench}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Advocate Name */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Advocate Name
+              </label>
+              <input
+                type="text"
+                value={advocateName}
+                onChange={(e) => setAdvocateName(e.target.value)}
+                placeholder="Enter advocate name"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
+                required
+              />
+            </div>
+
+            {/* Filter Type */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filter Type
+              </label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as "P" | "R" | "Both")}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
+              >
+                <option value="Both">Both</option>
+                <option value="P">Petitioner</option>
+                <option value="R">Respondent</option>
+              </select>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={advocateQuery.isLoading || advocateQuery.isFetching || !selectedCourt || !selectedBench || !courtCode || !stateCode || !courtComplexCode}
+              className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {advocateQuery.isLoading || advocateQuery.isFetching ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Searching...
+                </div>
+              ) : courtInfoQuery.isLoading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Loading Court Details...
+                </div>
+              ) : (
+                "Search Cases"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Error Display */}
@@ -413,9 +593,7 @@ export default function HighCourtAdvocateSearch() {
                 loadingDetailsId={loadingDetails}
                 onClickDetails={handleViewDetails as any}
                 onClickFollow={handleFollowCase as any}
-                followLoading={
-                  followMutation.isPending || unfollowMutation.isPending
-                }
+                followLoading={loadingFollow}
               />
             )}
             {/* Footer Pagination */}

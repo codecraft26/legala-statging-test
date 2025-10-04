@@ -21,6 +21,11 @@ export const getApiBaseUrl = (): string => {
   return `${base}${api.startsWith("/") ? api : `/${api}`}`.replace(/\/$/, "");
 };
 
+export const getResearchApiBaseUrl = (): string => {
+  const url = process.env.NEXT_PUBLIC_CC_BASE_URL || "https://researchengineinh.infrahive.ai";
+  return url.replace(/\/$/, "");
+};
+
 // Cookie helpers (client-side)
 export function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
