@@ -1,23 +1,21 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Search, Loader2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useHighByFilingNumber,
   useFollowResearch,
   useUnfollowResearch,
   useHighDetail,
   useFollowedResearch,
-  useHighCourts,
-  useHighCourtInfo,
 } from "@/hooks/use-research";
-import { getApiBaseUrl, getCookie } from "@/lib/utils";
-// ResultsTable not used directly here after refactor
-import SearchBar from "./common/SearchBar";
-import Pagination from "./common/Pagination";
+import { getCookie } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
-import HighCourtAdvocateResultsTable from "./common/HighCourtAdvocateResultsTable";
+import HighCourtSearchForm from "./common/HighCourtSearchForm";
+import HighCourtResultsSection from "./common/HighCourtResultsSection";
 import { parseHighCourtHtml } from "../utils/highCourtParser";
 
 interface HighCourtResult {
@@ -50,9 +48,7 @@ export default function HighCourtFilingSearch() {
   const [caseNo, setCaseNo] = useState("");
   const [rgYear, setRgYear] = useState(new Date().getFullYear().toString());
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCase, setSelectedCase] = useState<HighCourtResult | null>(
-    null
-  );
+  const [selectedCase, setSelectedCase] = useState<HighCourtResult | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
@@ -75,77 +71,16 @@ export default function HighCourtFilingSearch() {
     rgyear: number;
   } | null>(null);
 
-  // Court and bench selection states
-  const [selectedCourt, setSelectedCourt] = useState("");
-  const [courtSearch, setCourtSearch] = useState("");
-  const [showCourtDropdown, setShowCourtDropdown] = useState(false);
-  const [benches, setBenches] = useState<string[]>([]);
-  const [selectedBench, setSelectedBench] = useState("");
-  const [courtCode, setCourtCode] = useState<number | null>(null);
-  const [stateCode, setStateCode] = useState<number | null>(null);
-  const [courtComplexCode, setCourtComplexCode] = useState<number | null>(null);
-
-  const courtInputRef = useRef<HTMLDivElement>(null);
-
-  const queryClient = useQueryClient();
   const filingQuery = useHighByFilingNumber(searchParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
   const followedQuery = useFollowedResearch(workspaceId || "", "High_Court");
-
-  // Use the courts hook
-  const courtsQuery = useHighCourts();
-  const courts = useMemo(() => courtsQuery.data?.courts || [], [courtsQuery.data?.courts]);
-
-  // Use the court info hook
-  const courtInfoQuery = useHighCourtInfo(selectedCourt, selectedBench);
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       setWorkspaceId(getCookie("workspaceId"));
     }
   }, []);
-
-  // Handle click outside to close court dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (courtInputRef.current && !courtInputRef.current.contains(event.target as Node)) {
-        setShowCourtDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Update benches when selectedCourt changes
-  useEffect(() => {
-    if (selectedCourt) {
-      const court = courts.find((c: any) => c.name === selectedCourt);
-      setBenches(court ? court.benches : []);
-      setSelectedBench(""); // Reset bench selection when court changes
-      setCourtCode(null); // Reset court code
-      setStateCode(null); // Reset state code
-    } else {
-      setBenches([]);
-      setSelectedBench("");
-      setCourtCode(null);
-      setStateCode(null);
-    }
-  }, [selectedCourt, courts]);
-
-  // Update court codes when court info is fetched
-  useEffect(() => {
-    if (courtInfoQuery.data) {
-      const courtInfo = courtInfoQuery.data;
-      setCourtCode(courtInfo.court_code || null);
-      setStateCode(courtInfo.state_cd || null);
-      setCourtComplexCode(courtInfo.court_code || null); // Use court_code for court complex code
-    } else if (courtInfoQuery.error) {
-      setCourtCode(null);
-      setStateCode(null);
-      setCourtComplexCode(null);
-    }
-  }, [courtInfoQuery.data, courtInfoQuery.error]);
 
   // Build followed set using cino and reconstructed case_no (TYPE/NO/YEAR)
   React.useEffect(() => {
@@ -178,12 +113,6 @@ export default function HighCourtFilingSearch() {
     return byCino || byComposite;
   };
 
-  // Generate years for dropdown (last 30 years)
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 30 }, (_, i) =>
-    (currentYear - i).toString()
-  );
-
   const rawResults: HighCourtResult[] = Array.isArray(filingQuery.data)
     ? (filingQuery.data as HighCourtResult[])
     : Array.isArray((filingQuery.data as any)?.results)
@@ -215,47 +144,36 @@ export default function HighCourtFilingSearch() {
     setPage(1);
   }, [filingQuery.isFetching, searchQuery, searchParams]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFormSubmit = useCallback(
+    (params: {
+      courtCode: number;
+      stateCode: number;
+      courtComplexCode: number;
+      selectedCourt: string;
+      selectedBench: string;
+    }) => {
+      if (!caseNo.trim()) return;
 
-    if (!caseNo.trim()) return;
-    if (!selectedCourt || !selectedBench) {
-      alert("Please select both court and bench");
-      return;
-    }
-    if (!courtCode || !stateCode || !courtComplexCode) {
-      alert("Court details are still loading. Please wait a moment and try again.");
-      return;
-    }
+      const nextParams = {
+        court_code: params.courtCode,
+        state_code: params.stateCode,
+        court_complex_code: params.courtComplexCode,
+        case_no: parseInt(caseNo),
+        rgyear: parseInt(rgYear),
+      } as const;
 
-    const nextParams = {
-      court_code: courtCode,
-      state_code: stateCode,
-      court_complex_code: courtComplexCode,
-      case_no: parseInt(caseNo),
-      rgyear: parseInt(rgYear),
-    } as const;
-
-    // If the params did not change, force a refetch so the Search button works repeatedly
-    if (
-      searchParams &&
-      JSON.stringify(searchParams) === JSON.stringify(nextParams)
-    ) {
-      filingQuery.refetch();
-    } else {
-      setSearchParams({ ...nextParams });
-    }
-  }, [
-    caseNo,
-    selectedCourt,
-    selectedBench,
-    courtCode,
-    stateCode,
-    courtComplexCode,
-    rgYear,
-    searchParams,
-    filingQuery,
-  ]);
+      // If the params did not change, force a refetch so the Search button works repeatedly
+      if (
+        searchParams &&
+        JSON.stringify(searchParams) === JSON.stringify(nextParams)
+      ) {
+        filingQuery.refetch();
+      } else {
+        setSearchParams({ ...nextParams });
+      }
+    },
+    [caseNo, rgYear, searchParams, filingQuery]
+  );
 
   const detailQuery = useHighDetail(detailParams);
   const lastProcessedCaseRef = React.useRef<string | null>(null);
@@ -376,279 +294,95 @@ export default function HighCourtFilingSearch() {
     }
   };
 
+  // Generate years for dropdown (last 30 years)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 30 }, (_, i) =>
+    (currentYear - i).toString()
+  );
+
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-foreground">
+    <div className="p-6 space-y-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground">
         High Court Cases by Filing Number
       </h2>
 
-      <div className="bg-white dark:bg-zinc-900 p-6 rounded-md border border-gray-200 dark:border-zinc-800 max-w-2xl">
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Court Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Court
-              </label>
-              <div className="relative" ref={courtInputRef}>
-                <input
-                  type="text"
-                  value={courtSearch}
-                  onChange={(e) => {
-                    setCourtSearch(e.target.value);
-                    setShowCourtDropdown(true);
-                  }}
-                  onFocus={() => setShowCourtDropdown(true)}
-                  placeholder="Search for a court..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
-                />
-                {showCourtDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {courts
-                      .filter((court: any) =>
-                        court.name.toLowerCase().includes(courtSearch.toLowerCase())
-                      )
-                      .map((court: any) => (
-                        <div
-                          key={court.name}
-                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            setSelectedCourt(court.name);
-                            setCourtSearch(court.name);
-                            setShowCourtDropdown(false);
-                          }}
-                        >
-                          {court.name}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bench Selection */}
-            {selectedCourt && benches.length > 0 && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Bench
-                </label>
-                <select
-                  value={selectedBench}
-                  onChange={(e) => setSelectedBench(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="">Select a bench</option>
-                  {benches.map((bench) => (
-                    <option key={bench} value={bench}>
-                      {bench}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Case Number */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Case Number *
-              </label>
-              <input
-                type="number"
-                value={caseNo}
-                onChange={(e) => setCaseNo(e.target.value)}
-                placeholder="5293619"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
-                required
-              />
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Example: 5293619
-              </div>
-            </div>
-
-            {/* Registration Year */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Registration Year
-              </label>
-              <select
-                value={rgYear}
-                onChange={(e) => setRgYear(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-black dark:bg-gray-800 dark:text-white"
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={filingQuery.isLoading || filingQuery.isFetching || !selectedCourt || !selectedBench || !courtCode || !stateCode || !courtComplexCode}
-              className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {filingQuery.isLoading || filingQuery.isFetching ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Searching...
-                </div>
-              ) : courtInfoQuery.isLoading ? (
-                <div className="flex items-center justify-center">
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Loading Court Details...
-                </div>
-              ) : (
-                "Search Cases"
-              )}
-            </button>
+      {/* Search Form */}
+      <HighCourtSearchForm
+        title="Search by Filing Number"
+        onSubmit={handleFormSubmit}
+        isLoading={filingQuery.isLoading || filingQuery.isFetching}
+      >
+        {/* Case Number */}
+        <div className="space-y-2">
+          <Label htmlFor="case-number">Case Number</Label>
+          <Input
+            id="case-number"
+            type="number"
+            value={caseNo}
+            onChange={(e) => setCaseNo(e.target.value)}
+            placeholder="5293619"
+            required
+          />
+          <div className="text-sm text-muted-foreground">
+            Example: 5293619
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Registration Year */}
+        <div className="space-y-2">
+          <Label htmlFor="registration-year">Registration Year</Label>
+          <select
+            id="registration-year"
+            value={rgYear}
+            onChange={(e) => setRgYear(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+      </HighCourtSearchForm>
 
       {/* Error Display */}
       {filingQuery.error && (
-        <div className="mt-4 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
-            <div>
-              <p className="text-red-700 dark:text-red-400 font-medium">
-                Search Error
-              </p>
-              <p className="text-red-600 dark:text-red-300 text-sm mt-1">
-                {filingQuery.error instanceof Error
-                  ? filingQuery.error.message
-                  : "An error occurred while searching"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>
+            <strong>Search Error:</strong>{" "}
+            {filingQuery.error instanceof Error
+              ? filingQuery.error.message
+              : "An error occurred while searching"}
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Success Message */}
-      {!filingQuery.isLoading &&
-        !filingQuery.isFetching &&
-        filteredResults.length > 0 && (
-          <div className="mt-4 p-4 bg-muted border border-border rounded-md">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0"></div>
-              <p className="text-foreground">
-                Found {filteredResults.length} case
-                {filteredResults.length !== 1 ? "s" : ""} matching your search
-                criteria.
-              </p>
-            </div>
-          </div>
-        )}
-
       {/* Results Section */}
-      {!filingQuery.isLoading &&
-        !filingQuery.isFetching &&
-        filteredResults.length > 0 && (
-          <div className="mt-6">
-            <div className="flex flex-col gap-3 mb-3">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Search Results</h3>
-                <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search"
-                />
-              </div>
-            </div>
-
-            {filteredResults.length === 0 ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                  <div>
-                    <p className="text-yellow-700 font-medium">
-                      No results found
-                    </p>
-                    <p className="text-yellow-600 text-sm mt-1">
-                      {searchQuery
-                        ? "No cases match your search filter."
-                        : "No cases found for your search criteria."}
-                    </p>
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
-                      >
-                        Clear search filter
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <HighCourtAdvocateResultsTable
-                rows={currentPageResults as any}
-                isRowFollowed={isRowFollowed as any}
-                loadingDetailsId={loadingDetails}
-                onClickDetails={handleViewDetails as any}
-                onClickFollow={handleFollowCase as any}
-                followLoading={loadingFollow}
-              />
-            )}
-            {/* Footer Pagination */}
-            {filteredResults.length > 0 && (
-              <Pagination
-                page={page}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={setPage}
-                onPageSizeChange={(n) => {
-                  setPageSize(n);
-                  setPage(1);
-                }}
-              />
-            )}
-          </div>
-        )}
-
-      {/* No Data Found State */}
-      {!filingQuery.isLoading &&
-        !filingQuery.isFetching &&
-        filteredResults.length === 0 &&
-        !filingQuery.error &&
-        searchParams && (
-          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
-            <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-yellow-600" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
-              No Data Found
-            </h3>
-            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-              No cases found for case number {searchParams.case_no} in year{" "}
-              {searchParams.rgyear}. Please verify the case number and year, or
-              try a different search.
-            </p>
-          </div>
-        )}
-
-      {/* No Search Performed State */}
-      {!filingQuery.isLoading &&
-        !filingQuery.isFetching &&
-        filteredResults.length === 0 &&
-        !filingQuery.error &&
-        !searchParams && (
-          <div className="mt-6 p-8 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 text-center">
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-black" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-foreground mb-2">
-              Search High Court Cases by Filing Number
-            </h3>
-            <p className="text-gray-600 dark:text-zinc-400 max-w-md mx-auto">
-              Enter a case number and select the registration year to find High
-              Court cases. Use the example &quot;5293619&quot; to test the
-              search functionality.
-            </p>
-          </div>
-        )}
+      <HighCourtResultsSection
+        results={rawResults}
+        filteredResults={filteredResults}
+        currentPageResults={currentPageResults}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={(newPageSize) => {
+          setPageSize(newPageSize);
+          setPage(1);
+        }}
+        isRowFollowed={isRowFollowed}
+        loadingDetailsId={loadingDetails}
+        onViewDetails={handleViewDetails}
+        onFollow={handleFollowCase}
+        followLoading={loadingFollow}
+        isLoading={filingQuery.isLoading || filingQuery.isFetching}
+        error={filingQuery.error}
+        searchParams={searchParams}
+        searchType="filing"
+      />
 
       {/* Case Details Modal */}
       {showCaseDetails && (
