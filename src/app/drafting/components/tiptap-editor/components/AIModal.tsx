@@ -80,34 +80,38 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0">
+        {/* Header */}
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Sparkles className="w-5 h-5 text-blue-600" />
+            <div className="p-2.5 bg-gradient-to-br from-gray-800 to-black rounded-xl shadow-sm">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <DialogTitle>AskAI</DialogTitle>
-              <DialogDescription>
-                Generate content with AI assistance
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                AI Assistant
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+                Generate professional legal content with AI
               </DialogDescription>
             </div>
           </div>
-        </DialogHeader>
+        </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto">
+        {/* Content */}
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
           {/* Prompt Input */}
-          <div>
-            <label htmlFor="prompt" className="block text-sm font-medium mb-2">
-              What would you like me to write?
+          <div className="space-y-3">
+            <label htmlFor="prompt" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Describe what you need
             </label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., Write a professional email to a client about project updates, Create a contract clause for data protection, Draft a legal notice for breach of contract, Generate a privacy policy for a mobile app, Write a terms of service agreement..."
-              className="resize-none"
+              placeholder="e.g., Create a confidentiality agreement for software development, Draft a termination clause for employment contract, Write a privacy policy for mobile app..."
+              className="resize-none border-gray-200 dark:border-gray-700 focus:border-gray-800 focus:ring-gray-800/20 min-h-[100px] text-sm"
               rows={4}
               disabled={isGenerating || isRefining}
             />
@@ -115,20 +119,26 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
 
           {/* Generated Content */}
           {(generatedContent || isGenerating || isRefining) && (
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Generated Content {(isGenerating || isRefining) && "(Generating...)"}
-              </label>
-              <div className="p-4 bg-muted border rounded-md max-h-60 overflow-y-auto">
-                <div className="prose prose-sm max-w-none">
-                  {generatedContent ? (
-                    <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
-                  ) : (
-                    <div className="flex items-center space-x-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Generating content...</span>
-                    </div>
-                  )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Generated Content
+                </label>
+              </div>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <div className="p-4 bg-gray-50 dark:bg-gray-900/50 max-h-80 overflow-y-auto">
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    {generatedContent ? (
+                      <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
+                    ) : (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="text-sm">Generating your content...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -136,39 +146,52 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
 
           {/* Error Display */}
           {refineError && (
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">{refineError.message}</p>
+            <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                <p className="text-sm text-red-700 dark:text-red-400">{refineError.message}</p>
+              </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row sm:justify-between">
-          <div className="text-sm text-muted-foreground">
-            {(isGenerating || isRefining)
-              ? "Generating content..."
-              : generatedContent
-              ? "Content ready to insert"
-              : ""}
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-gray-50 dark:bg-gray-900/50">
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {(isGenerating || isRefining)
+                ? "AI is working on your request..."
+                : generatedContent
+                ? "Ready to insert into your document"
+                : ""}
+            </div>
+            <div className="flex items-center space-x-3">
+              {generatedContent && !isGenerating && !isRefining && (
+                <Button 
+                  onClick={handleInsertContent} 
+                  className="bg-gradient-to-r from-gray-800 to-black hover:from-gray-900 hover:to-gray-900 text-white shadow-sm"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Insert Content
+                </Button>
+              )}
+              {!generatedContent && !isGenerating && !isRefining && (
+                <Button 
+                  onClick={handleGenerate} 
+                  disabled={!prompt.trim()}
+                  className="bg-gradient-to-r from-gray-800 to-black hover:from-gray-900 hover:to-gray-900 text-white shadow-sm disabled:opacity-50"
+                >
+                  {isGenerating || isRefining ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  Generate
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {generatedContent && !isGenerating && !isRefining && (
-              <Button onClick={handleInsertContent} className="bg-green-600 hover:bg-green-700">
-                <Sparkles className="w-4 h-4" />
-                Insert Content
-              </Button>
-            )}
-            {!generatedContent && !isGenerating && !isRefining && (
-              <Button onClick={handleGenerate} disabled={!prompt.trim()}>
-                {isGenerating || isRefining ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                Generate
-              </Button>
-            )}
-          </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
