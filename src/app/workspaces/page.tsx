@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Api } from "@/lib/api-client";
 import { getCookie } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useUserRole } from "@/hooks/use-user-role";
 import {
   RefreshCw,
   Folder,
@@ -25,6 +27,8 @@ type Workspace = {
 
 export default function WorkspacesPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { isOwner, mounted } = useUserRole(user);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,22 +154,24 @@ export default function WorkspacesPage() {
       </div>
 
       <div className="flex flex-col gap-3 rounded-lg border p-4">
-        <form onSubmit={onCreate} className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New workspace name"
-            className="min-w-64 flex-1 rounded-md border px-3 py-2 text-sm"
-          />
-          <button
-            type="submit"
-            disabled={!newName.trim() || creating}
-            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" /> {creating ? "Creating…" : "Create"}
-          </button>
-        </form>
+        {mounted && isOwner && (
+          <form onSubmit={onCreate} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="New workspace name"
+              className="min-w-64 flex-1 rounded-md border px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={!newName.trim() || creating}
+              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" /> {creating ? "Creating…" : "Create"}
+            </button>
+          </form>
+        )}
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -203,23 +209,27 @@ export default function WorkspacesPage() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
-                    onClick={() => router.push(`/workspaces/${w.id}/settings`)}
-                  >
-                    <Settings className="h-3 w-3" />
-                    Settings
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50"
-                    onClick={() => onDelete(w.id)}
-                    disabled={deletingId === w.id}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    {deletingId === w.id ? "Deleting…" : "Delete"}
-                  </button>
+                  {mounted && isOwner && (
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+                        onClick={() => router.push(`/workspaces/${w.id}/settings`)}
+                      >
+                        <Settings className="h-3 w-3" />
+                        Settings
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 disabled:opacity-50"
+                        onClick={() => onDelete(w.id)}
+                        disabled={deletingId === w.id}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        {deletingId === w.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}
