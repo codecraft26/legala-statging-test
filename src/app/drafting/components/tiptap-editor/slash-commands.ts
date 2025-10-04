@@ -14,12 +14,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Link,
-  Image,
   Sparkles,
 } from "lucide-react";
 

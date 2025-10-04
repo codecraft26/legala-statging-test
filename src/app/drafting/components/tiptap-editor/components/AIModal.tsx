@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
-import { useRefineTextStream } from "@/hooks/use-refine";
+import { useRefineText } from "@/hooks/use-refine";
 import {
   Dialog,
   DialogContent,
@@ -23,35 +23,37 @@ interface AIModalProps {
 export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState("");
   const {
-    refineTextStream,
-    isStreaming,
-    streamedContent,
-    error,
-    cancelStream,
-  } = useRefineTextStream();
+    mutateAsync: refineText,
+    isPending: isRefining,
+    error: refineError,
+  } = useRefineText();
 
   useEffect(() => {
     if (!isOpen) {
       setPrompt("");
-      cancelStream();
+      setGeneratedContent("");
     }
-  }, [isOpen, cancelStream]);
+  }, [isOpen]);
+
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !editor) return;
 
     setIsGenerating(true);
+    setGeneratedContent("");
     try {
       // Use the refine API to generate content based on the prompt
-      // For content generation, we provide a minimal starting text and enhanced instruction
+      // Send user input as instruction and empty text field
       const request = {
-        text: "Generate content:", // Provide some initial text
-        instruction: `Generate new content based on this request: ${prompt}. Please create professional, well-structured content that addresses the user's request.`,
+        text: "", // Empty text field
+        instruction: prompt, // Use the user's prompt as the instruction
       };
 
       // Sending request to refine API
-      await refineTextStream(request);
+      const result = await refineText(request);
+      setGeneratedContent(result.refined_text || "");
     } catch (error) {
       console.error("Error generating content:", error);
     } finally {
@@ -60,10 +62,12 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
   };
 
   const handleInsertContent = () => {
-    if (!streamedContent || !editor) return;
+    if (!generatedContent || !editor) {
+      return;
+    }
 
     // Insert the generated content at the current cursor position
-    editor.chain().focus().insertContent(streamedContent).run();
+    editor.chain().focus().insertContent(generatedContent).run();
     onClose();
   };
 
@@ -105,56 +109,57 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
               placeholder="e.g., Write a professional email to a client about project updates, Create a contract clause for data protection, Draft a legal notice for breach of contract, Generate a privacy policy for a mobile app, Write a terms of service agreement..."
               className="resize-none"
               rows={4}
-              disabled={isStreaming}
+              disabled={isGenerating || isRefining}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Press Cmd+Enter (Mac) or Ctrl+Enter (Windows) to generate
-            </p>
           </div>
 
           {/* Generated Content */}
-          {streamedContent && (
+          {(generatedContent || isGenerating || isRefining) && (
             <div>
               <label className="block text-sm font-medium mb-2">
-                Generated Content
+                Generated Content {(isGenerating || isRefining) && "(Generating...)"}
               </label>
               <div className="p-4 bg-muted border rounded-md max-h-60 overflow-y-auto">
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: streamedContent }} />
+                  {generatedContent ? (
+                    <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
+                  ) : (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating content...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {/* Error Display */}
-          {error && (
+          {refineError && (
             <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">{error}</p>
+              <p className="text-sm text-destructive">{refineError.message}</p>
             </div>
           )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            {isStreaming
+            {(isGenerating || isRefining)
               ? "Generating content..."
+              : generatedContent
+              ? "Content ready to insert"
               : "AI will help you create professional content"}
           </div>
           <div className="flex items-center space-x-2">
-            {isStreaming && (
-              <Button variant="outline" onClick={cancelStream}>
-                Cancel
-              </Button>
-            )}
-            {streamedContent && (
-              <Button onClick={handleInsertContent}>
+            {generatedContent && !isGenerating && !isRefining && (
+              <Button onClick={handleInsertContent} className="bg-green-600 hover:bg-green-700">
                 <Sparkles className="w-4 h-4" />
                 Insert Content
               </Button>
             )}
-            {!streamedContent && !isStreaming && (
+            {!generatedContent && !isGenerating && !isRefining && (
               <Button onClick={handleGenerate} disabled={!prompt.trim()}>
-                {isGenerating ? (
+                {isGenerating || isRefining ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Sparkles className="w-4 h-4" />
