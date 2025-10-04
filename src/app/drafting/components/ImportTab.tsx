@@ -76,7 +76,7 @@ export default function ImportTab({
                 : "No documents in this folder."}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {filteredDocuments.map((document) => (
                 <DocumentListItem
                   key={document.id}

@@ -1,16 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Search, Star, Eye, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Search, Loader2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCookie, getApiBaseUrl } from "@/lib/utils";
+import { getCookie } from "@/lib/utils";
 import { HighCourtAPI } from "@/lib/research-api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
 import { parseHighCourtHtml, ParsedHighCourtDetails } from "../utils/highCourtParser";
-import { useFollowResearch, useUnfollowResearch, useFollowedResearch, useHighCourts, useHighCourtInfo, useHighCaseStatusByParty } from "@/hooks/use-research";
-import SearchBar from "./common/SearchBar";
-import Pagination from "./common/Pagination";
-import HighCourtAdvocateResultsTable from "./common/HighCourtAdvocateResultsTable";
+import { useFollowResearch, useUnfollowResearch, useFollowedResearch, useHighCaseStatusByParty } from "@/hooks/use-research";
+import HighCourtSearchForm from "./common/HighCourtSearchForm";
+import HighCourtResultsSection from "./common/HighCourtResultsSection";
 
 interface HighCourtResult {
   orderurlpath?: string;
@@ -67,18 +69,6 @@ export default function HighCourtPartySearch() {
     petres_name: string;
     rgyear: string;
   } | null>(null);
-
-  // Court and bench selection states
-  const [selectedCourt, setSelectedCourt] = useState("");
-  const [courtSearch, setCourtSearch] = useState("");
-  const [showCourtDropdown, setShowCourtDropdown] = useState(false);
-  const [benches, setBenches] = useState<string[]>([]);
-  const [selectedBench, setSelectedBench] = useState("");
-  const [courtCode, setCourtCode] = useState<number | null>(null);
-  const [stateCode, setStateCode] = useState<number | null>(null);
-  const [courtComplexCode, setCourtComplexCode] = useState<number | null>(null);
-
-  const courtInputRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   // Queries
@@ -101,60 +91,11 @@ export default function HighCourtPartySearch() {
   const unfollowMutation = useUnfollowResearch();
   const followedQuery = useFollowedResearch(workspaceId || "", "High_Court");
 
-
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       setWorkspaceId(getCookie("workspaceId"));
     }
   }, []);
-
-  // Use the courts hook
-  const courtsQuery = useHighCourts();
-  const courts = useMemo(() => courtsQuery.data?.courts || [], [courtsQuery.data?.courts]);
-
-  // Use the court info hook
-  const courtInfoQuery = useHighCourtInfo(selectedCourt, selectedBench);
-
-  // Handle click outside to close court dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (courtInputRef.current && !courtInputRef.current.contains(event.target as Node)) {
-        setShowCourtDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Update benches when selectedCourt changes
-  useEffect(() => {
-    if (selectedCourt) {
-      const court = courts.find((c: any) => c.name === selectedCourt);
-      setBenches(court ? court.benches : []);
-      setSelectedBench(""); // Reset bench selection when court changes
-      setCourtCode(null); // Reset court code
-      setStateCode(null); // Reset state code
-    } else {
-      setBenches([]);
-      setSelectedBench("");
-      setCourtCode(null);
-      setStateCode(null);
-    }
-  }, [selectedCourt, courts]);
-
-  // Update court codes when court info is fetched
-  useEffect(() => {
-    if (courtInfoQuery.data) {
-      setCourtCode(courtInfoQuery.data.court_code || null);
-      setStateCode(courtInfoQuery.data.state_cd || null);
-      setCourtComplexCode(courtInfoQuery.data.court_code || null);
-    } else if (courtInfoQuery.error) {
-      setCourtCode(null);
-      setStateCode(null);
-      setCourtComplexCode(null);
-    }
-  }, [courtInfoQuery.data, courtInfoQuery.error]);
 
   // Build followed set using cino and composite keys (same as advocate search)
   useEffect(() => {
@@ -191,31 +132,27 @@ export default function HighCourtPartySearch() {
   }, [followedQuery.data]);
 
 
-  const filteredCourts = courts.filter((court: any) =>
-    court.name.toLowerCase().includes(courtSearch.toLowerCase())
+  const handleFormSubmit = useCallback(
+    (params: {
+      courtCode: number;
+      stateCode: number;
+      courtComplexCode: number;
+      selectedCourt: string;
+      selectedBench: string;
+    }) => {
+      if (!partyName.trim()) return;
+
+      setSearchParams({
+        court_code: params.courtCode.toString(),
+        state_code: params.stateCode.toString(),
+        court_complex_code: params.courtComplexCode.toString(),
+        petres_name: partyName,
+        rgyear: rgYear,
+      });
+      setPage(1);
+    },
+    [partyName, rgYear]
   );
-
-  const handleCourtSelect = (court: any) => {
-    setSelectedCourt(court.name);
-    setCourtSearch(court.name);
-    setShowCourtDropdown(false);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!partyName.trim() || !courtCode || !stateCode || !courtComplexCode) {
-      return;
-    }
-
-    setSearchParams({
-      court_code: courtCode.toString(),
-      state_code: stateCode.toString(),
-      court_complex_code: courtComplexCode.toString(),
-      petres_name: partyName,
-      rgyear: rgYear,
-    });
-    setPage(1);
-  };
 
   const handleViewDetails = useCallback((result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
@@ -416,267 +353,98 @@ export default function HighCourtPartySearch() {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold mb-4">High Court Cases by Party Name</h2>
-      
+    <div className="p-6 space-y-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-foreground">
+        High Court Cases by Party Name
+      </h2>
+
       {/* Search Form */}
-      <div className="bg-white p-6 rounded-md border border-gray-200 max-w-4xl">
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div className="col-span-2">
-              <label htmlFor="party-input" className="block text-sm font-medium mb-1 text-gray-700">
-                Party Name
-              </label>
-              <input
-                type="text"
-                id="party-input"
-                value={partyName}
-                onChange={(e) => setPartyName(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                placeholder="Enter party name"
-                required
-              />
-              <div className="text-sm text-gray-500 mt-1">Example: Tanishk</div>
-            </div>
-
-            <div className="flex gap-5 w-full">
-              <div className="w-1/2 relative" ref={courtInputRef}>
-                <label htmlFor="court-input" className="block text-sm font-medium mb-1 text-gray-700">
-                  Court Name
-                </label>
-                <input
-                  type="text"
-                  id="court-input"
-                  value={courtSearch}
-                  onChange={(e) => {
-                    setCourtSearch(e.target.value);
-                    setShowCourtDropdown(true);
-                  }}
-                  onFocus={() => setShowCourtDropdown(true)}
-                  className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  placeholder="Search court..."
-                  required
-                />
-                {showCourtDropdown && (
-                  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {courtsQuery.isLoading ? (
-                      <li className="px-4 py-2 text-gray-500 text-sm flex items-center space-x-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Loading courts...</span>
-                      </li>
-                    ) : courtsQuery.error ? (
-                      <li className="px-4 py-2 text-red-500 text-sm">
-                        Error loading courts: {courtsQuery.error.message}
-                      </li>
-                    ) : (
-                      <>
-                        {filteredCourts.map((court: any) => (
-                          <li
-                            key={court.name}
-                            onClick={() => handleCourtSelect(court)}
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                          >
-                            {court.name}
-                          </li>
-                        ))}
-                        {filteredCourts.length === 0 && (
-                          <li className="px-4 py-2 text-gray-500 text-sm">No courts found</li>
-                        )}
-                      </>
-                    )}
-                  </ul>
-                )}
-                <div className="text-sm text-gray-500 mt-1">Example: Allahabad High Court</div>
-              </div>
-
-              <div className="w-1/2">
-                <label htmlFor="bench-select" className="block text-sm font-medium mb-1 text-gray-700">
-                  Bench Name
-                </label>
-                <select
-                  id="bench-select"
-                  value={selectedBench}
-                  onChange={(e) => setSelectedBench(e.target.value)}
-                  className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-                  disabled={!selectedCourt}
-                  required
-                >
-                  <option value="" disabled>Select a bench</option>
-                  {benches.map((bench) => (
-                    <option key={bench} value={bench}>
-                      {bench}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-sm text-gray-500 mt-1">Example: Allahabad High Court Lucknow Bench</div>
-              </div>
-            </div>
-
-
-            <div>
-              <label htmlFor="year-select" className="block text-sm font-medium mb-1 text-gray-700">
-                Year
-              </label>
-              <select
-                id="year-select"
-                value={rgYear}
-                onChange={(e) => setRgYear(e.target.value)}
-                className="w-full border border-gray-200 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-blue-600"
-              >
-                {Array.from({ length: 30 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return (
-                    <option key={year} value={year.toString()}>
-                      {year}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="md:col-start-2 md:flex md:justify-end items-end">
-              <button
-                type="submit"
-                className="w-full md:w-auto bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
-                disabled={partyQuery.isLoading || !courtCode || !stateCode}
-              >
-                {partyQuery.isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Searching...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4" />
-                    <span>Search</span>
-                  </>
-                )}
-              </button>
-            </div>
+      <HighCourtSearchForm
+        title="Search by Party Name"
+        onSubmit={handleFormSubmit}
+        isLoading={partyQuery.isLoading || partyQuery.isFetching}
+      >
+        {/* Party Name */}
+        <div className="space-y-2">
+          <Label htmlFor="party-name">Party Name</Label>
+          <Input
+            id="party-name"
+            type="text"
+            value={partyName}
+            onChange={(e) => setPartyName(e.target.value)}
+            placeholder="Enter party name"
+            required
+          />
+          <div className="text-sm text-muted-foreground">
+            Example: Tanishk
           </div>
-        </form>
-      </div>
-
-      {/* Court Info Status */}
-      {selectedCourt && selectedBench && (
-        <div className="mt-4">
-          {courtInfoQuery.isLoading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-blue-700 flex items-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">Loading court information...</span>
-            </div>
-          )}
-          {courtInfoQuery.error && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-yellow-700">
-              <span className="text-sm">
-                Warning: Could not load court information. Search may not work properly.
-              </span>
-            </div>
-          )}
         </div>
-      )}
+
+        {/* Year */}
+        <div className="space-y-2">
+          <Label htmlFor="year-select">Year</Label>
+          <select
+            id="year-select"
+            value={rgYear}
+            onChange={(e) => setRgYear(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {Array.from({ length: 30 }, (_, i) => {
+              const year = new Date().getFullYear() - i;
+              return (
+                <option key={year} value={year.toString()}>
+                  {year}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      </HighCourtSearchForm>
 
       {/* Error Display */}
       {partyQuery.error && (
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-md p-4 text-red-700">
-          <div className="font-medium mb-2">Search Error</div>
-          <div className="text-sm mb-3">
+        <Alert variant="destructive">
+          <AlertDescription>
+            <strong>Search Error:</strong>{" "}
             {partyQuery.error.message || "An error occurred during search"}
-          </div>
-          {partyQuery.error.message?.includes("captcha") && (
-            <div className="text-sm bg-yellow-50 border border-yellow-200 rounded p-3 mt-3">
-              <div className="font-medium text-yellow-800 mb-1">What does this mean?</div>
-              <div className="text-yellow-700">
-                The court database requires captcha verification to prevent automated requests. 
-                This is a temporary issue. Please try again in a few minutes or contact support if the problem persists.
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Success Message */}
-      {!partyQuery.isLoading &&
-        !partyQuery.isFetching &&
-        filteredResults.length > 0 && (
-          <div className="mt-4 p-4 bg-muted border border-border rounded-md">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-muted-foreground rounded-full flex-shrink-0"></div>
-              <p className="text-foreground">
-                Found {filteredResults.length} case
-                {filteredResults.length !== 1 ? "s" : ""} matching your search
-                criteria.
-              </p>
-            </div>
-          </div>
-        )}
-
-      {/* Results Section */}
-      {!partyQuery.isLoading &&
-        !partyQuery.isFetching &&
-        filteredResults.length > 0 && (
-          <div className="mt-6">
-            <div className="flex flex-col gap-3 mb-3">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Search Results</h3>
-                <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Search cases..."
-                  className="w-64"
-                />
-              </div>
-            </div>
-
-            {currentPageResults.length === 0 ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
-                  <div>
-                    <p className="text-yellow-700 font-medium">
-                      No results found
-                    </p>
-                    <p className="text-yellow-600 text-sm mt-1">
-                      {searchQuery
-                        ? "No cases match your search filter."
-                        : "No cases found for your search criteria."}
-                    </p>
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="text-yellow-600 hover:text-yellow-800 text-sm underline mt-1"
-                      >
-                        Clear search filter
-                      </button>
-                    )}
-                  </div>
+            {partyQuery.error.message?.includes("captcha") && (
+              <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <div className="font-medium text-yellow-800 mb-1">What does this mean?</div>
+                <div className="text-yellow-700 text-sm">
+                  The court database requires captcha verification to prevent automated requests. 
+                  This is a temporary issue. Please try again in a few minutes or contact support if the problem persists.
                 </div>
               </div>
-            ) : (
-              <HighCourtAdvocateResultsTable
-                rows={currentPageResults as any}
-                isRowFollowed={isRowFollowed as any}
-                loadingDetailsId={loadingDetails}
-                onClickDetails={handleViewDetails as any}
-                onClickFollow={handleFollowCase as any}
-                followLoading={loadingFollow}
-              />
             )}
-            {/* Footer Pagination */}
-            {currentPageResults.length > 0 && (
-              <Pagination
-                page={page}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={setPage}
-                onPageSizeChange={(newPageSize) => {
-                  setPageSize(newPageSize);
-                  setPage(1);
-                }}
-              />
-            )}
-          </div>
-        )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Results Section */}
+      <HighCourtResultsSection
+        results={filteredResults}
+        filteredResults={filteredResults}
+        currentPageResults={currentPageResults}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={(newPageSize) => {
+          setPageSize(newPageSize);
+          setPage(1);
+        }}
+        isRowFollowed={isRowFollowed}
+        loadingDetailsId={loadingDetails}
+        onViewDetails={handleViewDetails}
+        onFollow={handleFollowCase}
+        followLoading={loadingFollow}
+        isLoading={partyQuery.isLoading || partyQuery.isFetching}
+        error={partyQuery.error}
+        searchParams={searchParams}
+        searchType="party"
+      />
 
       {/* Case Details Modal */}
       {showCaseDetails && selectedCase && (
