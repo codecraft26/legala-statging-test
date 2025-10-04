@@ -51,12 +51,12 @@ export class RefineApi {
       const data = result?.data ?? result;
       return {
         refined_text:
+          data?.content ||
           data?.refined_text ||
           data?.text ||
-          data?.content ||
+          result?.content ||
           result?.refined_text ||
-          result?.text ||
-          result?.content,
+          result?.text,
         usage: data?.usage || result?.usage || null,
       };
     } catch (error) {
