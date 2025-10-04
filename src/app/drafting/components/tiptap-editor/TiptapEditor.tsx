@@ -8,6 +8,7 @@ import SelectionToolbar from "./components/SelectionToolbar";
 import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel from "./components/VariablesPanel";
 import DraftsList from "./components/DraftsList";
+import AIModal from "./components/AIModal";
 import { TiptapEditorProps, VariableDef } from "./types";
 import {
   useEditorSetup,
@@ -35,6 +36,7 @@ export default function TiptapEditor({
     currentDraftId || null
   );
   const [content, setContent] = useState("");
+
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
@@ -45,8 +47,16 @@ export default function TiptapEditor({
   const [sidePanelView, setSidePanelView] = useState<"variables" | "drafts">(
     "drafts"
   );
+  const [showAIModal, setShowAIModal] = useState(false);
 
-  // Custom hooks
+  // Custom hooks - need to set up editor first
+  const { editor, contentUpdateTrigger } = useEditorSetup(
+    content,
+    () => {}, // Will be updated via useEffect
+    [], // Will be updated via useEffect
+    () => setShowAIModal(true) // AI modal callback
+  );
+
   const {
     variables,
     setVariables,
@@ -58,12 +68,14 @@ export default function TiptapEditor({
     setEditingVariable,
     highlightedVariable,
     setHighlightedVariable,
+    isExtracting,
     inputRefs,
     handleChangeVariableValue,
     handleEditVariable,
     handleClearAll,
     handleVariableClick: handleVariableClickBase,
-  } = useVariables(null, content);
+    handleForceExtraction,
+  } = useVariables(editor);
 
   const handleVariableClick = useCallback(
     (variableId: string) => {
@@ -76,11 +88,43 @@ export default function TiptapEditor({
     [handleVariableClickBase, showVariablesPanel]
   );
 
-  const { editor, contentUpdateTrigger } = useEditorSetup(
-    content,
-    handleVariableClick,
-    variables
-  );
+  // Update editor's variable click handler when it changes
+  useEffect(() => {
+    if (editor && handleVariableClick) {
+      // The VariableHighlight extension will use this handler
+      editor.storage.variableHighlight?.setVariableClickHandler?.(
+        handleVariableClick
+      );
+    }
+  }, [editor, handleVariableClick]);
+
+  // Update editor's variables when they change
+  useEffect(() => {
+    if (editor && variables) {
+      // The VariableHighlight extension will use these variables
+      editor.storage.variableHighlight?.setVariables?.(variables);
+    }
+  }, [editor, variables]);
+
+  // Listen for AI modal events from slash commands (fallback)
+  useEffect(() => {
+    const handleOpenAIModal = (event: CustomEvent) => {
+      setShowAIModal(true);
+    };
+
+    window.addEventListener(
+      "open-ai-modal",
+      handleOpenAIModal as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "open-ai-modal",
+        handleOpenAIModal as EventListener
+      );
+    };
+  }, []);
+
   const { editorState, updateEditorState } = useEditorState(editor);
 
   const {
@@ -95,6 +139,7 @@ export default function TiptapEditor({
     handlePreviewFinal,
     handleDraftFromDocuments,
     handleSaveDraftToDocument,
+    handleDocumentImport,
   } = useDocumentOperations(editor, documentTitle, variableValues, variables);
 
   const { handleApplyAllVariables, handleInsertPlaceholder } =
@@ -153,7 +198,8 @@ export default function TiptapEditor({
   useEffect(() => {
     if (editor) {
       const handleUpdate = ({ editor }: { editor: any }) => {
-        setContent(editor.getHTML());
+        const newContent = editor.getHTML();
+        setContent(newContent);
         updateEditorState();
       };
 
@@ -251,11 +297,7 @@ export default function TiptapEditor({
               <SelectionToolbar
                 editor={editor}
                 onRefine={(originalText, refinedText, instruction) => {
-                  console.warn("Text refined:", {
-                    originalText,
-                    refinedText,
-                    instruction,
-                  });
+                  // Text refinement completed
                 }}
               />
               <SelectionRefineMenu editor={editor} />
@@ -346,6 +388,7 @@ export default function TiptapEditor({
                     .run();
                   if (onNewDraft) onNewDraft();
                 }}
+                onDocumentImport={handleDocumentImport}
               />
             ) : (
               <VariablesPanel
@@ -354,6 +397,14 @@ export default function TiptapEditor({
                 placeholderStatus={placeholderStatus}
                 editingVariable={editingVariable}
                 highlightedVariable={highlightedVariable}
+                isExtracting={isExtracting}
+                hasContent={Boolean(
+                  content &&
+                    content.trim() !== "" &&
+                    content !== "<p></p>" &&
+                    content !== "<p><br></p>" &&
+                    content.length > 10 // Minimum content length to consider it meaningful
+                )}
                 inputRefs={inputRefs}
                 onChangeValue={handleChangeVariableValue}
                 onEditVariable={handleEditVariable}
@@ -370,11 +421,19 @@ export default function TiptapEditor({
                   })
                 }
                 onClearAll={handleClearAll}
+                onForceExtraction={handleForceExtraction}
               />
             )}
           </div>
         </div>
       ) : null}
+
+      {/* AI Modal */}
+      <AIModal
+        isOpen={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        editor={editor}
+      />
     </div>
   );
 }

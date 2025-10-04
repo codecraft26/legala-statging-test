@@ -5,16 +5,29 @@ import { useRouter } from "next/navigation";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import ResultsTable, {
-  ColumnDef,
-} from "../research/components/common/ResultsTable";
-import { FileText, Clock, Loader2, Trash2, RotateCcw } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  FileText,
+  Loader2,
+  Trash2,
+  RotateCcw,
+  Plus,
+  Search,
+} from "lucide-react";
+import Pagination from "../research/components/common/Pagination";
 import {
   useExtractions,
   useRemoveExtractionAgent,
 } from "@/hooks/use-extraction";
-import Pagination from "../research/components/common/Pagination";
 import { useToast } from "@/components/ui/toast";
+import HierarchicalResultsView from "./components/HierarchicalResultsView";
 
 type Extraction = {
   id: string;
@@ -41,10 +54,10 @@ export default function ExtractPage() {
   const currentWorkspace = workspaceId
     ? ({ id: workspaceId, name: workspaceName } as any)
     : null;
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const { mutate: removeExtraction, isPending: isDeleting } =
     useRemoveExtractionAgent();
@@ -56,220 +69,165 @@ export default function ExtractPage() {
     error: extractionsError,
   } = useExtractions(currentWorkspace?.id);
 
-  // Convert API data to display format
-  const items =
-    extractionsData?.map((extraction) => ({
-      id: extraction.id,
-      name: extraction.name,
-      tags: extraction.tags,
-      createdAt: extraction.createdAt,
-      status: extraction.status.toLowerCase() as Extraction["status"],
-      progress: extraction.status === "PROCESSING" ? 50 : undefined,
-    })) || [];
+  // Filter extractions based on search
+  const filteredExtractions =
+    extractionsData?.filter((extraction) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        extraction.name.toLowerCase().includes(q) ||
+        (extraction.tags &&
+          extraction.tags.join(" ").toLowerCase().includes(q)) ||
+        new Date(extraction.createdAt)
+          .toLocaleString()
+          .toLowerCase()
+          .includes(q) ||
+        extraction.status.toLowerCase().includes(q)
+      );
+    }) || [];
 
-  // Pagination derived data
-  const filtered = items.filter((x) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      x.name.toLowerCase().includes(q) ||
-      (x.tags && x.tags.join(" ").toLowerCase().includes(q)) ||
-      new Date(x.createdAt).toLocaleString().toLowerCase().includes(q) ||
-      x.status.toLowerCase().includes(q)
-    );
-  });
+  // Pagination logic
+  const totalPages = Math.ceil(filteredExtractions.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedExtractions = filteredExtractions.slice(startIndex, endIndex);
 
-  const totalItems = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const currentItems = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-  // Reset page when the items or pageSize change
+  // Reset to first page when search changes
   useEffect(() => {
-    setPage(1);
-  }, [pageSize, totalItems]);
+    setCurrentPage(1);
+  }, [search]);
 
-  // Define table columns
-  const columns: ColumnDef<Extraction>[] = [
-    {
-      key: "name",
-      header: "Extraction Name",
-      render: (extraction) => (
-        <button
-          className="flex items-center gap-2 hover:underline"
-          onClick={() => router.push(`/extract/${extraction.id}`)}
-        >
-          <div className="rounded p-1 bg-accent">
-            <FileText size={14} />
-          </div>
-          <div className="font-medium text-left">{extraction.name}</div>
-        </button>
-      ),
-    },
-    {
-      key: "createdAt",
-      header: "Run Time",
-      render: (extraction) => (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock size={12} /> {new Date(extraction.createdAt).toLocaleString()}
-        </div>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (extraction) => (
-        <div className="flex items-center gap-2">
-          <StatusBadge status={extraction.status} />
-          {extraction.status === "processing" ? (
-            <span className="text-xs text-muted-foreground">
-              {extraction.progress}%
-            </span>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      className: "text-right",
-      render: (extraction) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-red-600 hover:text-red-700"
-          disabled={isDeleting && deletingId === extraction.id}
-          aria-label="Delete extraction"
-          title="Delete"
-          onClick={() => {
-            setDeletingId(extraction.id);
-            removeExtraction(extraction.id, {
-              onSuccess: () => {
-                showToast("Extraction deleted successfully", "success");
-              },
-              onError: (err) => {
-                console.error("Failed to delete extraction:", err);
-                showToast(
-                  `Failed to delete extraction: ${
-                    err instanceof Error ? err.message : "Unknown error"
-                  }`,
-                  "error"
-                );
-              },
-              onSettled: () => setDeletingId(null),
-            });
-          }}
-        >
-          {isDeleting && deletingId === extraction.id ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Trash2 className="h-4 w-4" />
-          )}
-        </Button>
-      ),
-    },
-  ];
+  const handleViewDetails = (extractionId: string) => {
+    router.push(`/extract/${extractionId}`);
+  };
+
+  const handleCopy = (data: unknown) => {
+    navigator.clipboard.writeText(JSON.stringify(data ?? {}, null, 2));
+    showToast("Data copied to clipboard", "success");
+  };
 
   return (
-    <main className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-            <FileText className="text-white" size={18} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold">Recent Extractions</h1>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                Browse your latest extraction jobs
-              </p>
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {currentWorkspace?.name}
-              </span>
+    <main className="max-w-6xl mx-auto p-4 space-y-4">
+      {/* Header Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <FileText className="text-primary-foreground" size={16} />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Recent Extractions</CardTitle>
+                <CardDescription className="flex items-center gap-2 text-xs">
+                  Browse your latest extraction jobs
+                  {currentWorkspace?.name && (
+                    <Badge
+                      variant="secondary"
+                      className="text-xs px-1.5 py-0.5"
+                    >
+                      {currentWorkspace.name}
+                    </Badge>
+                  )}
+                </CardDescription>
+              </div>
             </div>
+            <Button
+              onClick={() => router.push("/extract/new")}
+              size="sm"
+              className="gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New extraction
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={() => router.push("/extract/new")}>
-            New extraction
-          </Button>
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="relative w-full max-w-sm">
-            <Input
-              placeholder="Search extractions..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      {/* Search and Filter Card */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-3.5 h-3.5" />
+              <Input
+                placeholder="Search extractions..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Refresh the page to reload data
+                window.location.reload();
+              }}
+              title="Refresh"
+              aria-label="Refresh"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              // Simple refresh: clear cache by invalidating queries via a remount approach
-              // Trigger refetch by toggling pageSize temporarily
-              setPageSize((s) => (s === 10 ? 11 : 10));
-              setTimeout(() => setPageSize(10), 0);
-            }}
-            title="Refresh"
-            aria-label="Refresh"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="rounded-lg border">
-          {currentItems.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No extractions found
+      {/* Results Section */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          {extractionsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-muted-foreground text-sm">
+                  Loading extractions...
+                </span>
+              </div>
+            </div>
+          ) : extractionsError ? (
+            <div className="text-center py-8">
+              <div className="w-8 h-8 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                <FileText className="w-4 h-4 text-destructive" />
+              </div>
+              <h3 className="text-base font-semibold mb-1">
+                Error loading extractions
+              </h3>
+              <p className="text-muted-foreground text-sm mb-3">
+                Please try again later.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                Retry
+              </Button>
             </div>
           ) : (
-            <ResultsTable
-              columns={columns}
-              rows={currentItems}
-              rowKey={(extraction) => extraction.id}
-              tableClassName="w-full"
+            <HierarchicalResultsView
+              extractions={paginatedExtractions}
+              onViewDetails={handleViewDetails}
+              onCopy={handleCopy}
             />
           )}
-        </div>
+        </CardContent>
+      </Card>
 
+      {/* Pagination */}
+      {filteredExtractions.length > 0 && (
         <Pagination
-          page={page}
+          page={currentPage}
           pageSize={pageSize}
-          total={totalItems}
-          onPageChange={setPage}
+          total={filteredExtractions.length}
+          onPageChange={setCurrentPage}
           onPageSizeChange={(newPageSize) => {
             setPageSize(newPageSize);
-            setPage(1);
+            setCurrentPage(1); // Reset to first page when page size changes
           }}
           pageSizeOptions={[5, 10, 20, 50]}
         />
-      </div>
+      )}
     </main>
-  );
-}
-
-function StatusBadge({ status }: { status: Extraction["status"] }) {
-  const map: Record<Extraction["status"], { text: string; cls: string }> = {
-    completed: {
-      text: "Completed",
-      cls: "text-green-700 bg-green-50 border-green-200",
-    },
-    processing: {
-      text: "Processing",
-      cls: "text-amber-700 bg-amber-50 border-amber-200",
-    },
-    queued: { text: "Queued", cls: "text-blue-700 bg-blue-50 border-blue-200" },
-    failed: { text: "Failed", cls: "text-red-700 bg-red-50 border-red-200" },
-  };
-  const cfg = map[status];
-  return (
-    <span
-      className={`rounded-full border px-2 py-0.5 text-xs font-medium ${cfg.cls}`}
-    >
-      {cfg.text}
-    </span>
   );
 }

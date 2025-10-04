@@ -222,7 +222,14 @@ export default function HighCourtFilingSearch() {
     setShowCaseDetails(true);
     lastProcessedCaseRef.current = caseId;
     setLoadingDetails(null);
-  }, [detailQuery.data, detailQuery.error, detailParams]);
+  }, [
+    detailQuery.data,
+    detailQuery.error,
+    detailParams,
+    currentPageResults,
+    detailQuery.isFetching,
+    detailQuery.isLoading,
+  ]);
 
   const handleViewDetails = (result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;

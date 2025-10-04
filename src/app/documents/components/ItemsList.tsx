@@ -7,6 +7,7 @@ export type DocItem = {
   id: string;
   type: "file" | "folder";
   filename: string;
+  filePath?: string;
   user?: { name?: string; email?: string; role?: string };
   createdAt?: string;
 };
@@ -16,6 +17,7 @@ interface ItemsListProps {
   onFolderOpen: (item: DocItem) => void;
   onRenameFolder: (item: DocItem) => void;
   onDelete: (item: DocItem) => void;
+  onFileClick?: (item: DocItem) => void;
 }
 
 export default function ItemsList({
@@ -23,6 +25,7 @@ export default function ItemsList({
   onFolderOpen,
   onRenameFolder,
   onDelete,
+  onFileClick,
 }: ItemsListProps) {
   if (!items.length) return null;
   return (
@@ -30,16 +33,29 @@ export default function ItemsList({
       {items.map((it) => (
         <div
           key={it.id}
-          className={`flex items-center gap-3 rounded-md px-3 py-2 hover:bg-accent ${it.type === "folder" ? "cursor-pointer" : ""}`}
+          className={`flex items-center gap-3 rounded-md px-3 py-2 hover:bg-accent ${it.type === "folder" || it.type === "file" ? "cursor-pointer" : ""}`}
           onClick={() => {
-            if (it.type === "folder") onFolderOpen(it);
+            if (it.type === "folder") {
+              onFolderOpen(it);
+            } else if (it.type === "file" && onFileClick) {
+              onFileClick(it);
+            }
           }}
-          role={it.type === "folder" ? "button" : undefined}
-          tabIndex={it.type === "folder" ? 0 : undefined}
+          role={
+            it.type === "folder" || it.type === "file" ? "button" : undefined
+          }
+          tabIndex={it.type === "folder" || it.type === "file" ? 0 : undefined}
           onKeyDown={(e) => {
             if (it.type === "folder" && (e.key === "Enter" || e.key === " ")) {
               e.preventDefault();
               onFolderOpen(it);
+            } else if (
+              it.type === "file" &&
+              onFileClick &&
+              (e.key === "Enter" || e.key === " ")
+            ) {
+              e.preventDefault();
+              onFileClick(it);
             }
           }}
         >

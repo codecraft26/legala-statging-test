@@ -13,7 +13,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import FontFamily from "@tiptap/extension-font-family";
 import TextStyle from "@tiptap/extension-text-style";
-import Gapcursor from "@tiptap/extension-gapcursor";
 import { TrailingNode } from "../extensions/TrailingNode";
 import { FontSize } from "../extensions/FontSize";
 import { VariableHighlight } from "../extensions/VariableHighlight";
@@ -22,12 +21,14 @@ import { SlashCommands } from "../slash-commands";
 export const useEditorSetup = (
   content: string,
   onVariableClick: (variableId: string) => void,
-  variables: any[]
+  variables: any[],
+  onOpenAIModal?: () => void
 ) => {
   const [contentUpdateTrigger, setContentUpdateTrigger] = useState(0);
 
   const editor = useEditor({
     autofocus: true,
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         bulletList: { keepMarks: true, keepAttributes: false },
@@ -59,9 +60,10 @@ export const useEditorSetup = (
         onVariableClick,
         currentVariables: variables,
       }),
-      Gapcursor,
       TrailingNode.configure({ node: "paragraph" }),
-      SlashCommands,
+      SlashCommands.configure({
+        onOpenAIModal,
+      }),
     ],
     editorProps: {
       attributes: {
@@ -74,13 +76,13 @@ export const useEditorSetup = (
 
   // Update variable highlighting when variables change
   useEffect(() => {
-    if (editor) {
+    if (editor && variables) {
       const variableHighlightExt = editor.extensionManager.extensions.find(
         (ext) => ext.name === "variableHighlight"
       );
       if (variableHighlightExt) {
         variableHighlightExt.options.currentVariables = variables;
-        editor.view.dispatch(editor.state.tr);
+        // Don't dispatch - just update the options, the extension will handle re-rendering
       }
     }
   }, [editor, variables]);

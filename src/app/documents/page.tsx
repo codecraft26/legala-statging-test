@@ -11,6 +11,7 @@ import {
   useRenameFolder,
   useUploadDocuments,
 } from "@/hooks/use-documents";
+import { useGetSignedUrl } from "@/hooks/use-media";
 import Breadcrumbs from "./components/Breadcrumbs";
 import SearchInput from "./components/SearchInput";
 import UploadArea from "./components/UploadArea";
@@ -22,6 +23,7 @@ type Item = {
   id: string;
   type: "file" | "folder";
   filename: string;
+  filePath?: string;
   parent_folder_id?: string | null;
   user?: {
     name?: string;
@@ -58,6 +60,7 @@ export default function DocumentsPage() {
   const uploadMutation = useUploadDocuments();
   const createFolderMutation = useCreateFolder();
   const deleteMutation = useDeleteDocument();
+  const getSignedUrlMutation = useGetSignedUrl();
 
   const filtered = useMemo(
     () =>
@@ -145,6 +148,24 @@ export default function DocumentsPage() {
     } catch {}
   };
 
+  const handleFileClick = async (item: Item) => {
+    if (!item.filePath) {
+      console.error("No file path available for document:", item.filename);
+      return;
+    }
+
+    try {
+      const signedUrlResponse = await getSignedUrlMutation.mutateAsync({
+        file: item.filePath,
+      });
+
+      // Open the PDF in a new tab
+      window.open(signedUrlResponse.url, "_blank");
+    } catch (error) {
+      console.error("Error getting signed URL for file:", error);
+    }
+  };
+
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="rounded-lg border bg-background overflow-hidden">
@@ -228,6 +249,7 @@ export default function DocumentsPage() {
                   setRenameValue(it.filename);
                 }}
                 onDelete={(it: any) => remove(it)}
+                onFileClick={handleFileClick}
               />
             )}
           </div>
