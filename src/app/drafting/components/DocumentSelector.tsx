@@ -1,25 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useDocuments, DocumentItem } from "@/hooks/use-documents";
+import {
+  useDocuments,
+  DocumentItem,
+  useUploadDocuments,
+  useCreateFolder,
+} from "@/hooks/use-documents";
 import { useFetchFileContent } from "@/hooks/use-media";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  FileText, 
-  Folder, 
-  ChevronRight, 
-  Home, 
-  Search, 
-  Upload,
-  Loader2,
-  X
-} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Database } from "lucide-react";
 import { getCookie as getCookieUtil } from "@/lib/utils";
+import TabNavigation from "./TabNavigation";
+import ImportTab from "./ImportTab";
+import UploadTab from "./UploadTab";
 
 interface DocumentSelectorProps {
   onDocumentSelect: (file: File, documentInfo: DocumentItem) => void;
@@ -35,13 +37,13 @@ interface FolderPath {
   name: string;
 }
 
-export default function DocumentSelector({ 
-  onDocumentSelect, 
+export default function DocumentSelector({
+  onDocumentSelect,
   trigger,
   disabled = false,
   buttonStyle = "default",
   open,
-  onOpenChange
+  onOpenChange,
 }: DocumentSelectorProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = open !== undefined ? open : internalIsOpen;
@@ -50,29 +52,51 @@ export default function DocumentSelector({
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<FolderPath[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingDocumentId, setLoadingDocumentId] = useState<string | null>(
+    null
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"import" | "upload">("import");
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
+  const [uploadFolderPath, setUploadFolderPath] = useState<FolderPath[]>([]);
+  const [showFolderSelector, setShowFolderSelector] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
-  const { data: documents, isLoading: documentsLoading } = useDocuments(workspaceId, currentFolderId);
+  const { data: documents, isLoading: documentsLoading } = useDocuments(
+    workspaceId,
+    currentFolderId
+  );
+  const { data: uploadDocuments, isLoading: uploadDocumentsLoading } =
+    useDocuments(workspaceId, uploadFolderId);
   const fetchFileContent = useFetchFileContent();
+  const uploadMutation = useUploadDocuments();
+  const createFolderMutation = useCreateFolder();
   const { showToast } = useToast();
 
   // Get workspace ID from cookie
   useEffect(() => {
-    const id = typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
+    const id =
+      typeof window !== "undefined" ? getCookieUtil("workspaceId") : null;
     setWorkspaceId(id);
   }, []);
 
   // Filter documents based on search term
-  const filteredDocuments = documents?.filter((doc) =>
-    doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredDocuments =
+    documents?.filter((doc) =>
+      doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
   const handleFolderClick = (folder: DocumentItem) => {
-    setFolderPath((prev) => [
-      ...prev,
-      { id: folder.id, name: folder.filename },
-    ]);
+    setFolderPath((prev) => {
+      // Check if folder is already in path to prevent duplicates
+      const isAlreadyInPath = prev.some((f) => f.id === folder.id);
+      if (isAlreadyInPath) {
+        return prev;
+      }
+      return [...prev, { id: folder.id, name: folder.filename }];
+    });
     setCurrentFolderId(folder.id);
     setSearchTerm(""); // Clear search when navigating
   };
@@ -81,7 +105,8 @@ export default function DocumentSelector({
     const newPath = [...folderPath];
     newPath.pop();
     setFolderPath(newPath);
-    const newFolderId = newPath.length > 0 ? newPath[newPath.length - 1].id : null;
+    const newFolderId =
+      newPath.length > 0 ? newPath[newPath.length - 1].id : null;
     setCurrentFolderId(newFolderId);
     setSearchTerm(""); // Clear search when navigating
   };
@@ -92,235 +117,226 @@ export default function DocumentSelector({
     setSearchTerm(""); // Clear search when navigating
   };
 
+  const handleCrumbClick = (index: number) => {
+    const newPath = folderPath.slice(0, index + 1);
+    setFolderPath(newPath);
+    setCurrentFolderId(folderPath[index].id);
+    setSearchTerm("");
+  };
+
   const handleDocumentSelect = async (document: DocumentItem) => {
     if (document.type !== "file") return;
 
-    setIsLoading(true);
+    setLoadingDocumentId(document.id);
     try {
-      // Get the file content using the signed URL
       const filePath = document.filePath || document.filename;
-      const blob = await fetchFileContent.mutateAsync({
-        filePath: filePath,
-      });
-
-      // Create a File object from the blob
+      const blob = await fetchFileContent.mutateAsync({ filePath });
       const file = new File([blob], document.filename, {
         type: blob.type || "application/octet-stream",
       });
 
-      // Call the parent callback
       onDocumentSelect(file, document);
-      
-      // Close the modal
       setIsOpen(false);
-      setSelectedDocuments(new Set());
       setSearchTerm("");
-      
-      showToast(`Document "${document.filename}" imported successfully`, "success");
+      showToast(
+        `Document "${document.filename}" imported successfully`,
+        "success"
+      );
     } catch (error) {
       console.error("Error importing document:", error);
       showToast("Failed to import document", "error");
     } finally {
-      setIsLoading(false);
+      setLoadingDocumentId(null);
     }
   };
 
-  const handleDocumentToggle = (documentId: string) => {
-    setSelectedDocuments((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(documentId)) {
-        newSet.delete(documentId);
-      } else {
-        newSet.add(documentId);
-      }
-      return newSet;
-    });
-  };
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !workspaceId) return;
 
-  const handleImportSelected = async () => {
-    if (selectedDocuments.size === 0) return;
+    const fileCount = files.length;
 
-    setIsLoading(true);
+    setIsUploading(true);
     try {
-      const selectedDocs = filteredDocuments.filter((doc) => 
-        doc.type === "file" && selectedDocuments.has(doc.id)
+      const filesArray = Array.from(files);
+      await uploadMutation.mutateAsync({
+        files: filesArray,
+        workspaceId: workspaceId,
+        parentId: uploadFolderId,
+      });
+
+      const folderName =
+        uploadFolderPath.length > 0
+          ? uploadFolderPath[uploadFolderPath.length - 1].name
+          : "Root";
+
+      showToast(
+        `${fileCount} file(s) uploaded successfully to ${folderName}`,
+        "success"
       );
-
-      for (const document of selectedDocs) {
-        const filePath = document.filePath || document.filename;
-        const blob = await fetchFileContent.mutateAsync({
-          filePath: filePath,
-        });
-
-        const file = new File([blob], document.filename, {
-          type: blob.type || "application/octet-stream",
-        });
-
-        onDocumentSelect(file, document);
-      }
-
       setIsOpen(false);
-      setSelectedDocuments(new Set());
-      setSearchTerm("");
-      
-      showToast(`${selectedDocs.length} document(s) imported successfully`, "success");
     } catch (error) {
-      console.error("Error importing documents:", error);
-      showToast("Failed to import documents", "error");
+      console.error("Error uploading files:", error);
+      showToast("Failed to upload files", "error");
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleUpload(e.dataTransfer.files);
+  };
+
+  // Folder selection for upload
+  const handleUploadFolderClick = (folder: DocumentItem) => {
+    setUploadFolderPath((prev) => {
+      const isAlreadyInPath = prev.some((f) => f.id === folder.id);
+      if (isAlreadyInPath) return prev;
+      return [...prev, { id: folder.id, name: folder.filename }];
+    });
+    setUploadFolderId(folder.id);
+  };
+
+  const handleUploadFolderBack = () => {
+    const newPath = [...uploadFolderPath];
+    newPath.pop();
+    setUploadFolderPath(newPath);
+    setUploadFolderId(
+      newPath.length > 0 ? newPath[newPath.length - 1].id : null
+    );
+  };
+
+  const handleUploadFolderHome = () => {
+    setUploadFolderPath([]);
+    setUploadFolderId(null);
+  };
+
+  const handleUploadCrumbClick = (index: number) => {
+    const newPath = uploadFolderPath.slice(0, index + 1);
+    setUploadFolderPath(newPath);
+    setUploadFolderId(uploadFolderPath[index].id);
+  };
+
+  const getCurrentUploadFolderName = () => {
+    return uploadFolderPath.length === 0
+      ? "Root"
+      : uploadFolderPath[uploadFolderPath.length - 1].name;
+  };
+
+  const handleCreateFolder = async () => {
+    if (!workspaceId || !newFolderName.trim()) return;
+
+    try {
+      await createFolderMutation.mutateAsync({
+        name: newFolderName.trim(),
+        workspaceId: workspaceId,
+        parentId: uploadFolderId,
+      });
+
+      setNewFolderName("");
+      setShowCreateFolder(false);
+      showToast(
+        `Folder "${newFolderName.trim()}" created successfully`,
+        "success"
+      );
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      showToast("Failed to create folder", "error");
+    }
+  };
+
+  const handleCloseCreateFolder = () => {
+    setShowCreateFolder(false);
+    setNewFolderName("");
   };
 
   const defaultTrigger = (
-    <Button 
-      variant={buttonStyle === "black" ? "default" : "outline"} 
+    <Button
+      variant={buttonStyle === "black" ? "default" : "outline"}
       disabled={disabled}
-      className={buttonStyle === "black" ? "bg-black text-white hover:bg-zinc-800" : ""}
+      className={
+        buttonStyle === "black" ? "bg-black text-white hover:bg-zinc-800" : ""
+      }
     >
-      <Upload className="w-4 h-4 mr-2" />
-      Import from Documents
+      <Database className="w-4 h-4 mr-2" />
+      DataHub
     </Button>
   );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger || defaultTrigger}
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Import Documents from DataHub</DialogTitle>
+      <DialogTrigger asChild>{trigger || defaultTrigger}</DialogTrigger>
+      <DialogContent
+        className="max-w-none w-[100vw] h-[95vh] flex flex-col overflow-hidden"
+        style={{
+          margin: "2.5vh auto",
+          maxWidth: "none !important",
+          width: "100vw !important",
+          height: "95vh !important",
+        }}
+      >
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle>DataHub - Import & Upload Documents</DialogTitle>
         </DialogHeader>
-        
-        <div className="flex-1 flex flex-col space-y-4">
-          {/* Search and Controls */}
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            {selectedDocuments.size > 0 && (
-              <Button onClick={handleImportSelected} disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4 mr-2" />
-                )}
-                Import Selected ({selectedDocuments.size})
-              </Button>
-            )}
-          </div>
 
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <button
-              onClick={handleHomeClick}
-              className="flex items-center space-x-1 hover:text-gray-800"
-            >
-              <Home className="w-4 h-4" />
-              <span>Home</span>
-            </button>
-            {folderPath.map((folder, index) => (
-              <React.Fragment key={folder.id}>
-                <ChevronRight className="w-4 h-4" />
-                <button
-                  onClick={() => {
-                    const newPath = folderPath.slice(0, index + 1);
-                    setFolderPath(newPath);
-                    setCurrentFolderId(folder.id);
-                    setSearchTerm("");
-                  }}
-                  className="hover:text-gray-800"
-                >
-                  {folder.name}
-                </button>
-              </React.Fragment>
-            ))}
-          </div>
+        {/* Tabs */}
+        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-          {/* Documents List */}
-          <ScrollArea className="flex-1 border rounded-md">
-            <div className="p-4">
-              {documentsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  <span className="ml-2">Loading documents...</span>
-                </div>
-              ) : filteredDocuments.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  {searchTerm ? "No documents found matching your search." : "No documents in this folder."}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {filteredDocuments.map((document) => (
-                    <div
-                      key={document.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer ${
-                        selectedDocuments.has(document.id) ? "bg-blue-50 border-blue-200" : ""
-                      }`}
-                      onClick={() => {
-                        if (document.type === "folder") {
-                          handleFolderClick(document);
-                        } else {
-                          handleDocumentToggle(document.id);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center space-x-3">
-                        {document.type === "folder" ? (
-                          <Folder className="w-5 h-5 text-blue-500" />
-                        ) : (
-                          <FileText className="w-5 h-5 text-gray-500" />
-                        )}
-                        <div>
-                          <div className="font-medium">{document.filename}</div>
-                          {document.user && (
-                            <div className="text-sm text-gray-500">
-                              by {document.user.name} • {new Date(document.createdAt || "").toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        {document.type === "file" && (
-                          <Badge variant="secondary" className="text-xs">
-                            {document.filename.split('.').pop()?.toUpperCase()}
-                          </Badge>
-                        )}
-                        {document.type === "file" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDocumentSelect(document);
-                            }}
-                            disabled={isLoading}
-                          >
-                            {isLoading ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              "Import"
-                            )}
-                          </Button>
-                        )}
-                        {document.type === "folder" && (
-                          <ChevronRight className="w-4 h-4 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+        <div className="flex-1 flex flex-col space-y-4 overflow-hidden w-full">
+          {activeTab === "import" ? (
+            <ImportTab
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              loadingDocumentId={loadingDocumentId}
+              documentsLoading={documentsLoading}
+              filteredDocuments={filteredDocuments}
+              folderPath={folderPath}
+              onHomeClick={handleHomeClick}
+              onCrumbClick={handleCrumbClick}
+              onFolderClick={handleFolderClick}
+              onDocumentSelect={handleDocumentSelect}
+            />
+          ) : (
+            <UploadTab
+              showFolderSelector={showFolderSelector}
+              onToggleFolderSelector={() =>
+                setShowFolderSelector(!showFolderSelector)
+              }
+              onShowCreateFolder={() => setShowCreateFolder(true)}
+              currentFolderName={getCurrentUploadFolderName()}
+              uploadDocuments={uploadDocuments || []}
+              uploadDocumentsLoading={uploadDocumentsLoading}
+              uploadFolderPath={uploadFolderPath}
+              uploadFolderId={uploadFolderId}
+              onUploadFolderHome={handleUploadFolderHome}
+              onUploadFolderBack={handleUploadFolderBack}
+              onUploadFolderClick={handleUploadFolderClick}
+              onUploadCrumbClick={handleUploadCrumbClick}
+              isDragOver={isDragOver}
+              isLoading={isUploading}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onFileSelect={handleUpload}
+              showCreateFolder={showCreateFolder}
+              newFolderName={newFolderName}
+              onNewFolderNameChange={setNewFolderName}
+              onCloseCreateFolder={handleCloseCreateFolder}
+              onCreateFolder={handleCreateFolder}
+              isCreatingFolder={createFolderMutation.isPending}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

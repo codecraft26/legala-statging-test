@@ -23,8 +23,13 @@ interface AIModalProps {
 export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const { refineTextStream, isStreaming, streamedContent, error, cancelStream } = useRefineTextStream();
-
+  const {
+    refineTextStream,
+    isStreaming,
+    streamedContent,
+    error,
+    cancelStream,
+  } = useRefineTextStream();
 
   useEffect(() => {
     if (!isOpen) {
@@ -44,8 +49,8 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
         text: "Generate content:", // Provide some initial text
         instruction: `Generate new content based on this request: ${prompt}. Please create professional, well-structured content that addresses the user's request.`,
       };
-      
-      console.log("Sending request to refine API:", request);
+
+      // Sending request to refine API
       await refineTextStream(request);
     } catch (error) {
       console.error("Error generating content:", error);
@@ -131,7 +136,9 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
 
         <DialogFooter className="flex-col sm:flex-row sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            {isStreaming ? "Generating content..." : "AI will help you create professional content"}
+            {isStreaming
+              ? "Generating content..."
+              : "AI will help you create professional content"}
           </div>
           <div className="flex items-center space-x-2">
             {isStreaming && (
@@ -146,10 +153,7 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
               </Button>
             )}
             {!streamedContent && !isStreaming && (
-              <Button
-                onClick={handleGenerate}
-                disabled={!prompt.trim()}
-              >
+              <Button onClick={handleGenerate} disabled={!prompt.trim()}>
                 {isGenerating ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (

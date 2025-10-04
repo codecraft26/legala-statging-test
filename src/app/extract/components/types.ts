@@ -8,6 +8,8 @@ export type ExtractionResult = {
   id: string;
   file: string;
   data?: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Extraction = {

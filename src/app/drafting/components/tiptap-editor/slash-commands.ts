@@ -32,7 +32,10 @@ type CommandItem = {
   run: (editor: Editor) => void;
 };
 
-export const getBaseCommands = (editor: Editor, onOpenAIModal?: () => void): CommandItem[] => [
+export const getBaseCommands = (
+  editor: Editor,
+  onOpenAIModal?: () => void
+): CommandItem[] => [
   // AI & Generation
   {
     title: "AskAI",
@@ -45,8 +48,8 @@ export const getBaseCommands = (editor: Editor, onOpenAIModal?: () => void): Com
         onOpenAIModal();
       } else {
         // Fallback to custom event
-        const event = new CustomEvent('open-ai-modal', {
-          detail: { editor: e }
+        const event = new CustomEvent("open-ai-modal", {
+          detail: { editor: e },
         });
         window.dispatchEvent(event);
       }
@@ -266,9 +269,11 @@ export const SlashCommands = Extension.create({
         },
         items: ({ query, editor }: any) => {
           // Get the callback from the extension options
-          const extension = editor.extensionManager.extensions.find((ext: any) => ext.name === 'slashCommands');
+          const extension = editor.extensionManager.extensions.find(
+            (ext: any) => ext.name === "slashCommands"
+          );
           const onOpenAIModal = extension?.options?.onOpenAIModal;
-          
+
           const items = getBaseCommands(editor, onOpenAIModal);
           if (!query) {
             return items;

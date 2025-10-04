@@ -90,25 +90,19 @@ export const useDocumentOperations = (
         // Check file size (limit to 10MB for performance)
         const maxSize = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSize) {
-          alert(`File too large. Please use files smaller than 10MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          alert(
+            `File too large. Please use files smaller than 10MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+          );
           return null;
         }
 
-        console.log(`Importing Word document: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
-        
+        // Importing Word document
         const arr = await file.arrayBuffer();
         const mammoth = (await import("mammoth")) as any;
-        
-        // Add progress indication for large files
-        if (file.size > 1024 * 1024) { // 1MB
-          console.log("Processing large document, this may take a moment...");
-        }
-        
+
         const result = await mammoth.convertToHtml({ arrayBuffer: arr });
         const html = result.value || "<p></p>";
-        
-        console.log(`Document converted to HTML (${html.length} characters)`);
-        
+
         editor?.chain().focus().setContent(html, false).run();
         return file.name.replace(/\.[^.]+$/, "");
       } catch (e: any) {
@@ -349,23 +343,23 @@ export const useDocumentOperations = (
 
       try {
         const fileName = file.name;
-        const fileExtension = fileName.split('.').pop()?.toLowerCase();
-        
+        const fileExtension = fileName.split(".").pop()?.toLowerCase();
+
         let content = "";
-        
-        if (fileExtension === 'txt') {
+
+        if (fileExtension === "txt") {
           content = await file.text();
-        } else if (fileExtension === 'docx') {
+        } else if (fileExtension === "docx") {
           // Use mammoth to extract text content from DOCX files
           const mammoth = await import("mammoth");
           const arrayBuffer = await file.arrayBuffer();
           const result = await mammoth.convertToHtml({ arrayBuffer });
-          
+
           // Extract plain text from HTML
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = result.value;
           content = tempDiv.textContent || tempDiv.innerText || "";
-          
+
           // If no text content, fallback to filename
           if (!content.trim()) {
             content = `[Document: ${fileName}]`;
@@ -376,7 +370,7 @@ export const useDocumentOperations = (
 
         // Insert the content at the current cursor position
         editor.commands.insertContent(content);
-        
+
         showToast(`Document "${fileName}" imported successfully`, "success");
       } catch (error) {
         console.error("Error importing document:", error);

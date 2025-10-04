@@ -19,7 +19,9 @@ export const useVariables = (editor: Editor | null) => {
     null
   );
   const [isExtracting, setIsExtracting] = useState(false);
-  const inputRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | null>>({});
+  const inputRefs = useRef<
+    Record<string, HTMLInputElement | HTMLTextAreaElement | null>
+  >({});
   const isProcessingRef = useRef(false);
   const [triggerUpdate, setTriggerUpdate] = useState(0);
   const extractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,25 +33,25 @@ export const useVariables = (editor: Editor | null) => {
       setIsExtracting(false);
       return;
     }
-    
+
     // Clear any existing timeout
     if (extractionTimeoutRef.current) {
       clearTimeout(extractionTimeoutRef.current);
     }
-    
+
     // Set loading state
     setIsExtracting(true);
-    
+
     // Safety timeout to prevent stuck extraction state (10 seconds)
     extractionSafetyTimeoutRef.current = setTimeout(() => {
       setIsExtracting(false);
     }, 10000);
-    
+
     // Debounce the extraction to prevent excessive processing
     extractionTimeoutRef.current = setTimeout(() => {
       extractVariables();
     }, 500); // 500ms debounce
-    
+
     return () => {
       if (extractionTimeoutRef.current) {
         clearTimeout(extractionTimeoutRef.current);
@@ -72,17 +74,16 @@ export const useVariables = (editor: Editor | null) => {
         }
         return;
       }
-      
+
       // Reset processing flag if it's been stuck
       if (isProcessingRef.current) {
         isProcessingRef.current = false;
       }
 
       let html = editor.getHTML() || "";
-      
+
       const { curlyMatches, bracketMatches, bracketToCurly } =
         extractVariablesFromContent(html);
-      
 
       // Normalize bracket placeholders to curly syntax
       const normalizedHtml = normalizeBracketPlaceholders(html, bracketToCurly);
@@ -105,7 +106,6 @@ export const useVariables = (editor: Editor | null) => {
             .filter((id) => id.length > 0)
         )
       );
-
 
       if (foundIds.length === 0 && variables.length === 0) {
         setIsExtracting(false);
@@ -149,7 +149,7 @@ export const useVariables = (editor: Editor | null) => {
         });
         setPlaceholderStatus(status);
       }
-      
+
       // Clear loading state and safety timeout
       setIsExtracting(false);
       if (extractionSafetyTimeoutRef.current) {
@@ -164,28 +164,28 @@ export const useVariables = (editor: Editor | null) => {
         extractionSafetyTimeoutRef.current = null;
       }
     }
-  }, [editor, variables, triggerUpdate]);
+  }, [editor, variables]);
 
   // Listen to editor updates to trigger variable extraction
   useEffect(() => {
     if (!editor) return;
 
     const handleUpdate = () => {
-      setTriggerUpdate(prev => prev + 1);
+      setTriggerUpdate((prev) => prev + 1);
     };
 
     const handleSelectionUpdate = () => {
-      setTriggerUpdate(prev => prev + 1);
+      setTriggerUpdate((prev) => prev + 1);
     };
 
     const handleTransaction = () => {
-      setTriggerUpdate(prev => prev + 1);
+      setTriggerUpdate((prev) => prev + 1);
     };
 
     editor.on("update", handleUpdate);
     editor.on("selectionUpdate", handleSelectionUpdate);
     editor.on("transaction", handleTransaction);
-    
+
     return () => {
       editor.off("update", handleUpdate);
       editor.off("selectionUpdate", handleSelectionUpdate);
@@ -208,7 +208,7 @@ export const useVariables = (editor: Editor | null) => {
   }, []);
 
   const handleForceExtraction = useCallback(() => {
-    setTriggerUpdate(prev => prev + 1);
+    setTriggerUpdate((prev) => prev + 1);
   }, []);
 
   const handleVariableClick = useCallback(

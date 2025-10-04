@@ -36,7 +36,7 @@ export default function TiptapEditor({
     currentDraftId || null
   );
   const [content, setContent] = useState("");
-  
+
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
@@ -48,7 +48,6 @@ export default function TiptapEditor({
     "drafts"
   );
   const [showAIModal, setShowAIModal] = useState(false);
-
 
   // Custom hooks - need to set up editor first
   const { editor, contentUpdateTrigger } = useEditorSetup(
@@ -93,7 +92,9 @@ export default function TiptapEditor({
   useEffect(() => {
     if (editor && handleVariableClick) {
       // The VariableHighlight extension will use this handler
-      editor.storage.variableHighlight?.setVariableClickHandler?.(handleVariableClick);
+      editor.storage.variableHighlight?.setVariableClickHandler?.(
+        handleVariableClick
+      );
     }
   }, [editor, handleVariableClick]);
 
@@ -111,10 +112,16 @@ export default function TiptapEditor({
       setShowAIModal(true);
     };
 
-    window.addEventListener('open-ai-modal', handleOpenAIModal as EventListener);
-    
+    window.addEventListener(
+      "open-ai-modal",
+      handleOpenAIModal as EventListener
+    );
+
     return () => {
-      window.removeEventListener('open-ai-modal', handleOpenAIModal as EventListener);
+      window.removeEventListener(
+        "open-ai-modal",
+        handleOpenAIModal as EventListener
+      );
     };
   }, []);
 
@@ -392,11 +399,11 @@ export default function TiptapEditor({
                 highlightedVariable={highlightedVariable}
                 isExtracting={isExtracting}
                 hasContent={Boolean(
-                  content && 
-                  content.trim() !== "" && 
-                  content !== "<p></p>" && 
-                  content !== "<p><br></p>" &&
-                  content.length > 10 // Minimum content length to consider it meaningful
+                  content &&
+                    content.trim() !== "" &&
+                    content !== "<p></p>" &&
+                    content !== "<p><br></p>" &&
+                    content.length > 10 // Minimum content length to consider it meaningful
                 )}
                 inputRefs={inputRefs}
                 onChangeValue={handleChangeVariableValue}
