@@ -148,7 +148,7 @@ export default function AIModal({ isOpen, onClose, editor }: AIModalProps) {
               ? "Generating content..."
               : generatedContent
               ? "Content ready to insert"
-              : "AI will help you create professional content"}
+              : ""}
           </div>
           <div className="flex items-center space-x-2">
             {generatedContent && !isGenerating && !isRefining && (
