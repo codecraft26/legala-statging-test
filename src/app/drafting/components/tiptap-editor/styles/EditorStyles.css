@@ -239,6 +239,25 @@
   pointer-events: none;
 }
 
+/* Enhanced Placeholder Styles */
+.tiptap-editor-content .ProseMirror .is-empty::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.tiptap-editor-content .ProseMirror p.is-empty:first-child::before {
+  color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-style: italic;
+}
+
 /* Text Formatting */
 .tiptap-editor-content strong {
   font-weight: 600;
@@ -393,6 +412,14 @@
   .tiptap-editor-content
   .ProseMirror
   p.is-editor-empty:first-child::before {
+  color: #6b7280;
+}
+
+.dark .tiptap-editor-content .ProseMirror .is-empty::before {
+  color: #6b7280;
+}
+
+.dark .tiptap-editor-content .ProseMirror p.is-empty:first-child::before {
   color: #6b7280;
 }
 .dark .tiptap-editor-content::-webkit-scrollbar-track {

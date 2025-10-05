@@ -71,7 +71,7 @@ export const useEditorSetup = (
           "prose prose-lg max-w-none focus:outline-none tiptap-editor-content",
       },
     },
-    content: content || "<p>Start drafting your document…</p>",
+    content: content || "<p></p>",
   });
 
   // Update variable highlighting when variables change
