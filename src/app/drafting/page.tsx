@@ -110,6 +110,7 @@ export default function DraftingPage() {
           onDocumentTitleChange={handleDocumentTitleChange}
           onEditorContentChange={handleEditorContentChange}
           currentDraftId={currentDraftId}
+          onDraftIdChange={(id) => setCurrentDraftId(id)}
           onNewDraft={() => {
             setCurrentDraftId(null);
             setDocumentTitle("New Draft");

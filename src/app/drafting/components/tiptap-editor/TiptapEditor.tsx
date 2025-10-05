@@ -2,7 +2,8 @@
 
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { EditorContent } from "@tiptap/react";
+
+import { MinimalTiptap } from "@/components/ui/shadcn-io/minimal-tiptap";
 import EditorHeader from "./components/EditorHeader";
 import EditorToolbar from "./components/EditorToolbar";
 import SelectionToolbar from "./components/SelectionToolbar";
@@ -10,7 +11,7 @@ import SelectionRefineMenu from "./SelectionRefineMenu";
 import VariablesPanel from "./components/VariablesPanel";
 import DraftsList from "./components/DraftsList";
 import AIModal from "./components/AIModal";
-import { TiptapEditorProps, VariableDef } from "./types";
+import { TiptapEditorProps } from "./types";
 import {
   useEditorSetup,
   useEditorState,
@@ -30,6 +31,7 @@ export default function TiptapEditor({
   onSave,
   isSaving,
   onNewDraft,
+  onDraftIdChange,
 }: TiptapEditorProps = {}) {
   // State management
   const [documentTitle, setDocumentTitle] = useState(
@@ -175,8 +177,9 @@ export default function TiptapEditor({
   useEffect(() => {
     if (currentDraftId !== internalDraftId) {
       setInternalDraftId(currentDraftId || null);
+      if (onDraftIdChange) onDraftIdChange(currentDraftId || null);
     }
-  }, [currentDraftId, internalDraftId]);
+  }, [currentDraftId, internalDraftId, onDraftIdChange]);
 
   // Update document title when initialTitle prop changes
   useEffect(() => {
@@ -305,7 +308,12 @@ export default function TiptapEditor({
 
           <div className="flex-1 relative bg-white overflow-hidden">
             <div className="h-full overflow-y-auto px-6 py-6">
-              <EditorContent editor={editor} key={contentUpdateTrigger} />
+              <MinimalTiptap
+                editor={editor}
+                showToolbar={false}
+                className="border-0"
+                key={contentUpdateTrigger}
+              />
               <SelectionToolbar
                 editor={editor}
                 onRefine={(originalText, refinedText, instruction) => {
@@ -365,7 +373,10 @@ export default function TiptapEditor({
                 workspaceId={currentWorkspaceId || undefined}
                 onLoadDraftContent={({ id, name, content }) => {
                   try {
-                    if (id) setInternalDraftId(id);
+                    if (id) {
+                      setInternalDraftId(id);
+                      if (onDraftIdChange) onDraftIdChange(id);
+                    }
                     if (name) setDocumentTitle(name);
                     if (typeof content === "string") {
                       const safeContent =
@@ -392,6 +403,7 @@ export default function TiptapEditor({
                 }}
                 onCreateNewDraft={() => {
                   setInternalDraftId(null);
+                  if (onDraftIdChange) onDraftIdChange(null);
                   setDocumentTitle("New Draft");
                   setVariables([]);
                   setVariableValues({});
@@ -466,6 +478,7 @@ export default function TiptapEditor({
               typeof data?.content === "string" ? data.content : ""
             );
             setInternalDraftId(draftId);
+            if (onDraftIdChange) onDraftIdChange(draftId);
             setVariables([]);
             setVariableValues({});
             setPlaceholderStatus({});

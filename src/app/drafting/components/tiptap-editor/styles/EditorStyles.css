@@ -4,7 +4,7 @@
 .tiptap-editor-content .ProseMirror {
   outline: none;
   min-height: 100%;
-  padding: 2rem 0;
+  padding: 0.5rem 0; /* reduced vertical padding inside editor */
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -64,22 +64,22 @@
 
 /* Paragraphs */
 .tiptap-editor-content p {
-  margin: 1rem 0;
-  line-height: 1.6;
+  margin: 0.5rem 0; /* reduced paragraph spacing */
+  line-height: 1.4; /* tighter line height */
   color: #374151;
 }
 
 /* Lists */
 .tiptap-editor-content ul,
 .tiptap-editor-content ol {
-  margin: 1rem 0;
-  padding-left: 2rem;
+  margin: 0.5rem 0; /* reduced list block spacing */
+  padding-left: 1.5rem;
   list-style-position: outside;
 }
 
 .tiptap-editor-content li {
-  margin: 0.5rem 0;
-  line-height: 1.6;
+  margin: 0.25rem 0; /* reduced spacing between list items */
+  line-height: 1.4;
   display: list-item;
 }
 
@@ -240,14 +240,7 @@
 }
 
 /* Enhanced Placeholder Styles */
-.tiptap-editor-content .ProseMirror .is-empty::before {
-  color: #9ca3af;
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-  font-style: italic;
-}
+/* Removed generic .is-empty placeholder to avoid showing placeholder after new lines */
 
 .tiptap-editor-content .ProseMirror p.is-empty:first-child::before {
   color: #9ca3af;
@@ -415,9 +408,7 @@
   color: #6b7280;
 }
 
-.dark .tiptap-editor-content .ProseMirror .is-empty::before {
-  color: #6b7280;
-}
+/* Removed dark theme generic .is-empty placeholder variant */
 
 .dark .tiptap-editor-content .ProseMirror p.is-empty:first-child::before {
   color: #6b7280;

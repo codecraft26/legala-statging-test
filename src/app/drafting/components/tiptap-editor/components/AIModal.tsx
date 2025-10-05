@@ -156,6 +156,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
         // list invalidation handled by hook
 
         // Poll detail until completed
+        const POLL_INTERVAL_MS = 5000; // 3 seconds
         await new Promise<void>((resolve, reject) => {
           const start = Date.now();
           const timeoutMs = 2 * 60 * 1000; // 2 minutes
@@ -202,7 +203,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
               clearInterval(interval);
               reject(e);
             }
-          }, 2000);
+          }, POLL_INTERVAL_MS);
         });
       } else {
         // Use the refine API for text-only generation
