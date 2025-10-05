@@ -6,6 +6,7 @@ export interface TiptapEditorProps {
   onSave?: () => void;
   isSaving?: boolean;
   onNewDraft?: () => void;
+  onDraftIdChange?: (id: string | null) => void;
 }
 
 export interface VariableDef {

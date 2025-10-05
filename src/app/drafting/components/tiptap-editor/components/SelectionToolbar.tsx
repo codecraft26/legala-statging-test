@@ -303,7 +303,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
       <div
         className={`bg-white border border-gray-200 rounded-lg shadow-xl p-4 transition-all duration-300 ${
           showResult ? "w-[800px]" : "w-96"
-        }`}
+        } max-w-[95vw]`}
       >
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
           <div className="flex items-center gap-2">
@@ -331,7 +331,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="e.g., Make this text more formal and professional, translate to Spanish, add more details..."
-                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none text-sm"
+                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-y text-sm"
                 disabled={isProcessing}
                 aria-label="Enter prompt for refining selected text"
               />
@@ -394,7 +394,7 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
 
           {/* Result Card (only show when result is available) */}
           {showResult && (
-            <div className="flex-1 animate-in slide-in-from-right-4 duration-300">
+            <div className="flex-1 animate-in slide-in-from-right-4 duration-300 max-h-[70vh] overflow-y-auto pr-1">
               <div className="mb-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-gray-700">
@@ -414,14 +414,14 @@ export default function SelectionToolbar({ editor, onRefine }: Props) {
                 </p>
               </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 h-32 overflow-y-auto mb-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 min-h-40 max-h-[60vh] overflow-y-auto mb-4">
                 {isProcessing && !resultText ? (
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Generating response...</span>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-700 leading-relaxed">
+                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {resultText}
                     {isProcessing && (
                       <span
