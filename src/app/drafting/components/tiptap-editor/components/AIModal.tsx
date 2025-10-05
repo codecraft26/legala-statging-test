@@ -7,27 +7,19 @@ import {
   Loader2, 
   X, 
   File as FileIcon, 
-  Search, 
-  Folder, 
-  ChevronDown,
   Send,
-  CheckCircle,
-  AlertCircle
 } from "lucide-react";
 import { useRefineText } from "@/hooks/use-refine";
 import { useDocuments, type DocumentItem } from "@/hooks/use-documents";
 import { useDeleteDrafting, useUpdateDraft, useDraftFromDocuments } from "@/hooks/use-drafting";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import DataHubPicker from "./DataHubPicker";
+import GeneratedContentView from "./GeneratedContentView";
+import AIModalFooter from "./AIModalFooter";
 import { getCookie as getCookieUtil } from "@/lib/utils";
+import { normalizeToHtml } from "../utils/html";
 
 interface AIModalProps {
   isOpen: boolean;
@@ -74,18 +66,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
   const { mutateAsync: draftFromDocuments } = useDraftFromDocuments(workspaceId);
   const queryClient = useQueryClient();
 
-  const normalizeToHtml = (input: string): string => {
-    const trimmed = (input || "").trim();
-    if (!trimmed) return "<p></p>";
-    // Heuristic: if it looks like HTML already, return as-is
-    if (/[<][a-zA-Z!/]/.test(trimmed)) return trimmed;
-    // Convert plaintext to paragraphs; double newlines split paragraphs, single newlines become <br/>
-    const paragraphs = trimmed
-      .split(/\n{2,}/)
-      .map((block) => `<p>${block.replace(/\n/g, "<br/>")}</p>`)
-      .join("");
-    return paragraphs || "<p></p>";
-  };
+  // moved to shared util normalizeToHtml
 
   // Quick prompts for quick selection
   const quickPrompts = [
@@ -101,34 +82,9 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     "Generate a business plan outline",
   ];
 
-  // Filter available documents by search term
-  const filteredDataHubFiles = availableDocuments.filter(
-    (file) =>
-      !searchTerm ||
-      (file.filename &&
-        file.filename.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
 
-  // No need for custom fetch functions - using the existing hooks
 
-  // Handle folder navigation
-  const handleFolderClick = (folder: DocumentItem) => {
-    setFolderPath((prev) => [
-      ...prev,
-      { id: folder.id, name: folder.filename },
-    ]);
-    setCurrentFolderId(folder.id);
-  };
-
-  // Handle back navigation
-  const handleBackNavigation = () => {
-    const newPath = [...folderPath];
-    newPath.pop();
-    setFolderPath(newPath);
-    const newFolderId =
-      newPath.length > 0 ? newPath[newPath.length - 1].id : null;
-    setCurrentFolderId(newFolderId);
-  };
+  
 
   // Handle data hub file selection
   const handleDataHubFileSelect = (file: DocumentItem) => {
@@ -332,9 +288,9 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] flex flex-col p-0">
+      <DialogContent className="w-[92vw] max-w-[1400px] max-h-[96vh] flex flex-col p-0">
         {/* Header */}
-        <div className="px-4 py-3 border-b bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="px-4 py-3 border-b bg-white">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg shadow-sm">
               <Sparkles className="w-4 h-4 text-white" />
@@ -354,137 +310,17 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
         <div className="flex-1 grid grid-cols-2 h-[500px]">
           {/* Left Column - Input */}
           <div className="p-4 space-y-3 overflow-y-auto border-r border-gray-200">
-            {/* Data Hub Section */}
             {(availableDocuments.length > 0 || loadingDocuments) && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium text-gray-700">
-                    Data Hub
-                  </label>
-                  <button
-                    onClick={() => setShowDataHub(!showDataHub)}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    disabled={loadingDocuments}
-                  >
-                    {showDataHub ? "Hide" : "Show"}
-                    <ChevronDown
-                      size={12}
-                      className={`transition-transform ${
-                        showDataHub ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {showDataHub && (
-                  <div className="border border-gray-200 rounded-lg p-2 bg-gray-50 max-h-32 overflow-y-auto">
-                    {/* Loading States */}
-                    {loadingDocuments ? (
-                      <div className="flex items-center justify-center py-2">
-                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                        <span className="text-xs text-gray-500">
-                          Loading...
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Search */}
-                        <div className="relative mb-2">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
-                          <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search files..."
-                            className="w-full pl-7 pr-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        {/* Breadcrumb Navigation */}
-                        {folderPath.length > 0 && (
-                          <div className="mb-2 text-xs text-gray-600">
-                            <button
-                              onClick={() => {
-                                setFolderPath([]);
-                                setCurrentFolderId(null);
-                              }}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              Root
-                            </button>
-                            {folderPath.map((folder, index) => (
-                              <span key={folder.id}>
-                                <span className="mx-1">/</span>
-                                <button
-                                  onClick={() => {
-                                    const newPath = folderPath.slice(0, index + 1);
-                                    setFolderPath(newPath);
-                                    setCurrentFolderId(folder.id);
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800"
-                                >
-                                  {folder.name}
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Back Button */}
-                        {folderPath.length > 0 && (
-                          <button
-                            onClick={handleBackNavigation}
-                            className="w-full text-left p-1 hover:bg-gray-100 text-xs border-b border-gray-200 flex items-center mb-2"
-                          >
-                            <span className="mr-1">←</span> Back
-                          </button>
-                        )}
-
-                        {/* File List */}
-                        {filteredDataHubFiles.length === 0 ? (
-                          <div className="text-center py-2 text-gray-500 text-xs">
-                            {searchTerm
-                              ? `No files found matching "${searchTerm}"`
-                              : "No files available"}
-                          </div>
-                        ) : (
-                          <div className="space-y-0.5">
-                            {filteredDataHubFiles.map((file, index) => (
-                              <div
-                                key={file.id || index}
-                                className="flex items-center justify-between p-1.5 hover:bg-gray-100 rounded cursor-pointer text-xs"
-                                onClick={() => {
-                                  if (file.type === "folder") {
-                                    handleFolderClick(file);
-                                  } else if (allFiles.length < 2) {
-                                    handleDataHubFileSelect(file);
-                                  }
-                                }}
-                              >
-                                <div className="flex items-center space-x-1.5 flex-1 truncate">
-                                  {file.type === "folder" ? (
-                                    <Folder className="w-3 h-3 text-yellow-600 flex-shrink-0" />
-                                  ) : (
-                                    <FileIcon className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                                  )}
-                                  <span className="truncate" title={file.filename}>
-                                    {file.filename || "Unnamed file"}
-                                  </span>
-                                </div>
-                                {file.type === "folder" ? (
-                                  <span className="text-xs text-gray-400">📁</span>
-                                ) : allFiles.length >= 2 ? (
-                                  <span className="text-xs text-gray-400">Full</span>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+              <DataHubPicker
+                workspaceId={workspaceId}
+                currentFolderId={currentFolderId}
+                onFolderChange={(id) => setCurrentFolderId(id)}
+                searchTerm={searchTerm}
+                onSearchTermChange={setSearchTerm}
+                onSelectFile={(file) => {
+                  if (allFiles.length < 2) handleDataHubFileSelect(file);
+                }}
+              />
             )}
 
 
@@ -573,7 +409,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
               <Button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating || isRefining}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-black text-white rounded hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 {isGenerating || isRefining ? (
                   <>
@@ -591,84 +427,26 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
           </div>
 
           {/* Right Column - Generated Content */}
-          <div className="p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-medium text-gray-700">
-                Generated Content
-              </label>
-              {generatedContent && !isGenerating && !isRefining && (
-                <div className="flex items-center gap-1 text-green-600">
-                  <CheckCircle size={14} />
-                  <span className="text-xs">Ready</span>
-                </div>
-              )}
-            </div>
-
-            {/* Content Display */}
-            <div className="flex-1 overflow-y-auto border border-gray-300 bg-gray-50 rounded-lg p-3">
-              {error || refineError ? (
-                <div className="flex items-start gap-1.5 text-red-600">
-                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium">Error</p>
-                    <p className="text-xs text-red-500">
-                      {error || (refineError as any)?.message}
-                    </p>
-                  </div>
-                </div>
-              ) : generatedContent ? (
-                <div className="text-xs text-gray-800 leading-relaxed">
-                  <div dangerouslySetInnerHTML={{ __html: generatedContent }} />
-                  {isGenerating && (
-                    <span className="inline-block w-1 h-3 bg-blue-600 animate-pulse ml-1"></span>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 flex flex-col items-center justify-center h-full">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mb-2">
-                    <Sparkles size={16} className="text-gray-400" />
-                  </div>
-                  <p className="text-xs">Generated content will appear here</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <GeneratedContentView
+            html={generatedContent}
+            isLoading={isGenerating || isRefining}
+            error={error || (refineError as any)?.message}
+          />
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-500">
-              AI-generated content
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={async () => {
-                  try {
-                    if (activeDraftId) {
-                      await deleteDraft(activeDraftId);
-                    }
-                  } catch (e) {
-                    // ignore delete error in deny flow
-                  } finally {
-                    handleClose();
-                  }
-                }}
-                variant="outline"
-                className="px-3 py-1.5 text-sm"
-              >
-                Deny
-              </Button>
-              <Button
-                onClick={handleInsertContent}
-                disabled={!generatedContent.trim() || isGenerating || isRefining}
-                className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 text-sm"
-              >
-                Insert Content
-              </Button>
-            </div>
-          </div>
-        </div>
+        <AIModalFooter
+          onDeny={async () => {
+            try {
+              if (activeDraftId) await deleteDraft(activeDraftId);
+            } finally {
+              handleClose();
+            }
+          }}
+          onInsert={handleInsertContent}
+          canInsert={!!generatedContent.trim()}
+          isBusy={isGenerating || isRefining}
+        />
       </DialogContent>
     </Dialog>
   );

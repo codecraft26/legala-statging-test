@@ -19,6 +19,7 @@ import {
   useVariableOperations,
 } from "./hooks";
 import { fetchDraftingDetailViaClient } from "@/hooks/use-drafting";
+import { normalizeToHtml } from "./utils/html";
 import "./styles/EditorStyles.css";
 
 export default function TiptapEditor({
@@ -136,16 +137,7 @@ export default function TiptapEditor({
   }, []);
 
   const { editorState, updateEditorState } = useEditorState(editor);
-  const normalizeToHtml = useCallback((input: string): string => {
-    const trimmed = (input || "").trim();
-    if (!trimmed) return "<p></p>";
-    if (/[<][a-zA-Z!/]/.test(trimmed)) return trimmed;
-    const paragraphs = trimmed
-      .split(/\n{2,}/)
-      .map((block) => `<p>${block.replace(/\n/g, "<br/>")}</p>`)
-      .join("");
-    return paragraphs || "<p></p>";
-  }, []);
+  // use shared normalizer
 
   const {
     currentWorkspaceId,
@@ -336,7 +328,7 @@ export default function TiptapEditor({
       {showDraftsPanel ? (
         <div className="flex-shrink-0 h-full w-80 flex flex-col min-h-0">
           <div className="border-b border-gray-200 bg-white">
-            <div className="px-3 py-2 text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <div className="px-3 py-2 text-sm font-semibold text-gray-900 flex items-center justify-between gap-2">
               <button
                 className={`px-2 py-1 rounded ${
                   rightPanelTab === "drafts"
@@ -356,6 +348,13 @@ export default function TiptapEditor({
                 onClick={() => setRightPanelTab("variables")}
               >
                 Variables
+              </button>
+              <button
+                onClick={() => setShowDraftsPanel(false)}
+                className="ml-auto px-2 py-1 text-xs text-gray-600 hover:text-black rounded border border-gray-200"
+                title="Hide sidebar"
+              >
+                Hide
               </button>
             </div>
           </div>
@@ -444,7 +443,15 @@ export default function TiptapEditor({
             )}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <button
+          onClick={() => setShowDraftsPanel(true)}
+          className="absolute right-2 top-20 z-10 px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow hover:bg-gray-50"
+          title="Show sidebar"
+        >
+          Show Panel
+        </button>
+      )}
 
       {/* AI Modal */}
       <AIModal
