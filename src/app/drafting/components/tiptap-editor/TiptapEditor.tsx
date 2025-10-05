@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useRef, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { EditorContent } from "@tiptap/react";
 import EditorHeader from "./components/EditorHeader";
 import EditorToolbar from "./components/EditorToolbar";
@@ -17,6 +18,8 @@ import {
   useDocumentOperations,
   useVariableOperations,
 } from "./hooks";
+import { fetchDraftingDetailViaClient } from "@/hooks/use-drafting";
+import { normalizeToHtml } from "./utils/html";
 import "./styles/EditorStyles.css";
 
 export default function TiptapEditor({
@@ -43,11 +46,19 @@ export default function TiptapEditor({
   const [tableWithHeader, setTableWithHeader] = useState(true);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showCustomFontSizeInput, setShowCustomFontSizeInput] = useState(false);
-  const [showVariablesPanel, setShowVariablesPanel] = useState(true);
-  const [sidePanelView, setSidePanelView] = useState<"variables" | "drafts">(
+  const [showDraftsPanel, setShowDraftsPanel] = useState(true);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"drafts" | "variables">(
     "drafts"
   );
-  const [showAIModal, setShowAIModal] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Keep a synchronous ref of the current draft id to avoid races during rename
+  const currentIdRef = useRef<string | null>(currentDraftId || null);
+  useEffect(() => {
+    const nextId = internalDraftId || currentDraftId || null;
+    currentIdRef.current = nextId;
+  }, [internalDraftId, currentDraftId]);
 
   // Custom hooks - need to set up editor first
   const { editor, contentUpdateTrigger } = useEditorSetup(
@@ -81,11 +92,11 @@ export default function TiptapEditor({
     (variableId: string) => {
       handleVariableClickBase(
         variableId,
-        showVariablesPanel,
-        setShowVariablesPanel
+        showDraftsPanel,
+        setShowDraftsPanel
       );
     },
-    [handleVariableClickBase, showVariablesPanel]
+    [handleVariableClickBase, showDraftsPanel]
   );
 
   // Update editor's variable click handler when it changes
@@ -126,6 +137,7 @@ export default function TiptapEditor({
   }, []);
 
   const { editorState, updateEditorState } = useEditorState(editor);
+  // use shared normalizer
 
   const {
     currentWorkspaceId,
@@ -151,12 +163,12 @@ export default function TiptapEditor({
       setDocumentTitle(newTitle);
 
       // If we have a current draft, update it via API
-      const currentId = internalDraftId || currentDraftId;
+      const currentId = currentIdRef.current;
       if (currentId && newTitle.trim()) {
         debouncedUpdateDraftName(currentId, newTitle.trim());
       }
     },
-    [internalDraftId, currentDraftId, debouncedUpdateDraftName]
+    [debouncedUpdateDraftName]
   );
 
   // Sync internal draft ID with prop
@@ -258,7 +270,7 @@ export default function TiptapEditor({
         }
       `}</style>
       <div
-        className={`flex-1 min-w-0 ${showVariablesPanel ? "mr-2" : ""} transition-all duration-300`}
+        className={`flex-1 min-w-0 ${showDraftsPanel ? "mr-2" : ""} transition-all duration-300`}
       >
         <div className="h-full bg-white rounded-xl shadow-lg border border-gray-200 flex flex-col max-w-full overflow-hidden">
           <EditorHeader
@@ -313,41 +325,47 @@ export default function TiptapEditor({
         </div>
       </div>
 
-      {showVariablesPanel ? (
+      {showDraftsPanel ? (
         <div className="flex-shrink-0 h-full w-80 flex flex-col min-h-0">
           <div className="border-b border-gray-200 bg-white">
-            <div className="flex text-sm">
+            <div className="px-3 py-2 text-sm font-semibold text-gray-900 flex items-center justify-between gap-2">
               <button
-                className={`flex-1 px-3 py-2 ${
-                  sidePanelView === "drafts"
-                    ? "border-b-2 border-black font-semibold"
-                    : "text-gray-600"
+                className={`px-2 py-1 rounded ${
+                  rightPanelTab === "drafts"
+                    ? "bg-gray-200 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
-                onClick={() => setSidePanelView("drafts")}
-                type="button"
+                onClick={() => setRightPanelTab("drafts")}
               >
                 Drafts
               </button>
               <button
-                className={`flex-1 px-3 py-2 ${
-                  sidePanelView === "variables"
-                    ? "border-b-2 border-black font-semibold"
-                    : "text-gray-600"
+                className={`px-2 py-1 rounded ${
+                  rightPanelTab === "variables"
+                    ? "bg-gray-200 text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
-                onClick={() => setSidePanelView("variables")}
-                type="button"
+                onClick={() => setRightPanelTab("variables")}
               >
                 Variables
+              </button>
+              <button
+                onClick={() => setShowDraftsPanel(false)}
+                className="ml-auto px-2 py-1 text-xs text-gray-600 hover:text-black rounded border border-gray-200"
+                title="Hide sidebar"
+              >
+                Hide
               </button>
             </div>
           </div>
 
           <div className="flex-1 min-h-0">
-            {sidePanelView === "drafts" ? (
+            {rightPanelTab === "drafts" ? (
               <DraftsList
                 workspaceId={currentWorkspaceId || undefined}
-                onLoadDraftContent={({ name, content }) => {
+                onLoadDraftContent={({ id, name, content }) => {
                   try {
+                    if (id) setInternalDraftId(id);
                     if (name) setDocumentTitle(name);
                     if (typeof content === "string") {
                       const safeContent =
@@ -388,7 +406,6 @@ export default function TiptapEditor({
                     .run();
                   if (onNewDraft) onNewDraft();
                 }}
-                onDocumentImport={handleDocumentImport}
               />
             ) : (
               <VariablesPanel
@@ -403,7 +420,7 @@ export default function TiptapEditor({
                     content.trim() !== "" &&
                     content !== "<p></p>" &&
                     content !== "<p><br></p>" &&
-                    content.length > 10 // Minimum content length to consider it meaningful
+                    content.length > 10
                 )}
                 inputRefs={inputRefs}
                 onChangeValue={handleChangeVariableValue}
@@ -426,14 +443,43 @@ export default function TiptapEditor({
             )}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <button
+          onClick={() => setShowDraftsPanel(true)}
+          className="absolute right-2 top-20 z-10 px-2 py-1 text-xs bg-white border border-gray-200 rounded shadow hover:bg-gray-50"
+          title="Show sidebar"
+        >
+          Show Panel
+        </button>
+      )}
 
       {/* AI Modal */}
       <AIModal
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         editor={editor}
+        onSwitchToDraft={async (draftId: string) => {
+          try {
+            const data = await fetchDraftingDetailViaClient(queryClient, draftId);
+            if (data?.name) setDocumentTitle(data.name);
+            const contentToSet = normalizeToHtml(
+              typeof data?.content === "string" ? data.content : ""
+            );
+            setInternalDraftId(draftId);
+            setVariables([]);
+            setVariableValues({});
+            setPlaceholderStatus({});
+            setContent(contentToSet);
+            editor?.chain().focus().clearContent().setContent(contentToSet, false).run();
+            setRightPanelTab("drafts");
+            setShowAIModal(false);
+          } catch (e) {
+            console.error("Failed to switch to generated draft:", e);
+          }
+        }}
       />
+
+      
     </div>
   );
 }

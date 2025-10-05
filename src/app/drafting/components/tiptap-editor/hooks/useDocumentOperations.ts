@@ -38,18 +38,21 @@ export const useDocumentOperations = (
   }, []);
 
   // Debounced function to update draft name
-  const debouncedUpdateDraftName = useMemo(
-    () =>
-      debounce(async (draftId: string, name: string) => {
-        try {
-          await updateDraft.mutateAsync({ id: draftId, name });
-        } catch (error) {
-          console.error("Failed to update draft name:", error);
-          showToast("Failed to update draft name", "error");
-        }
-      }, 1000),
-    [updateDraft, showToast]
-  );
+  const debouncedUpdateDraftName = useMemo(() => {
+    let lastArgs: { id: string; name: string } | null = null;
+    const fn = debounce(async (draftId: string, name: string) => {
+      lastArgs = { id: draftId, name };
+      try {
+        await updateDraft.mutateAsync({ id: draftId, name });
+      } catch (error) {
+        console.error("Failed to update draft name:", error);
+        showToast("Failed to update draft name", "error");
+      }
+    }, 800);
+    // Return a stable wrapper that always uses latest args
+    const caller = (draftId: string, name: string) => fn(draftId, name);
+    return caller as typeof caller;
+  }, [updateDraft, showToast]);
 
   const exportPDF = useCallback(() => {
     if (!editor) return;

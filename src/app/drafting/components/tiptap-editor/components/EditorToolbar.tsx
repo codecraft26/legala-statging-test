@@ -24,9 +24,6 @@ import {
   Minus,
   FilePlus,
   ArrowRightFromLine,
-  Save,
-  Upload,
-  Download,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 
@@ -360,20 +357,7 @@ export default function EditorToolbar(props: Props) {
               </ToolbarButton>
             </div>
 
-            {onSave && (
-              <button
-                onClick={onSave}
-                disabled={isSaving}
-                className="flex items-center gap-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors whitespace-nowrap"
-                title="Save Draft"
-              >
-                <Save size={14} />
-                <span className="hidden sm:inline">
-                  {isSaving ? "Saving..." : "Save"}
-                </span>
-                <span className="sm:hidden">{isSaving ? "..." : ""}</span>
-              </button>
-            )}
+            {/* Save button removed per requirements */}
           </div>
         </div>
       </div>

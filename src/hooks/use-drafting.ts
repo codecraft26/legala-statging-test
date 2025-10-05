@@ -214,3 +214,73 @@ export function useUpdateDraft(workspaceId?: string | null) {
     },
   });
 }
+
+// Create draft from documents (Ask AI flow)
+export type DraftFromDocumentsRequest = {
+  documentId: string[];
+  instruction: string;
+  workspaceId: string;
+};
+
+export type DraftFromDocumentsResponse = {
+  success?: boolean;
+  data: DraftingItem;
+} | DraftingItem;
+
+export function useDraftFromDocuments(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      request: DraftFromDocumentsRequest
+    ): Promise<DraftingItem> => {
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(`${base}/drafting`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(request),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as DraftFromDocumentsResponse;
+      const item = (json as any)?.data ?? (json as DraftingItem);
+      return item as DraftingItem;
+    },
+    onSuccess: () => {
+      if (workspaceId) {
+        queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
+      }
+    },
+  });
+}
+
+// Helper to fetch a draft detail via query client (imperative usage)
+export async function fetchDraftingDetailViaClient(
+  queryClient: ReturnType<typeof useQueryClient>,
+  id: string
+): Promise<DraftingDetail | null> {
+  return await queryClient.fetchQuery({
+    queryKey: ["drafting-detail", id],
+    queryFn: async (): Promise<DraftingDetail | null> => {
+      if (!id) return null;
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(`${base}/drafting/detail?id=${encodeURIComponent(id)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: "no-store",
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as
+        | { success: boolean; data: DraftingDetail }
+        | DraftingDetail;
+      return (json as any)?.data ?? (json as DraftingDetail);
+    },
+  });
+}
