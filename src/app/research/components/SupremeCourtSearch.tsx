@@ -7,6 +7,7 @@ import {
   useSupremeDetail,
   useFollowResearch,
   useUnfollowResearch,
+  useFollowedResearch,
 } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
@@ -43,6 +44,7 @@ export default function SupremeCourtSearch() {
   );
   const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -62,6 +64,32 @@ export default function SupremeCourtSearch() {
   const detailsQuery = useSupremeDetail(detailParams);
   const followMutation = useFollowResearch();
   const unfollowMutation = useUnfollowResearch();
+  const followedQuery = useFollowedResearch(workspaceId || "", "Supreme_Court");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWorkspaceId(getCookie("workspaceId"));
+    }
+  }, []);
+
+  useEffect(() => {
+    // Build a set of followed identifiers based on available fields
+    const set = new Set<string>();
+    const data: any = followedQuery.data;
+    const list = Array.isArray(data)
+      ? data
+      : data && Array.isArray((data as any).data)
+        ? (data as any).data
+        : [];
+    list.forEach((item: any) => {
+      const f = item?.followed || {};
+      const view = f["View"]; // e.g., "419/2025"
+      const diary = f["diary_number"]; // alternative field
+      if (typeof view === "string" && view.trim()) set.add(view.trim());
+      if (typeof diary === "string" && diary.trim()) set.add(diary.trim());
+    });
+    setFollowedCases(set);
+  }, [followedQuery.data]);
 
   const rawResults = React.useMemo(() => {
     const data: any = searchQueryResult.data;

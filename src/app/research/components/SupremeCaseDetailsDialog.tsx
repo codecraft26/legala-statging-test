@@ -136,18 +136,30 @@ export default function SupremeCaseDetailsDialog({
                 </h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-full border-collapse table-fixed">
+                <table
+                  className={
+                    safeActive === "earlier_court_details"
+                      ? "min-w-max border-collapse"
+                      : "w-full min-w-full border-collapse table-fixed"
+                  }
+                >
                   {table[0] && (
                     <thead>
                       <tr className="bg-muted/50">
-                        {table[0].map((header: any, headerIndex: number) => (
-                          <th
-                            key={headerIndex}
-                            className={`border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top ${headerIndex === 0 ? "w-56 md:w-64" : "w-auto"}`}
-                          >
-                            {typeof header === "string" ? header : "Links"}
-                          </th>
-                        ))}
+                        {table[0].map((header: any, headerIndex: number) => {
+                          const base = "border border-border p-2 text-left text-xs font-medium text-muted-foreground align-top";
+                          const sizeClass =
+                            safeActive === "earlier_court_details"
+                              ? " whitespace-nowrap"
+                              : headerIndex === 0
+                                ? " w-56 md:w-64"
+                                : " w-auto";
+                          return (
+                            <th key={headerIndex} className={base + sizeClass}>
+                              {typeof header === "string" ? header : "Links"}
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                   )}
@@ -159,18 +171,36 @@ export default function SupremeCaseDetailsDialog({
                           key={rowIndex}
                           className="odd:bg-background even:bg-muted/20"
                         >
-                          {row.map((cell: any, cellIndex: number) => (
-                            <td
-                              key={cellIndex}
-                              className={`border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5 ${cellIndex === 0 ? "w-56 md:w-64 text-muted-foreground" : "w-auto"}`}
-                              style={{
-                                overflowWrap: "anywhere",
-                                wordBreak: "break-word",
-                              }}
-                            >
-                              {renderCellContent(cell, cellIndex)}
-                            </td>
-                          ))}
+                          {row.map((cell: any, cellIndex: number) => {
+                            const base =
+                              safeActive === "earlier_court_details"
+                                ? "border border-border p-2 text-xs align-top whitespace-nowrap leading-5"
+                                : "border border-border p-2 text-xs align-top whitespace-pre-wrap break-words break-all leading-5";
+                            const sizeClass =
+                              safeActive === "earlier_court_details"
+                                ? ""
+                                : cellIndex === 0
+                                  ? " w-56 md:w-64 text-muted-foreground"
+                                  : " w-auto";
+                            return (
+                              <td
+                                key={cellIndex}
+                                className={base + sizeClass}
+                                style={{
+                                  overflowWrap:
+                                    safeActive === "earlier_court_details"
+                                      ? "normal"
+                                      : "anywhere",
+                                  wordBreak:
+                                    safeActive === "earlier_court_details"
+                                      ? "normal"
+                                      : "break-word",
+                                }}
+                              >
+                                {renderCellContent(cell, cellIndex)}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                   </tbody>
@@ -233,7 +263,7 @@ export default function SupremeCaseDetailsDialog({
                 </div>
               </aside>
               <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full p-4">{content}</ScrollArea>
+                <div className="h-full p-4 overflow-auto">{content}</div>
               </div>
             </div>
           </div>
