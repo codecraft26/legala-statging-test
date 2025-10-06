@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-research";
 import { getApiBaseUrl, getCookie } from "@/lib/utils";
 import ResultsTable, { ColumnDef } from "./common/ResultsTable";
+import Pagination from "./common/Pagination";
 import SearchBar from "./common/SearchBar";
 import FollowButton from "./common/FollowButton";
 import StatusPill from "./common/StatusPill";
@@ -44,6 +45,8 @@ export default function SupremeCourtSearch() {
   const [followedCases, setFollowedCases] = useState<Set<string>>(new Set());
   const [followLoading, setFollowLoading] = useState<string | null>(null);
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const [searchParams, setSearchParams] = useState<{
     party_type: string;
@@ -82,6 +85,16 @@ export default function SupremeCourtSearch() {
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
+
+  // Ensure page stays valid when results or pageSize change
+  React.useEffect(() => {
+    setPage(1);
+  }, [partyName, partyType, year, partyStatus, searchQuery]);
+
+  const total = filteredResults.length;
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, total);
+  const currentPageResults = filteredResults.slice(startIndex, endIndex);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -407,16 +420,6 @@ export default function SupremeCourtSearch() {
               (() => {
                 const columns: ColumnDef<any>[] = [
                   {
-                    key: "serial_number",
-                    header: "INDEX NO.",
-                    width: 100,
-                    render: (r) => (
-                      <span className="text-gray-800 dark:text-zinc-200 font-medium">
-                        {r.serial_number || "N/A"}
-                      </span>
-                    ),
-                  },
-                  {
                     key: "diary_number",
                     header: "DIARY NUMBER",
                     width: 120,
@@ -426,19 +429,6 @@ export default function SupremeCourtSearch() {
                         title={r.diary_number || ""}
                       >
                         {r.diary_number || "N/A"}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: "case_number",
-                    header: "CASE NUMBER",
-                    width: 120,
-                    render: (r) => (
-                      <div
-                        className="max-w-[120px] truncate"
-                        title={r.case_number || ""}
-                      >
-                        {r.case_number || "N/A"}
                       </div>
                     ),
                   },
@@ -519,8 +509,18 @@ export default function SupremeCourtSearch() {
                   <div className="inline-block min-w-full bg-white dark:bg-zinc-900 rounded-xl shadow-lg overflow-hidden border-4 border-white dark:border-zinc-900">
                     <ResultsTable
                       columns={columns}
-                      rows={filteredResults}
+                      rows={currentPageResults}
                       rowKey={(r) => r.diary_number}
+                    />
+                    <Pagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={total}
+                      onPageChange={setPage}
+                      onPageSizeChange={(n) => {
+                        setPageSize(n);
+                        setPage(1);
+                      }}
                     />
                   </div>
                 );
