@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useAuth, useProfileDetail } from "@/hooks/use-auth";
 import { getCookie } from "@/lib/utils";
 import { type CreditDetail } from "@/lib/credit-api";
@@ -258,6 +259,7 @@ export default function ProfilePage() {
           </div>
         );
       })()}
+      
       <section className="rounded-lg border p-6">
         <h2 className="text-lg font-medium mb-3">Workspaces</h2>
         {workspaces.length === 0 ? (
@@ -282,6 +284,33 @@ export default function ProfilePage() {
             ))}
           </ul>
         )}
+      </section>
+      <section className="rounded-lg border p-6">
+        <h2 className="text-lg font-medium mb-3">Support</h2>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="rounded-md border p-4">
+            <h3 className="text-sm font-semibold mb-2">Chat Support</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Join our WhatsApp support group for quick assistance
+            </p>
+            <a
+              href="https://chat.whatsapp.com/BYVNO57fjz648B4tslllG4"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-3 py-2 bg-black text-white rounded-md text-xs hover:bg-zinc-800"
+            >
+              Join WhatsApp Group
+            </a>
+          </div>
+          <div className="rounded-md border p-4">
+            <h3 className="text-sm font-semibold mb-2">Microsoft Teams Assistant</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Use InfraHive directly in Microsoft Teams
+            </p>
+            {/* Lazy load heavy assets */}
+            {React.createElement(require("@/components/support/TeamsIntegrationCard").default)}
+          </div>
+        </div>
       </section>
     </main>
   );
