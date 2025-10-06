@@ -90,7 +90,7 @@ export default function TeamsIntegrationCard() {
                 <h5 className="font-medium mb-2">1) Install the Bot</h5>
                 <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
                   <li>Open Microsoft Teams and go to Apps</li>
-                  <li>Search for "InfraHive AI Assistant" and click Install</li>
+                  <li>Search for &quot;InfraHive AI Assistant&quot; and click Install</li>
                   <li>Pin the bot to your left rail (optional)</li>
                 </ol>
               </section>
