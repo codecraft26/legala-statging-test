@@ -156,7 +156,9 @@ export default function FollowedCasesPage() {
         dist_cd: 1,
       });
     } else if (caseItem.court === "Supreme_Court") {
-      // Derive diary_no and diary_year from either diary_number or action string
+      // Derive diary_no and diary_year. Prefer explicit "View" (e.g., "419/2025"),
+      // then fallback to stored diary_number or action URL params.
+      const viewField = caseItem.followed["View"] as string | undefined;
       const diaryNumberField = caseItem.followed["diary_number"] as
         | string
         | undefined;
@@ -164,24 +166,36 @@ export default function FollowedCasesPage() {
       let diaryNo = 0;
       let diaryYear = new Date().getFullYear();
 
-      if (diaryNumberField && diaryNumberField.includes("/")) {
-        const [noStr, yearStr] = diaryNumberField.split("/");
-        diaryNo = parseInt(noStr || "0");
-        diaryYear = parseInt(yearStr || String(diaryYear));
+      const parseDiaryPair = (s?: string) => {
+        if (!s) return null;
+        const trimmed = String(s).trim();
+        if (!trimmed.includes("/")) return null;
+        const [noStr, yearStr] = trimmed.split("/").map((x) => x.trim());
+        const n = parseInt(noStr || "0");
+        const y = parseInt(yearStr || String(diaryYear));
+        if (!Number.isFinite(n) || !Number.isFinite(y)) return null;
+        return { n, y };
+      };
+
+      const parsedFromView = parseDiaryPair(viewField);
+      const parsedFromDiary = parseDiaryPair(diaryNumberField);
+
+      if (parsedFromView) {
+        diaryNo = parsedFromView.n;
+        diaryYear = parsedFromView.y;
+      } else if (parsedFromDiary) {
+        diaryNo = parsedFromDiary.n;
+        diaryYear = parsedFromDiary.y;
       } else if (
         actionField &&
         actionField.includes("diary_no=") &&
         actionField.includes("diary_year=")
       ) {
         const url = new URL(
-          actionField.startsWith("http")
-            ? actionField
-            : `http://x${actionField}`
+          actionField.startsWith("http") ? actionField : `http://x${actionField}`
         );
         diaryNo = parseInt(url.searchParams.get("diary_no") || "0");
-        diaryYear = parseInt(
-          url.searchParams.get("diary_year") || String(diaryYear)
-        );
+        diaryYear = parseInt(url.searchParams.get("diary_year") || String(diaryYear));
       }
 
       setSupremeDetailParams({ diary_no: diaryNo, diary_year: diaryYear });
@@ -302,10 +316,20 @@ export default function FollowedCasesPage() {
             (payload as any).data?.case_details
           : undefined;
       let normalized: SupremeCaseData | null = null;
-      if (typeof html === "string") {
+      if (payload && typeof payload === "object") {
+        const wrapped: Record<string, { success: boolean; data: { data: string } }> = {};
+        Object.keys(payload as Record<string, unknown>).forEach((key) => {
+          const value: any = (payload as any)[key];
+          if (value == null) return;
+          const content = typeof value === "string" ? value : JSON.stringify(value);
+          wrapped[key] = { success: true, data: { data: content } };
+        });
+        if (Object.keys(wrapped).length > 0) {
+          normalized = wrapped as any;
+        }
+      }
+      if (!normalized && typeof html === "string") {
         normalized = createSupremeCourtCaseData(html);
-      } else if (payload && typeof payload === "object") {
-        normalized = payload as SupremeCaseData;
       }
       if (normalized) {
         setSupremeModalData(normalized);

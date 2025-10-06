@@ -43,22 +43,12 @@ export function FollowedSupremeTable({
 }) {
   const columns: ColumnDef<FollowedCase>[] = [
     {
-      key: "serial_number",
-      header: "Index No.",
-      width: 100,
-      render: (row) => (
-        <span className="text-gray-800 dark:text-zinc-200 font-medium">
-          {row.followed?.["serial_number"] ?? ""}
-        </span>
-      ),
-    },
-    {
       key: "diary_number",
       header: "Diary Number",
       width: 140,
       render: (row) => (
         <div className="truncate max-w-[130px]">
-          {row.followed?.["diary_number"] ?? ""}
+          {row.followed?.["View"] ?? row.followed?.["diary_number"] ?? ""}
         </div>
       ),
     },
@@ -68,27 +58,20 @@ export function FollowedSupremeTable({
       width: 220,
       render: (row) => (
         <div className="truncate max-w-[210px]">
-          {row.followed?.["case_number"] ?? ""}
+          {row.followed?.["Case Number"] ?? row.followed?.["case_number"] ?? ""}
         </div>
       ),
     },
     {
-      key: "petitioner_name",
-      header: "Petitioner",
-      width: 200,
+      key: "parties",
+      header: "Parties",
+      width: 360,
       render: (row) => (
-        <div className="truncate max-w-[190px]">
-          {row.followed?.["petitioner_name"] ?? ""}
-        </div>
-      ),
-    },
-    {
-      key: "respondent_name",
-      header: "Respondent",
-      width: 200,
-      render: (row) => (
-        <div className="truncate max-w-[190px]">
-          {row.followed?.["respondent_name"] ?? ""}
+        <div className="truncate max-w-[350px]">
+          {row.followed?.["Petitioner versus Respondent"] ??
+            (row.followed?.["petitioner_name"] && row.followed?.["respondent_name"]
+              ? `${row.followed?.["petitioner_name"]} versus ${row.followed?.["respondent_name"]}`
+              : "")}
         </div>
       ),
     },
