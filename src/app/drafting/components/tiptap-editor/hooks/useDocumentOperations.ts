@@ -9,6 +9,7 @@ import {
   SaveDraftToDocumentParams,
 } from "../types";
 import { debounce, sanitizeHtmlContent } from "../utils";
+import { normalizeToHtml } from "../utils/html";
 
 export const useDocumentOperations = (
   editor: Editor | null,
@@ -87,6 +88,75 @@ export const useDocumentOperations = (
     URL.revokeObjectURL(url);
   }, [editor, documentTitle]);
 
+  const exportMarkdown = useCallback(() => {
+    if (!editor) return;
+    const container = document.createElement("div");
+    container.innerHTML = editor.getHTML();
+
+    const lines: string[] = [];
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        lines.push((node as Text).data);
+        return;
+      }
+      if (!(node instanceof HTMLElement)) {
+        return;
+      }
+      const tag = node.tagName.toLowerCase();
+      if (tag.match(/^h[1-6]$/)) {
+        const level = Number(tag[1]);
+        lines.push("#".repeat(Math.min(6, level)) + " " + (node.textContent || ""));
+        lines.push("");
+        return;
+      }
+      if (tag === "p") {
+        lines.push(node.textContent || "");
+        lines.push("");
+        return;
+      }
+      if (tag === "blockquote") {
+        const text = (node.textContent || "").split("\n").map((l) => "> " + l).join("\n");
+        lines.push(text);
+        lines.push("");
+        return;
+      }
+      if (tag === "li") {
+        const parent = node.parentElement?.tagName.toLowerCase();
+        if (parent === "ol") {
+          const index = Array.from(node.parentElement!.children).indexOf(node) + 1;
+          lines.push(`${index}. ${node.textContent || ""}`);
+        } else {
+          lines.push(`- ${node.textContent || ""}`);
+        }
+        return;
+      }
+      if (tag === "ul" || tag === "ol") {
+        Array.from(node.childNodes).forEach(walk);
+        lines.push("");
+        return;
+      }
+      if (tag === "pre") {
+        const code = node.textContent || "";
+        lines.push("```\n" + code.replace(/\n+$/, "") + "\n```");
+        lines.push("");
+        return;
+      }
+      Array.from(node.childNodes).forEach(walk);
+    };
+    Array.from(container.childNodes).forEach(walk);
+    const markdown = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${documentTitle || "document"}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [editor, documentTitle]);
+
   const importWord = useCallback(
     async (file: File) => {
       try {
@@ -148,6 +218,21 @@ export const useDocumentOperations = (
         return file.name.replace(/\.[^.]+$/, "");
       } catch (e: any) {
         alert(`Failed to import PDF: ${e?.message || e}`);
+        return null;
+      }
+    },
+    [editor]
+  );
+
+  const importMarkdown = useCallback(
+    async (file: File) => {
+      try {
+        const text = await file.text();
+        const html = normalizeToHtml(text);
+        editor?.chain().focus().setContent(html || "<p></p>", false).run();
+        return file.name.replace(/\.[^.]+$/, "");
+      } catch (e: any) {
+        alert(`Failed to import Markdown: ${e?.message || e}`);
         return null;
       }
     },
@@ -446,8 +531,10 @@ export const useDocumentOperations = (
     debouncedUpdateDraftName,
     exportPDF,
     exportDOCX,
+    exportMarkdown,
     importWord,
     importPDF,
+    importMarkdown,
     handleSave,
     handleSaveWithVariablesReplaced,
     handlePreviewFinal,
