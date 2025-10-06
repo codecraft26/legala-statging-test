@@ -35,12 +35,33 @@ export class SupremeCourtAPI {
     party_status: string;
   }) {
     try {
+      // Old internal API call (commented as per requirement)
+      // const response = await fetch(
+      //   `${API_BASE_URL}/supreme-court/search-party`,
+      //   {
+      //     method: "POST",
+      //     headers: getAuthHeaders(),
+      //     body: JSON.stringify(data),
+      //   }
+      // );
+
+      // New external endpoint using application/x-www-form-urlencoded
+      const form = new URLSearchParams();
+      form.set("party_type", data.party_type);
+      form.set("party_name", data.party_name);
+      form.set("year", String(data.year));
+      form.set("party_status", data.party_status);
+      form.set("auto_solve_captcha", "true");
+
       const response = await fetch(
-        `${API_BASE_URL}/supreme-court/search-party`,
+        `https://researchengineingprod.infrahive.ai/scpn/sc-case-search-party`,
         {
           method: "POST",
-          headers: getAuthHeaders(),
-          body: JSON.stringify(data),
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: form.toString(),
         }
       );
 
@@ -48,7 +69,40 @@ export class SupremeCourtAPI {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const json = await response.json();
+
+      // New API can return { data: "<html>...</html>" }
+      if (json && typeof json === "object" && typeof json.data === "string") {
+        const html: string = json.data;
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          // Find the first table with rows
+          const table = doc.querySelector("table");
+          if (!table) return [];
+          const rows = Array.from(table.querySelectorAll("tr"));
+          // Skip header row if it has th
+          const bodyRows = rows.filter((r) => r.querySelectorAll("td").length > 0);
+          const results = bodyRows.map((tr) => {
+            const cells = Array.from(tr.querySelectorAll<HTMLElement>("td"));
+            const texts = cells.map((c) => (c.innerText || c.textContent || "").trim());
+            // Heuristic mapping by position
+            const serial_number = texts[0] || "";
+            const diary_number = texts.find((t) => /\d+\s*\/\s*\d{4}/.test(t)) || texts[1] || "";
+            const case_number = texts[2] || "";
+            const petitioner_name = texts[3] || "";
+            const respondent_name = texts[4] || "";
+            const status = texts[5] || "";
+            return { serial_number, diary_number, case_number, petitioner_name, respondent_name, status };
+          });
+          return results;
+        } catch (e) {
+          console.warn("Failed to parse Supreme party search HTML, returning raw json", e);
+          return json;
+        }
+      }
+
+      return json;
     } catch (error) {
       console.error("Error searching by party:", error);
       throw error;

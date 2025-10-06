@@ -146,8 +146,10 @@ export default function TiptapEditor({
     debouncedUpdateDraftName,
     exportPDF,
     exportDOCX,
+    exportMarkdown,
     importWord,
     importPDF,
+    importMarkdown,
     handleSave,
     handleSaveWithVariablesReplaced,
     handlePreviewFinal,
@@ -281,8 +283,10 @@ export default function TiptapEditor({
             onDocumentTitleChange={handleDocumentTitleChange}
             onExportPDF={exportPDF}
             onExportDOCX={exportDOCX}
+            onExportMarkdown={exportMarkdown}
             onImportWord={importWord}
             onImportPDF={importPDF}
+            onImportMarkdown={importMarkdown}
             isEditingEnabled={true}
             onSave={onSave}
             isSaving={isSaving}

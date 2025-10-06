@@ -16,8 +16,10 @@ type Props = {
   onDocumentTitleChange?: (title: string) => void;
   onExportPDF?: () => void;
   onExportDOCX?: () => void;
+  onExportMarkdown?: () => void;
   onImportWord?: (file: File) => void;
   onImportPDF?: (file: File) => void;
+  onImportMarkdown?: (file: File) => void;
   isEditingEnabled?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
@@ -28,8 +30,10 @@ export default function EditorHeader({
   onDocumentTitleChange,
   onExportPDF,
   onExportDOCX,
+  onExportMarkdown,
   onImportWord,
   onImportPDF,
+  onImportMarkdown,
   isEditingEnabled = true,
   onSave,
   isSaving,
@@ -40,6 +44,7 @@ export default function EditorHeader({
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const wordRef = React.useRef<HTMLInputElement | null>(null);
   const pdfRef = React.useRef<HTMLInputElement | null>(null);
+  const mdRef = React.useRef<HTMLInputElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -130,6 +135,13 @@ export default function EditorHeader({
     setShowImportDropdown(false);
   };
 
+  const handleImportMarkdown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    mdRef.current?.click();
+    setShowImportDropdown(false);
+  };
+
   const handleExportPDF = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -141,6 +153,13 @@ export default function EditorHeader({
     e.preventDefault();
     e.stopPropagation();
     onExportDOCX?.();
+    setShowExportDropdown(false);
+  };
+
+  const handleExportMarkdown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onExportMarkdown?.();
     setShowExportDropdown(false);
   };
   return (
@@ -232,6 +251,13 @@ export default function EditorHeader({
                 >
                   <FileType size={14} /> Import PDF (.pdf)
                 </button>
+                <button
+                  onClick={handleImportMarkdown}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileText size={14} /> Import Markdown (.md)
+                </button>
               </div>
             )}
             <input
@@ -253,6 +279,17 @@ export default function EditorHeader({
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) onImportPDF?.(f);
+                if (e.target) e.target.value = "";
+              }}
+            />
+            <input
+              ref={mdRef}
+              type="file"
+              accept=".md,text/markdown"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onImportMarkdown?.(f);
                 if (e.target) e.target.value = "";
               }}
             />
@@ -288,6 +325,13 @@ export default function EditorHeader({
                   type="button"
                 >
                   <FileText size={14} /> Export as DOCX
+                </button>
+                <button
+                  onClick={handleExportMarkdown}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer"
+                  type="button"
+                >
+                  <FileText size={14} /> Export as Markdown (.md)
                 </button>
               </div>
             )}
