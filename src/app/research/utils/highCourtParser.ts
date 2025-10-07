@@ -67,10 +67,7 @@ export function parseHighCourtHtml(html: string): ParsedHighCourtDetails {
       registration_date:
         getCellAfterLabel(".case_details_table", "Registration Date") || "",
       cnr_number:
-        (
-          container.querySelector(".case_details_table tr strong")
-            ?.textContent || ""
-        ).trim() || "",
+        getCellAfterLabel(".case_details_table", "CNR Number") || "",
     };
 
     // Case Status table (after "Case Status")
