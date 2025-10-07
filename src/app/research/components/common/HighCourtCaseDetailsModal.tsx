@@ -95,6 +95,11 @@ export default function HighCourtCaseDetailsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
+                  label: "CNR Number",
+                  value:
+                    details.case_details?.cnr_number || caseData.cino || "N/A",
+                },
+                {
                   label: "Filing Number",
                   value: details.case_details?.filing_number || "N/A",
                 },
