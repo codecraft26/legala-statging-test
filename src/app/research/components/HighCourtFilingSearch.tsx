@@ -223,6 +223,14 @@ export default function HighCourtFilingSearch() {
 
   const handleViewDetails = useCallback((result: HighCourtResult) => {
     const caseId = result.cino || result.case_no;
+
+    // If user clicks the same case again and we already processed it, just reopen without refetch
+    if (lastProcessedCaseRef.current === String(caseId) && selectedCase) {
+      setShowCaseDetails(true);
+      setLoadingDetails(null);
+      return;
+    }
+
     setLoadingDetails(caseId);
     // Build formatted case number: prefer existing case_no else YYYY + SS + CCCCCCCC + YYYY
     const year =
@@ -391,6 +399,10 @@ export default function HighCourtFilingSearch() {
           onClose={() => {
             setShowCaseDetails(false);
             setSelectedCase(null);
+            // Clear params to prevent the effect from reopening the modal immediately
+            setDetailParams(null);
+            // Allow the same case to be opened again cleanly
+            lastProcessedCaseRef.current = null;
           }}
           followedCases={followedCases}
           handleFollowCase={handleFollowCase}
