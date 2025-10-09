@@ -13,6 +13,7 @@ import {
 import { FileText, Download } from "lucide-react";
 import { formatValue } from "./helpers";
 import type { Extraction } from "./types";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 interface ExtractionResultsTableProps {
   extraction: Extraction;
@@ -138,7 +139,11 @@ export default function ExtractionResultsTable({
                         </div>
                         <div>
                           <div className="font-medium text-sm">
-                            {result.file}
+                            <TruncatedFilename
+                              filename={result.file}
+                              maxLength={10}
+                              showExtension={true}
+                            />
                           </div>
                           <div className="text-xs text-gray-500">
                             {hasData

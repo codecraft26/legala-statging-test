@@ -15,6 +15,7 @@ import {
 import type { Extraction, ExtractionResult } from "./types";
 import PDFResultsTab from "./PDFResultsTab";
 import MetadataTab from "./MetadataTab";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 interface PDFDetailViewProps {
   extraction: Extraction;
@@ -86,7 +87,13 @@ export default function PDFDetailView({
           {extraction.name}
         </button>
         <ChevronRight className="w-4 h-4" />
-        <span className="text-gray-900 font-medium">{pdfResult.file}</span>
+        <span className="text-gray-900 font-medium">
+          <TruncatedFilename
+            filename={pdfResult.file}
+            maxLength={15}
+            showExtension={true}
+          />
+        </span>
       </nav>
 
       {/* Header */}

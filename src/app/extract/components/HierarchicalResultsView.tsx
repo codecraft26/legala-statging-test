@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, FileText, Copy, Eye } from "lucide-react";
 import type { Extraction, ExtractionResult } from "./types";
 import { useRouter } from "next/navigation";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 interface HierarchicalResultsViewProps {
   extractions: Extraction[];
@@ -208,8 +209,12 @@ export default function HierarchicalResultsView({
                                     />
                                   </div>
                                   <div className="flex-1 text-left">
-                                    <div className="font-medium text-xs truncate">
-                                      {result.file}
+                                    <div className="font-medium text-xs">
+                                      <TruncatedFilename
+                                        filename={result.file}
+                                        maxLength={10}
+                                        showExtension={true}
+                                      />
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                       {hasData

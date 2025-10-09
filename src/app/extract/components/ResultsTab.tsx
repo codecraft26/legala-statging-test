@@ -11,6 +11,7 @@ import {
 import { FileText, Copy } from "lucide-react";
 import { formatValue } from "./helpers";
 import type { Extraction } from "./types";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 type ResultsTabProps = {
   extraction: Extraction;
@@ -34,7 +35,13 @@ const ResultsTab = memo(function ResultsTab({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
-                    <h4 className="font-medium">{result.file}</h4>
+                    <h4 className="font-medium">
+                      <TruncatedFilename
+                        filename={result.file}
+                        maxLength={10}
+                        showExtension={true}
+                      />
+                    </h4>
                   </div>
                   <Button
                     variant="ghost"

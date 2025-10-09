@@ -10,6 +10,7 @@ import {
   FileText,
   Folder,
 } from "lucide-react";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 export interface DocumentItem {
   id: string;
@@ -114,7 +115,11 @@ export default function DocumentsImportModal({
                     <FileText className="w-5 h-5 text-gray-500 mr-3" />
                   )}
                   <span className="flex-1 text-sm font-medium text-gray-900">
-                    {item.filename}
+                    <TruncatedFilename
+                      filename={item.filename}
+                      maxLength={25}
+                      showExtension={true}
+                    />
                   </span>
                   {item.type === "folder" ? (
                     <ChevronRight className="w-4 h-4 text-gray-400" />

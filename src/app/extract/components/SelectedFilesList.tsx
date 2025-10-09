@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { X, FileText } from "lucide-react";
 import { formatFileSize } from "./file-utils";
+import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
 interface SelectedFilesListProps {
   files: { file: File }[];
@@ -32,8 +33,12 @@ export default function SelectedFilesList({
                 <FileText className="w-5 h-5 text-blue-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {file.file.name}
+                <p className="text-sm font-medium text-gray-900">
+                  <TruncatedFilename
+                    filename={file.file.name}
+                    maxLength={20}
+                    showExtension={true}
+                  />
                 </p>
                 <p className="text-xs text-gray-500">
                   {formatFileSize(file.file.size)}
