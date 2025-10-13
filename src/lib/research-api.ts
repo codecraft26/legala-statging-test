@@ -4,6 +4,7 @@
  */
 
 import { getApiBaseUrl, getResearchApiBaseUrl, getCookie } from "./utils";
+import { http } from "@/lib/http";
 
 const API_BASE_URL = `${getApiBaseUrl()}/research`;
 const RESEARCH_API_BASE_URL = getResearchApiBaseUrl();
@@ -445,6 +446,49 @@ export class DistrictCourtAPI {
       return await response.json();
     } catch (error) {
       console.error("Error getting case detail:", error);
+      throw error;
+    }
+  }
+}
+
+// RBI API Client
+export class RBIAPI {
+  static async fetchRepo(category: string) {
+    try {
+      const body = new URLSearchParams();
+      body.set("category", category);
+
+      const { data } = await http.post(
+        `${RESEARCH_API_BASE_URL}/rbi/repo`,
+        body.toString(),
+        {
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+      return data;
+    } catch (error) {
+      console.error("Error fetching RBI repo:", error);
+      throw error;
+    }
+  }
+
+  static async fetchUpdates() {
+    try {
+      const { data } = await http.post(
+        `${RESEARCH_API_BASE_URL}/rbi/updates`,
+        undefined,
+        {
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+      return data;
+    } catch (error) {
+      console.error("Error fetching RBI updates:", error);
       throw error;
     }
   }

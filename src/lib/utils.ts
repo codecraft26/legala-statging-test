@@ -22,7 +22,8 @@ export const getApiBaseUrl = (): string => {
 };
 
 export const getResearchApiBaseUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_CC_BASE_URL || "https://researchengineinh.infrahive.ai";
+  // Uses env if provided; otherwise falls back to the production host you shared
+  const url = process.env.NEXT_PUBLIC_CC_BASE_URL || "https://researchengineingprod.infrahive.ai";
   return url.replace(/\/$/, "");
 };
 
