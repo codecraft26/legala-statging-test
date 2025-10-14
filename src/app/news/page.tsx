@@ -223,16 +223,6 @@ export default function NewsPage() {
                         <div className="p-4 bg-accent/30 rounded-lg border-l-4 border-black">
                           <h3 className="text-base font-semibold mb-2">{n.title}</h3>
                           <div className="flex flex-wrap gap-3 mb-3">
-                            {n.view_link && (
-                              <a
-                                href={`https://www.rbi.org.in/${n.view_link}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-primary underline inline-flex items-center gap-1"
-                              >
-                                View Notification <ExternalLink className="h-4 w-4" />
-                              </a>
-                            )}
                             {n.pdf_link && (
                               <a
                                 href={n.pdf_link}
@@ -240,7 +230,7 @@ export default function NewsPage() {
                                 rel="noreferrer"
                                 className="text-primary underline inline-flex items-center gap-1"
                               >
-                                View PDF <ExternalLink className="h-4 w-4" />
+                                PDF <ExternalLink className="h-4 w-4" />
                               </a>
                             )}
                           </div>
