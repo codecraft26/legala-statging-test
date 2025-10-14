@@ -61,9 +61,6 @@ export function UpdatesPanel({ open, onClose, isLoading, data }: UpdatesPanelPro
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        {m.update_notification?.view_link && (
-                          <a className="text-xs underline" href={`https://www.rbi.org.in/${m.update_notification.view_link}`} target="_blank" rel="noreferrer">View</a>
-                        )}
                         {m.update_notification?.pdf_link && (
                           <a className="text-xs underline" href={m.update_notification.pdf_link} target="_blank" rel="noreferrer">PDF</a>
                         )}
@@ -90,9 +87,6 @@ export function UpdatesPanel({ open, onClose, isLoading, data }: UpdatesPanelPro
                         <div className="mt-1 text-xs text-muted-foreground">{u.date}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {u.view_link && (
-                          <a className="text-xs underline" href={`https://www.rbi.org.in/${u.view_link}`} target="_blank" rel="noreferrer">View</a>
-                        )}
                         {u.pdf_link && (
                           <a className="text-xs underline" href={u.pdf_link} target="_blank" rel="noreferrer">PDF</a>
                         )}
@@ -113,5 +107,3 @@ export function UpdatesPanel({ open, onClose, isLoading, data }: UpdatesPanelPro
 }
 
 export default UpdatesPanel;
-
-
