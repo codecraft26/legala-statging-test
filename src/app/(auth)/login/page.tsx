@@ -128,11 +128,21 @@ export default function LoginPage() {
 
               <div className="text-muted-foreground text-center text-xs">
                 By clicking continue, you agree to our{" "}
-                <a className="underline underline-offset-4" href="#">
+                <a
+                  className="underline underline-offset-4"
+                  href="https://www.infrahive.ai/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Terms of Service
                 </a>{" "}
                 and{" "}
-                <a className="underline underline-offset-4" href="#">
+                <a
+                  className="underline underline-offset-4"
+                  href="https://www.infrahive.ai/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Privacy Policy
                 </a>
                 .
