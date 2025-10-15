@@ -43,11 +43,13 @@ const NavItem = ({
   href,
   iconName,
   label,
+  badge,
   collapsed,
 }: {
   href: string;
   iconName: keyof typeof iconMap;
   label: string;
+  badge?: string;
   collapsed: boolean;
 }) => {
   const pathname = usePathname();
@@ -66,7 +68,14 @@ const NavItem = ({
       <span className="text-muted-foreground group-hover:text-foreground">
         <IconComponent size={16} />
       </span>
-      {!collapsed && <span className="text-sm">{label}</span>}
+      {!collapsed && (
+        <span className="text-sm flex items-center gap-2">
+          {label}
+          {badge && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white">{badge}</span>
+          )}
+        </span>
+      )}
     </Link>
   );
 };
@@ -126,6 +135,7 @@ export default function Sidebar() {
             href={item.href}
             iconName={item.iconName as keyof typeof iconMap}
             label={item.label}
+            badge={(item as any).badge}
           />
         ))}
 

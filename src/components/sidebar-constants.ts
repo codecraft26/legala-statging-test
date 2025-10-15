@@ -23,6 +23,7 @@ export const NAVIGATION_ITEMS = [
     href: "/news",
     iconName: "Newspaper",
     label: "Legal News",
+    badge: "New",
   },
   {
     href: "/drafting",
