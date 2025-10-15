@@ -52,6 +52,7 @@ export function UpdatesPanel({ open, onClose, isLoading, data }: UpdatesPanelPro
                           {m.stored_notification?.category && (
                             <span className="text-white text-[10px] px-2 py-0.5 rounded bg-black">{m.stored_notification.category}</span>
                           )}
+                          <span className="text-white text-[10px] px-2 py-0.5 rounded bg-emerald-600">New</span>
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground flex items-center gap-2">
                           <span>{m.update_notification?.date}</span>
