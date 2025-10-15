@@ -20,6 +20,11 @@ export const NAVIGATION_ITEMS = [
     label: "AI Research",
   },
   {
+    href: "/news",
+    iconName: "Newspaper",
+    label: "Legal News",
+  },
+  {
     href: "/drafting",
     iconName: "PenTool",
     label: "AutoDraft",

@@ -12,6 +12,7 @@ import {
   Users,
   Mail,
   Folder,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const iconMap = {
   Users,
   Mail,
   Folder,
+  Newspaper,
 } as const;
 
 const NavItem = ({
