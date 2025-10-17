@@ -3,6 +3,7 @@ export interface TiptapEditorProps {
   onEditorContentChange?: (getContentFn: () => string) => void;
   currentDraftId?: string | null;
   initialTitle?: string;
+  initialContent?: string | null;
   onSave?: () => void;
   isSaving?: boolean;
   onNewDraft?: () => void;

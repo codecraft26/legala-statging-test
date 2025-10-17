@@ -9,6 +9,7 @@ import {
   FileType,
   Edit2,
   Save,
+  File,
 } from "lucide-react";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   onImportWord?: (file: File) => void;
   onImportPDF?: (file: File) => void;
   onImportMarkdown?: (file: File) => void;
+  onSelectTemplate?: () => void;
   isEditingEnabled?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
@@ -34,6 +36,7 @@ export default function EditorHeader({
   onImportWord,
   onImportPDF,
   onImportMarkdown,
+  onSelectTemplate,
   isEditingEnabled = true,
   onSave,
   isSaving,

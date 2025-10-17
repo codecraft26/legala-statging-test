@@ -10,7 +10,7 @@ import {
   Send,
 } from "lucide-react";
 import { useRefineText } from "@/hooks/use-refine";
-import { useDocuments, type DocumentItem } from "@/hooks/use-documents";
+import { useDocuments, type DocumentItem, useUploadDocuments, useDeleteDocument } from "@/hooks/use-documents";
 import { useDeleteDrafting, useUpdateDraft, useDraftFromDocuments } from "@/hooks/use-drafting";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,71 @@ import GeneratedContentView from "./GeneratedContentView";
 import AIModalFooter from "./AIModalFooter";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { normalizeToHtml } from "../utils/html";
+
+function TemplatesInlineList({
+  workspaceId,
+  onPick,
+}: {
+  workspaceId: string | null;
+  onPick: (args: { docId: string; name: string }) => void;
+}) {
+  const [templates, setTemplates] = React.useState<any[]>([]);
+  const uploadDocuments = useUploadDocuments();
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const mod = await import("@/lib/template-service");
+        const list = await mod.TemplateService.getAllTemplates();
+        if (mounted) setTemplates(list);
+      } catch {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className="space-y-1">
+      {templates.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          onClick={async () => {
+            try {
+              if (!workspaceId) return;
+              const mod = await import("@/lib/template-service");
+              const url = mod.TemplateService.getTemplateFileUrl(t.filename);
+              const res = await fetch(url);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const blob = await res.blob();
+              const file = new File([blob], t.filename, { type: blob.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+              const uploadRes: any = await uploadDocuments.mutateAsync({ files: [file], workspaceId });
+              const uploaded = Array.isArray(uploadRes)
+                ? uploadRes[0]
+                : Array.isArray(uploadRes?.data)
+                  ? uploadRes.data[0]
+                  : uploadRes?.document || uploadRes?.file || uploadRes;
+              const docId = String(uploaded?.id || uploaded?.documentId || uploaded?.fileId || "");
+              if (docId) onPick({ docId, name: t.name });
+            } catch (e) {
+              console.error("Failed to upload template for drafting:", e);
+            }
+          }}
+          className="w-full text-left px-2 py-1 text-xs rounded hover:bg-gray-100"
+          title={t.description || t.name}
+        >
+          <span className="font-medium">{t.name}</span>
+          <span className="ml-1 text-[10px] text-purple-700 bg-purple-100 px-1 py-0.5 rounded">InfraHive.ai</span>
+        </button>
+      ))}
+      {templates.length === 0 && (
+        <div className="text-xs text-gray-500">No templates found</div>
+      )}
+    </div>
+  );
+}
 
 interface AIModalProps {
   isOpen: boolean;
@@ -41,6 +106,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
   const [dataHubSelectedFiles, setDataHubSelectedFiles] = useState<any[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<{ id: string; name: string }[]>([]);
+  const [templateUploads, setTemplateUploads] = useState<string[]>([]);
+  
   
   // Get workspace ID from cookie
   const workspaceId = getCookieUtil("workspaceId");
@@ -50,6 +117,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     data: availableDocuments = [], 
     isLoading: loadingDocuments 
   } = useDocuments(workspaceId, currentFolderId);
+  const uploadDocuments = useUploadDocuments();
+  const deleteDocument = useDeleteDocument();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -235,6 +304,17 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
         if (workspaceId) {
           queryClient.invalidateQueries({ queryKey: ["drafting", workspaceId] });
         }
+        // Delete temporary template uploads from DataHub after content accepted (template-only)
+        try {
+          for (const tempDocId of templateUploads) {
+            if (tempDocId) {
+              try {
+                await deleteDocument.mutateAsync({ id: String(tempDocId) });
+              } catch (_e) {}
+            }
+          }
+        } catch (_e) {}
+
         // Switch editor to that draft instead of inserting at cursor
         if (onSwitchToDraft) {
           await Promise.resolve(onSwitchToDraft(activeDraftId));
@@ -292,7 +372,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
       <DialogContent className="w-[92vw] max-w-[1400px] max-h-[96vh] flex flex-col p-0">
         {/* Header */}
         <div className="px-4 py-3 border-b bg-white">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
             <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg shadow-sm">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
@@ -304,6 +385,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
                 Generate content with AI assistance
               </DialogDescription>
             </div>
+            </div>
+            
           </div>
         </div>
 
@@ -324,7 +407,32 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
               />
             )}
 
-
+            {/* Templates List (below DataHub) */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Templates
+              </label>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 max-h-40 overflow-y-auto space-y-1">
+                <TemplatesInlineList
+                  workspaceId={workspaceId}
+                  onPick={({ docId, name }) => {
+                    const tempId = `template-${docId}`;
+                    setDataHubSelectedFiles((prev) => [
+                      ...prev,
+                      {
+                        id: tempId,
+                        name,
+                        isFromDataHub: true,
+                        originalFile: { id: docId },
+                      },
+                    ]);
+                    setSelectedFiles((prev) => [...prev, tempId]);
+                    setTemplateUploads((prev) => [...prev, docId]);
+                    setShowDataHub(true);
+                  }}
+                />
+              </div>
+            </div>
             {/* File Selection */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -449,6 +557,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
           isBusy={isGenerating || isRefining}
         />
       </DialogContent>
+
+      
     </Dialog>
   );
 }
