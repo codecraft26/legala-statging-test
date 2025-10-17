@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileText, Download, Loader2 } from "lucide-react";
+import { Search, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 interface TemplateSelectorProps {
@@ -69,22 +69,7 @@ export default function TemplateSelector({ onTemplateSelect, onClose, isLoading 
     onTemplateSelect(template);
   };
 
-  const handleDownloadTemplate = async (template: TemplateItem) => {
-    try {
-      const url = TemplateService.getTemplateFileUrl(template.filename);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = template.filename;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast(`Downloaded ${template.name}`, "success");
-    } catch (error) {
-      console.error("Error downloading template:", error);
-      showToast("Failed to download template", "error");
-    }
-  };
+  // download removed
 
   if (loading) {
     return (
@@ -158,17 +143,6 @@ export default function TemplateSelector({ onTemplateSelect, onClose, isLoading 
                   {template.category}
                 </Badge>
                 <div className="flex gap-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadTemplate(template);
-                    }}
-                    className="h-7 px-2"
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
                   <Button
                     size="sm"
                     onClick={() => handleTemplateSelect(template)}

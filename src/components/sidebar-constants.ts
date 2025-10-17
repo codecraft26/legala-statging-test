@@ -10,6 +10,12 @@ export const NAVIGATION_ITEMS = [
     label: "Dashboard",
   },
   {
+    href: "/ai-assistant",
+    iconName: "Bot",
+    label: "AI Assistant",
+    badge: "New",
+  },
+  {
     href: "/extract",
     iconName: "FileText",
     label: "Smart Extract",
