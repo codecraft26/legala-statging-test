@@ -1,14 +1,26 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, Suspense } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import TiptapEditor from "./components/tiptap-editor/TiptapEditor";
 import { useCreateEmptyDraft, useUpdateDraft } from "@/hooks/use-drafting";
 import { useToast } from "@/components/ui/toast";
+import { TemplateService, TemplateItem } from "@/lib/template-service";
+import { useTemplate } from "@/hooks/use-template";
 
 export default function DraftingPage() {
+  return (
+    <Suspense fallback={<main className="h-screen flex items-center justify-center">Loading…</main>}>
+      <DraftingPageClient />
+    </Suspense>
+  );
+}
+
+function DraftingPageClient() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const [workspaceId, setWorkspaceId] = React.useState<string | null>(null);
   const [workspaceName, setWorkspaceName] = React.useState<string>("");
   const [currentDraftId, setCurrentDraftId] = React.useState<string | null>(
@@ -18,9 +30,12 @@ export default function DraftingPage() {
   const [editorContentRef, setEditorContentRef] = React.useState<
     (() => string) | null
   >(null);
+  const [initialTemplateContent, setInitialTemplateContent] = React.useState<string | null>(null);
 
   const createEmptyDraft = useCreateEmptyDraft(workspaceId);
   const updateDraft = useUpdateDraft(workspaceId);
+  const { loadTemplateContent } = useTemplate();
+  const { showToast } = useToast();
 
   React.useEffect(() => {
     const id =
@@ -29,11 +44,33 @@ export default function DraftingPage() {
     setWorkspaceName("");
   }, []);
 
+  // Handle template loading from URL parameters
+  useEffect(() => {
+    const templateId = searchParams.get('template');
+    if (templateId && workspaceId) {
+      const loadTemplate = async () => {
+        try {
+          const template = await TemplateService.getTemplateById(templateId);
+          if (template) {
+            const templateContent = await loadTemplateContent(template);
+            if (templateContent) {
+              setDocumentTitle(template.name);
+              setInitialTemplateContent(templateContent.html);
+              showToast(`Loaded template: ${template.name}`, "success");
+            }
+          }
+        } catch (error) {
+          console.error("Error loading template:", error);
+          showToast("Failed to load template", "error");
+        }
+      };
+      loadTemplate();
+    }
+  }, [searchParams, workspaceId, loadTemplateContent, showToast]);
+
   const currentWorkspace = workspaceId
     ? ({ id: workspaceId, name: workspaceName || "" } as any)
     : null;
-
-  const { showToast } = useToast();
 
   const handleSave = async () => {
     if (!workspaceId) {
@@ -114,9 +151,11 @@ export default function DraftingPage() {
           onNewDraft={() => {
             setCurrentDraftId(null);
             setDocumentTitle("New Draft");
+            setInitialTemplateContent(null);
           }}
           onSave={handleSave}
           isSaving={createEmptyDraft.isPending || updateDraft.isPending}
+          initialContent={initialTemplateContent}
         />
       </div>
     </main>

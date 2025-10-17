@@ -21,6 +21,9 @@ import {
 } from "./hooks";
 import { fetchDraftingDetailViaClient } from "@/hooks/use-drafting";
 import { normalizeToHtml } from "./utils/html";
+import TemplateSelector from "@/components/template/TemplateSelector";
+import { TemplateItem } from "@/lib/template-service";
+import { useTemplate } from "@/hooks/use-template";
 import "./styles/EditorStyles.css";
 
 export default function TiptapEditor({
@@ -28,6 +31,7 @@ export default function TiptapEditor({
   onEditorContentChange,
   currentDraftId,
   initialTitle,
+  initialContent,
   onSave,
   isSaving,
   onNewDraft,
@@ -40,7 +44,7 @@ export default function TiptapEditor({
   const [internalDraftId, setInternalDraftId] = useState<string | null>(
     currentDraftId || null
   );
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(initialContent || "");
 
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -50,10 +54,12 @@ export default function TiptapEditor({
   const [showCustomFontSizeInput, setShowCustomFontSizeInput] = useState(false);
   const [showDraftsPanel, setShowDraftsPanel] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"drafts" | "variables">(
     "drafts"
   );
   const queryClient = useQueryClient();
+  const { loadTemplateContent } = useTemplate();
 
   // Keep a synchronous ref of the current draft id to avoid races during rename
   const currentIdRef = useRef<string | null>(currentDraftId || null);
@@ -100,6 +106,20 @@ export default function TiptapEditor({
     },
     [handleVariableClickBase, showDraftsPanel]
   );
+
+  const handleTemplateSelect = useCallback(async (template: TemplateItem) => {
+    try {
+      const templateContent = await loadTemplateContent(template);
+      if (templateContent && editor) {
+        setDocumentTitle(template.name);
+        setContent(templateContent.html);
+        editor.chain().focus().clearContent().setContent(templateContent.html, false).run();
+        setShowTemplateSelector(false);
+      }
+    } catch (error) {
+      console.error("Error loading template:", error);
+    }
+  }, [loadTemplateContent, editor]);
 
   // Update editor's variable click handler when it changes
   useEffect(() => {
@@ -189,6 +209,17 @@ export default function TiptapEditor({
       setDocumentTitle(initialTitle);
     }
   }, [initialTitle]);
+
+  // Update content when initialContent changes
+  useEffect(() => {
+    if (initialContent && initialContent !== content) {
+      setContent(initialContent);
+      // Update editor content if editor is available
+      if (editor) {
+        editor.chain().focus().clearContent().setContent(initialContent, false).run();
+      }
+    }
+  }, [initialContent, content, editor]);
 
   // Callback effects for parent component communication
   const onDocumentTitleChangeRef = useRef(onDocumentTitleChange);
@@ -287,6 +318,7 @@ export default function TiptapEditor({
             onImportWord={importWord}
             onImportPDF={importPDF}
             onImportMarkdown={importMarkdown}
+            onSelectTemplate={() => setShowTemplateSelector(true)}
             isEditingEnabled={true}
             onSave={onSave}
             isSaving={isSaving}
@@ -360,6 +392,13 @@ export default function TiptapEditor({
                 onClick={() => setRightPanelTab("variables")}
               >
                 Variables
+              </button>
+              <button
+                className="px-2 py-1 rounded text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                onClick={() => setShowTemplateSelector(true)}
+                title="Choose from Template"
+              >
+                Templates
               </button>
               <button
                 onClick={() => setShowDraftsPanel(false)}
@@ -496,6 +535,19 @@ export default function TiptapEditor({
         }}
       />
 
+      {/* Template Selector Modal */}
+      {showTemplateSelector && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div className="p-6">
+              <TemplateSelector
+                onTemplateSelect={handleTemplateSelect}
+                onClose={() => setShowTemplateSelector(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
       
     </div>
   );

@@ -9,6 +9,7 @@ import {
 } from "@/hooks/use-drafting";
 import { useRouter } from "next/navigation";
 import { getCookie } from "@/lib/utils";
+import { TemplateService, TemplateItem } from "@/lib/template-service";
 
 type AutoDraftItem = {
   id: string;
@@ -51,15 +52,18 @@ export default function AutoDraft() {
     }
   };
   const [template, setTemplate] = React.useState<AutoDraftItem[]>([]);
+  const [infraHiveTemplates, setInfraHiveTemplates] = React.useState<TemplateItem[]>([]);
+  
   const [invalidated, setInvalidated] = React.useState(false);
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(
-    new Set()
+    new Set(["Template"]) // auto-expand Template section
   );
 
   const folders: Array<{ name: string; files: any[] }> = [
     { name: "Drafting", files: draftingList.data || [] },
-    { name: "Template", files: template },
+    { name: "Template", files: infraHiveTemplates },
   ];
+
 
   const toggleFolder = (folderName: string) => {
     const next = new Set(expandedFolders);
@@ -105,19 +109,13 @@ export default function AutoDraft() {
     let mounted = true;
     (async () => {
       try {
-        const [templateRes] = await Promise.all([
-          Api.get<{ autoDrafts: AutoDraftItem[] }>(
-            `/auto-drafts?folder=template`,
-            "no-store"
-          ),
-        ]);
+        const infraHiveTemplatesData = await TemplateService.getAllTemplates();
         if (!mounted) return;
-        setTemplate(
-          templateRes?.autoDrafts ??
-            (templateRes as any)?.data?.autoDrafts ??
-            []
-        );
-      } catch {}
+        setInfraHiveTemplates(infraHiveTemplatesData);
+        setTemplate([]);
+      } catch (error) {
+        console.error('Error loading templates:', error);
+      }
     })();
     return () => {
       mounted = false;
@@ -267,57 +265,108 @@ export default function AutoDraft() {
                         </div>
                       ))
                     )
-                  ) : (
-                    files.map((file: AutoDraftItem) => (
-                      <div
-                        key={file.id}
-                        className="flex items-center justify-between p-3 ml-8 border-l hover:bg-gray-50"
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <span className="text-xl">📄</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium truncate">
-                                {file.file}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${file.user_role === "Owner" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
-                              >
-                                {getDisplayRole(file.user_role)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                              <span>
-                                {(file.user_email || "").split("@")[0]}
-                              </span>
-                              <span>{formatDate(file.created_at)}</span>
+                  ) : name === "Template" ? (
+                    (files as any[]).length === 0 ? (
+                      <div className="p-3 ml-8 border-l text-xs text-muted-foreground">
+                        No templates available
+                      </div>
+                    ) : (
+                    files.map((file: any) => {
+                      // Check if it's an InfraHive template
+                      const isInfraHiveTemplate = file.uploadedBy === "InfraHive.ai";
+                      
+                      return (
+                        <div
+                          key={file.id}
+                          className="flex items-center justify-between p-3 ml-8 border-l hover:bg-gray-50"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <span className="text-xl">📄</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium truncate">
+                                  {isInfraHiveTemplate ? file.name : file.file}
+                                </span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full ${
+                                    isInfraHiveTemplate 
+                                      ? "bg-purple-100 text-purple-800"
+                                      : file.user_role === "Owner" 
+                                        ? "bg-blue-100 text-blue-800" 
+                                        : "bg-green-100 text-green-800"
+                                  }`}
+                                >
+                                  {isInfraHiveTemplate ? file.uploadedBy : getDisplayRole(file.user_role)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                                {isInfraHiveTemplate ? (
+                                  <>
+                                    <span>{file.category}</span>
+                                    <span>Template</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>
+                                      {(file.user_email || "").split("@")[0]}
+                                    </span>
+                                    <span>{formatDate(file.created_at)}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {isInfraHiveTemplate ? (
+                              <button
+                                className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                onClick={() => {
+                                  // Navigate to drafting with template
+                                  router.push(`/drafting?template=${file.id}`);
+                                }}
+                                title="Use Template"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
+                                  />
+                                </svg>
+                              </button>
+                            ) : (
+                              <button
+                                className="p-1 hover:bg-red-100 rounded"
+                                onClick={() => removeDraft(file.id)}
+                                title="Delete"
+                              >
+                                <svg
+                                  className="w-4 h-4 text-muted-foreground"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="p-1 hover:bg-red-100 rounded"
-                            onClick={() => removeDraft(file.id)}
-                            title="Delete"
-                          >
-                            <svg
-                              className="w-4 h-4 text-muted-foreground"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                      );
+                    })
+                    )
+                  ) : null}
                 </div>
               ) : null}
             </div>
