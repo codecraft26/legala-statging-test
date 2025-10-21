@@ -5,14 +5,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Bot, FileText, Brain, PenTool, Download, MessageSquare, PanelRightClose, PanelRightOpen, Send } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Bot, FileText, Brain, PenTool, Download, MessageSquare, PanelRightClose, PanelRightOpen, Send, Upload, BarChart3, Search, ChevronDown, Trash2 } from "lucide-react";
 import { CreateSessionModal } from "./components/CreateSessionModal";
+import { AddDocumentModal } from "./components/AddDocumentModal";
 import { ModeSelector } from "./components/ModeSelector";
 import { DocumentSelector } from "./components/DocumentSelector";
 import { ChatInterface } from "./components/ChatInterface";
 import { ExportModal } from "./components/ExportModal";
 
 export type AnalysisMode = "general" | "summarize" | "analyze" | "extract";
+
+const modeConfig = {
+  general: {
+    label: "General",
+    icon: MessageSquare,
+    description: "Interactive Q&A with documents"
+  },
+  summarize: {
+    label: "Summarize", 
+    icon: FileText,
+    description: "Generate document summaries"
+  },
+  analyze: {
+    label: "Analyze",
+    icon: BarChart3,
+    description: "Compare and analyze documents"
+  },
+  extract: {
+    label: "Extract",
+    icon: Search,
+    description: "Extract key information"
+  }
+} as const;
 
 export interface Document {
   id: string;
@@ -59,6 +84,7 @@ export default function AIAssistantPage() {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
+  const [showAddDocumentModal, setShowAddDocumentModal] = useState(false);
 
   const handleCreateSession = (sessionData: { name: string; documents: Document[] }) => {
     const newSession: Session = {
@@ -73,6 +99,53 @@ export default function AIAssistantPage() {
     setCurrentSession(newSession);
     setSelectedDocuments(sessionData.documents.map(doc => doc.id));
     setShowCreateModal(false);
+  };
+
+  const handleAddDocuments = (newDocuments: Document[]) => {
+    if (!currentSession) return;
+    
+    const updatedSession = {
+      ...currentSession,
+      documents: [...currentSession.documents, ...newDocuments],
+      lastActivity: new Date().toISOString(),
+    };
+    
+    setSessions(sessions.map(session => 
+      session.id === currentSession.id ? updatedSession : session
+    ));
+    setCurrentSession(updatedSession);
+    setShowAddDocumentModal(false);
+  };
+
+  const handleDeleteConversation = (conversationId: string) => {
+    if (!currentSession) return;
+    
+    const updatedSession = {
+      ...currentSession,
+      conversations: currentSession.conversations.filter(conv => conv.id !== conversationId),
+      lastActivity: new Date().toISOString(),
+    };
+    
+    setSessions(sessions.map(session => 
+      session.id === currentSession.id ? updatedSession : session
+    ));
+    setCurrentSession(updatedSession);
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
+    const updatedSessions = sessions.filter(session => session.id !== sessionId);
+    setSessions(updatedSessions);
+    
+    // If the deleted session was the current session, clear it or set to another session
+    if (currentSession?.id === sessionId) {
+      if (updatedSessions.length > 0) {
+        setCurrentSession(updatedSessions[0]);
+        setSelectedDocuments(updatedSessions[0].documents.map(doc => doc.id));
+      } else {
+        setCurrentSession(null);
+        setSelectedDocuments([]);
+      }
+    }
   };
 
   const handleSendMessage = (message: string) => {
@@ -189,6 +262,7 @@ export default function AIAssistantPage() {
                       selectedDocuments={selectedDocuments}
                       documents={currentSession.documents}
                       onModeChange={setSelectedMode}
+                      onDeleteConversation={handleDeleteConversation}
                     />
                   </div>
                 </div>
@@ -250,9 +324,23 @@ export default function AIAssistantPage() {
                           <h3 className="text-xs font-medium leading-tight line-clamp-2">
                             {session.name}
                           </h3>
-                          <Badge variant="secondary" className="text-[10px] ml-1 flex-shrink-0">
-                            {session.documents.length}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                              {session.documents.length}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteSession(session.id);
+                              }}
+                              title="Delete session"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                         
                         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -298,31 +386,41 @@ export default function AIAssistantPage() {
           <div className="flex gap-4 p-6">
             {/* Main Content Area - Same width as content above */}
             <div className={`flex-1 transition-all duration-200 ${showSidebar ? '' : 'max-w-none'}`}>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowAddDocumentModal(true)}
+                variant="outline"
+                size="icon"
+                className="h-10 w-10"
+                title="Add documents to session"
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
+              
+              <Select value={selectedMode} onValueChange={(value: AnalysisMode) => setSelectedMode(value)}>
+                <SelectTrigger className="w-40 h-10 flex items-center gap-2">
+                  {React.createElement(modeConfig[selectedMode].icon, { className: "w-4 h-4" })}
+                  <span className="text-sm">{modeConfig[selectedMode].label}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(modeConfig).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center gap-2">
+                        {React.createElement(config.icon, { className: "w-4 h-4" })}
+                        <span className="font-medium">{config.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <Input
                 value={inputMessage}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setInputMessage(value);
-                  
-                  // Handle slash commands
-                  if (value.startsWith('/')) {
-                    const command = value.toLowerCase();
-                    if (command === '/general') {
-                      setSelectedMode('general');
-                    } else if (command === '/summarize' || command === '/summarise') {
-                      setSelectedMode('summarize');
-                    } else if (command === '/analyze' || command === '/analyse' || command === '/review') {
-                      setSelectedMode('analyze');
-                    } else if (command === '/extract') {
-                      setSelectedMode('extract');
-                    }
-                  }
-                }}
+                onChange={(e) => setInputMessage(e.target.value)}
                 placeholder={
                   selectedDocuments.length === 0 
                     ? "Select documents first..."
-                    : `Ask a question or use /general, /summarize, /analyze, /extract...`
+                    : `Ask a question about your documents...`
                 }
                 disabled={selectedDocuments.length === 0}
                 className="flex-1 h-10"
@@ -351,54 +449,10 @@ export default function AIAssistantPage() {
               </Button>
             </div>
             
-            {selectedDocuments.length === 0 ? (
+            {selectedDocuments.length === 0 && (
               <p className="text-xs text-muted-foreground mt-2">
                 Please select at least one document to start the conversation
               </p>
-            ) : (
-              <div className="mt-2 flex flex-wrap gap-1">
-                <span className="text-xs text-muted-foreground">Quick commands:</span>
-                 <Badge 
-                   variant="outline" 
-                   className="text-xs px-2 py-1 cursor-pointer hover:bg-accent"
-                   onClick={() => {
-                     setInputMessage('/general');
-                     setSelectedMode('general');
-                   }}
-                 >
-                   /general
-                 </Badge>
-                 <Badge 
-                   variant="outline" 
-                   className="text-xs px-2 py-1 cursor-pointer hover:bg-accent"
-                   onClick={() => {
-                     setInputMessage('/summarize');
-                     setSelectedMode('summarize');
-                   }}
-                 >
-                   /summarize
-                 </Badge>
-                 <Badge 
-                   variant="outline" 
-                   className="text-xs px-2 py-1 cursor-pointer hover:bg-accent"
-                   onClick={() => {
-                     setInputMessage('/analyze');
-                     setSelectedMode('analyze');
-                   }}
-                 >
-                   /analyze
-                 </Badge>
-                 <Badge 
-                   variant="outline" 
-                   className="text-xs px-2 py-1 cursor-pointer hover:bg-accent"
-                   onClick={() => {
-                     setInputMessage('/extract');
-                     setSelectedMode('extract');
-                   }}
-                 >
-                   /extract
-                 </Badge>
-              </div>
             )}
             </div>
 
@@ -417,6 +471,13 @@ export default function AIAssistantPage() {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onCreateSession={handleCreateSession}
+      />
+
+      {/* Add Document Modal */}
+      <AddDocumentModal
+        open={showAddDocumentModal}
+        onOpenChange={setShowAddDocumentModal}
+        onAddDocuments={handleAddDocuments}
       />
 
       {/* Export Modal */}

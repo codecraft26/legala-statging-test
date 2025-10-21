@@ -19,7 +19,8 @@ import {
   MessageSquare,
   BarChart3,
   Search,
-  FileText as SummarizeIcon
+  FileText as SummarizeIcon,
+  Trash2
 } from "lucide-react";
 import { Conversation, AnalysisMode, Citation, Document } from "../page";
 import { CitationViewer } from "./CitationViewer";
@@ -31,6 +32,7 @@ interface ChatInterfaceProps {
   selectedDocuments: string[];
   documents: Document[];
   onModeChange: (mode: AnalysisMode) => void;
+  onDeleteConversation: (conversationId: string) => void;
 }
 
 const modeIcons = {
@@ -46,7 +48,8 @@ export function ChatInterface({
   selectedMode, 
   selectedDocuments,
   documents,
-  onModeChange
+  onModeChange,
+  onDeleteConversation
 }: ChatInterfaceProps) {
   const [message, setMessage] = useState("");
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -247,6 +250,15 @@ export function ChatInterface({
                 ) : (
                   <Copy className="w-2.5 h-2.5" />
                 )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={() => onDeleteConversation(conversation.id)}
+                title="Delete conversation"
+              >
+                <Trash2 className="w-2.5 h-2.5" />
               </Button>
             </div>
             <Card>
