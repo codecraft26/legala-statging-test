@@ -139,7 +139,7 @@ export function useCreateAssistantChat() {
 
   return useMutation({
     mutationFn: async (args: CreateChatRequest) => {
-      return await Api.post<AssistantChat>("/assistant/chat", args);
+      return await Api.post<{ success: boolean; data: AssistantChat }>("/assistant/chat", args);
     },
     onSuccess: (data, variables) => {
       // Invalidate chats query for this workspace
@@ -265,9 +265,7 @@ export function useAssistantConversations(chatId: string) {
     queryKey: assistantKeys.conversations(chatId),
     queryFn: async () => {
       if (!chatId) return [];
-      console.log("Fetching conversations for chatId:", chatId);
       const result = await Api.get<Conversation[]>(`/assistant/conversation?chatId=${encodeURIComponent(chatId)}`);
-      console.log("Conversations fetched:", result);
       return result;
     },
     enabled: !!chatId,

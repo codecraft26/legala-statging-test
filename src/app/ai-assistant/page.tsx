@@ -30,6 +30,11 @@ export default function AIAssistantPage() {
   };
 
   const handleChatCreated = (chat: AssistantChat) => {
+    // Validate that the chat has a valid ID before navigating
+    if (!chat || !chat.id) {
+      return;
+    }
+    
     setCurrentChat(chat);
     router.push(`/ai-assistant/${chat.id}`);
   };
