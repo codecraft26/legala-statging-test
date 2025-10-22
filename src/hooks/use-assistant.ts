@@ -19,8 +19,23 @@ export interface AssistantChat {
   id: string;
   name: string;
   type: "general" | "analyse" | "summary" | "extract";
+  userId: string;
   workspaceId: string;
-  fileIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    email: string;
+    name: string;
+    role: string;
+  };
+}
+
+export interface Conversation {
+  id: string;
+  content: string;
+  role: "user" | "assistant";
+  chatId: string;
+  userId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,12 +47,23 @@ export interface CreateChatRequest {
   fileIds: string[];
 }
 
+export interface SendMessageRequest {
+  chatId: string;
+  message: string;
+}
+
+export interface AttachFilesRequest {
+  chatId: string;
+  fileIds: string[];
+}
+
 // Query keys for consistent cache management
 export const assistantKeys = {
   all: ["assistant"] as const,
   files: (workspaceId: string) => [...assistantKeys.all, "files", workspaceId] as const,
   chats: (workspaceId: string) => [...assistantKeys.all, "chats", workspaceId] as const,
   chat: (chatId: string) => [...assistantKeys.all, "chat", chatId] as const,
+  conversations: (chatId: string) => [...assistantKeys.all, "conversations", chatId] as const,
 };
 
 // Hook for uploading files to assistant
@@ -81,10 +107,7 @@ export function useAssistantFiles(workspaceId: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       
-      // Note: The API doesn't provide a GET endpoint for files in the curl examples
-      // This would need to be implemented on the backend
-      // For now, we'll return an empty array
-      return [];
+      return await Api.get<AssistantFile[]>(`/assistant/file?workspace=${encodeURIComponent(workspaceId)}`);
     },
     enabled: !!workspaceId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -168,7 +191,7 @@ export function useDeleteAssistantChat() {
 
   return useMutation({
     mutationFn: async (args: { chatId: string; workspaceId: string }) => {
-      return await Api.delete(`/assistant/chat/${args.chatId}`);
+      return await Api.delete(`/assistant/chat?id=${encodeURIComponent(args.chatId)}`);
     },
     onSuccess: (_, variables) => {
       // Invalidate chats query for this workspace
@@ -197,18 +220,232 @@ export function useUpdateAssistantChat() {
       updates: Partial<CreateChatRequest>;
     }) => {
       const { chatId, updates } = args;
-      return await Api.patch<AssistantChat>(`/assistant/chat/${chatId}`, updates);
+      return await Api.patch<{ success: boolean; data: AssistantChat }>(`/assistant/chat?id=${encodeURIComponent(chatId)}`, updates);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (response, variables) => {
+      const updated = response?.data ?? (response as unknown as AssistantChat);
       // Invalidate chats query for this workspace
       queryClient.invalidateQueries({
         queryKey: assistantKeys.chats(variables.workspaceId),
       });
       // Update the specific chat in cache
-      queryClient.setQueryData(assistantKeys.chat(variables.chatId), data);
+      queryClient.setQueryData(assistantKeys.chat(variables.chatId), updated);
+      // Also refresh chat detail if used
+      queryClient.invalidateQueries({ queryKey: ["assistant", "chat", "detail", variables.chatId] });
     },
     onError: (error) => {
       console.error("Failed to update assistant chat:", error);
     },
   });
+}
+
+// Hook for attaching files to a chat
+export function useAttachFilesToChat() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: AttachFilesRequest) => {
+      return await Api.patch<{ success: boolean; data: any[] }>("/assistant/chat/attach-file", args);
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate chats query to refresh chat data
+      queryClient.invalidateQueries({
+        queryKey: assistantKeys.all,
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to attach files to chat:", error);
+    },
+  });
+}
+
+// Hook for getting conversations for a chat
+export function useAssistantConversations(chatId: string) {
+  return useQuery<Conversation[]>({
+    queryKey: assistantKeys.conversations(chatId),
+    queryFn: async () => {
+      if (!chatId) return [];
+      console.log("Fetching conversations for chatId:", chatId);
+      const result = await Api.get<Conversation[]>(`/assistant/conversation?chatId=${encodeURIComponent(chatId)}`);
+      console.log("Conversations fetched:", result);
+      return result;
+    },
+    enabled: !!chatId,
+    staleTime: 0, // Always refetch to ensure fresh data
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch when component mounts
+  });
+}
+
+// Hook for getting chat details with associated files
+export function useAssistantChatDetail(chatId: string) {
+  return useQuery<{
+    success: boolean;
+    data: {
+      id: string;
+      name: string;
+      type: string;
+      files: Array<{
+        id: string;
+        fileId: string;
+        file: {
+          id: string;
+          name: string;
+          fileId: string;
+        };
+      }>;
+    };
+  }>({
+    queryKey: ["assistant", "chat", "detail", chatId],
+    queryFn: async () => {
+      if (!chatId) throw new Error("Chat ID is required");
+      return await Api.get(`/assistant/chat/detail?id=${encodeURIComponent(chatId)}`);
+    },
+    enabled: !!chatId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// Hook for sending a message with streaming response
+export function useSendAssistantMessage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: SendMessageRequest) => {
+      const { chatId, message } = args;
+      
+      // Get the streaming response
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apilegalv205.infrahive.ai";
+      const response = await fetch(`${baseUrl}/api/assistant/conversation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${document.cookie.match(/token=([^;]+)/)?.[1] || ""}`,
+        },
+        body: JSON.stringify({ chatId, content: message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      let assistantMessage = "";
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data = JSON.parse(line);
+              if (data.type === "response" && data.content) {
+                assistantMessage += data.content;
+              }
+            } catch (e) {
+              // Ignore malformed JSON
+            }
+          }
+        }
+      }
+
+      return { assistantMessage };
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate conversations query for this chat
+      queryClient.invalidateQueries({
+        queryKey: assistantKeys.conversations(variables.chatId),
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to send message:", error);
+    },
+  });
+}
+
+// Hook for streaming assistant response (alternative approach)
+export function useStreamAssistantResponse() {
+  return {
+    streamResponse: async (chatId: string, message: string, onChunk: (chunk: string) => void) => {
+      try {
+        if (!chatId || !message) {
+          throw new Error("chatId and message are required");
+        }
+        
+              const requestBody = { chatId, content: message };
+        
+        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apilegalv205.infrahive.ai";
+        const response = await fetch(`${baseUrl}/api/assistant/conversation`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${document.cookie.match(/token=([^;]+)/)?.[1] || ""}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error("No response body");
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          // Keep the last line in buffer as it might be incomplete
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const data = JSON.parse(line);
+                if (data.type === "response" && data.content) {
+                  onChunk(data.content);
+                }
+            } catch (e) {
+              // Ignore malformed JSON
+            }
+            }
+          }
+        }
+
+        // Process any remaining data in buffer
+        if (buffer.trim()) {
+          try {
+            const data = JSON.parse(buffer);
+            if (data.type === "response" && data.content) {
+              onChunk(data.content);
+            }
+          } catch (e) {
+            // Ignore malformed JSON
+          }
+        }
+        } catch (error) {
+          throw error;
+        }
+    }
+  };
 }

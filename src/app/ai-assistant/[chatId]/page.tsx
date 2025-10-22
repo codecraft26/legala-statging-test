@@ -1,41 +1,53 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ChatInterface } from "./components/ChatInterface";
-import { ConversationSidebar } from "./components/ConversationSidebar";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PanelRightClose, PanelRightOpen, Loader2, Edit3, Check, X as XIcon } from "lucide-react";
-import { type AssistantChat, useUpdateAssistantChat } from "@/hooks/use-assistant";
+import { ConversationSidebar } from "../components/ConversationSidebar";
+import { ChatInterface } from "../components/ChatInterface";
 import { getCookie } from "@/lib/utils";
+import { useAssistantChatDetail, useUpdateAssistantChat, type AssistantChat } from "@/hooks/use-assistant";
 
-export default function AIAssistantPage() {
-  const [currentChat, setCurrentChat] = useState<AssistantChat | null>(null);
-  const [showSidebar, setShowSidebar] = useState(true);
+export default function AssistantChatPage() {
+  const params = useParams();
+  const router = useRouter();
+  const chatId = (params?.chatId as string) || "";
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
+  const [showSidebar, setShowSidebar] = React.useState(true);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState("");
-  const router = useRouter();
+
+  const { data: chatDetail, isLoading: chatLoading } = useAssistantChatDetail(chatId);
   const updateChatMutation = useUpdateAssistantChat();
 
+  const currentChat: AssistantChat | null = chatDetail?.data
+    ? {
+        id: chatDetail.data.id,
+        name: chatDetail.data.name,
+        type: chatDetail.data.type as AssistantChat["type"],
+        userId: "",
+        workspaceId: workspaceId || "",
+        createdAt: "",
+        updatedAt: "",
+      }
+    : null;
+
   const handleChatSelect = (chat: AssistantChat) => {
-    setCurrentChat(chat);
     router.push(`/ai-assistant/${chat.id}`);
   };
 
   const handleNewChat = () => {
-    setCurrentChat(null);
+    router.push(`/ai-assistant`);
   };
 
   const handleChatCreated = (chat: AssistantChat) => {
-    setCurrentChat(chat);
     router.push(`/ai-assistant/${chat.id}`);
   };
 
   const handleCloseSession = () => {
-    setCurrentChat(null);
     router.push(`/ai-assistant`);
   };
 
@@ -69,12 +81,12 @@ export default function AIAssistantPage() {
     setWorkspaceLoading(false);
   }, []);
 
-  if (workspaceLoading) {
+  if (workspaceLoading || chatLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="flex items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span>Loading workspace...</span>
+          <span>Loading...</span>
         </div>
       </div>
     );
@@ -93,9 +105,7 @@ export default function AIAssistantPage() {
 
   return (
     <div className="h-screen flex bg-background">
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
@@ -148,24 +158,14 @@ export default function AIAssistantPage() {
                 </div>
               )}
             </div>
-            
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSidebar(!showSidebar)}
-              >
-                {showSidebar ? (
-                  <PanelRightClose className="w-4 h-4" />
-                ) : (
-                  <PanelRightOpen className="w-4 h-4" />
-                )}
+              <Button variant="outline" size="sm" onClick={() => setShowSidebar(!showSidebar)}>
+                {showSidebar ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Chat Interface */}
         <div className="flex-1 min-h-0">
           <ChatInterface
             workspaceId={workspaceId}
@@ -176,11 +176,10 @@ export default function AIAssistantPage() {
         </div>
       </div>
 
-      {/* Sidebar - Right Side */}
       {showSidebar && (
         <ConversationSidebar
           workspaceId={workspaceId}
-          currentChatId={currentChat?.id}
+          currentChatId={chatId}
           onChatSelect={handleChatSelect}
           onNewChat={handleNewChat}
         />
@@ -188,3 +187,5 @@ export default function AIAssistantPage() {
     </div>
   );
 }
+
+
