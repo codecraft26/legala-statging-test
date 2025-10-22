@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useUploadAssistantFiles, 
@@ -54,8 +54,32 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   
+  // Debouncing for streaming updates
+  const streamingUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingChunksRef = useRef<string[]>([]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Debounced streaming update function
+  const debouncedStreamingUpdate = useCallback((chunk: string, finalMessageRef: { current: string }) => {
+    pendingChunksRef.current.push(chunk);
+    
+    if (streamingUpdateRef.current) {
+      clearTimeout(streamingUpdateRef.current);
+    }
+    
+    streamingUpdateRef.current = setTimeout(() => {
+      const allChunks = pendingChunksRef.current.join('');
+      pendingChunksRef.current = [];
+      
+      setStreamingMessage(prev => {
+        const newMessage = prev + allChunks;
+        finalMessageRef.current = newMessage;
+        return newMessage;
+      });
+    }, 16); // ~60fps
+  }, []);
 
   const queryClient = useQueryClient();
   const uploadFilesMutation = useUploadAssistantFiles();
@@ -276,25 +300,22 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
         setIsStreaming(true);
         setStreamingMessage("");
 
-        let finalStreamingMessage = "";
+        const finalStreamingMessageRef = { current: "" };
         
         try {
           await streamResponse(
             chatId,
             message,
             (chunk: string) => {
-              setStreamingMessage(prev => {
-                const newMessage = prev + chunk;
-                finalStreamingMessage = newMessage;
-                return newMessage;
-              });
+              // Use debounced updates for smoother streaming
+              debouncedStreamingUpdate(chunk, finalStreamingMessageRef);
             }
           );
 
           // Add assistant message to conversations
           const assistantMessage: Conversation = {
             id: (Date.now() + 1).toString(),
-            content: finalStreamingMessage,
+            content: finalStreamingMessageRef.current,
             role: "assistant",
             chatId: chatToUse?.id || "",
             userId: "",
@@ -323,6 +344,13 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
           };
           setConversations(prev => [...prev, errorMessage]);
         } finally {
+          // Clear any pending streaming updates
+          if (streamingUpdateRef.current) {
+            clearTimeout(streamingUpdateRef.current);
+            streamingUpdateRef.current = null;
+          }
+          pendingChunksRef.current = [];
+          
           setStreamingMessage("");
           setIsStreaming(false);
         }

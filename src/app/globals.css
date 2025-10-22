@@ -123,3 +123,23 @@
     @apply bg-background text-foreground overflow-x-hidden;
   }
 }
+
+/* Streaming optimizations */
+.streaming-container {
+  scroll-behavior: smooth;
+  will-change: scroll-position;
+}
+
+.streaming-message {
+  will-change: contents;
+  contain: layout style;
+}
+
+.streaming-cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}

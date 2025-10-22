@@ -375,13 +375,15 @@ export function useSendAssistantMessage() {
 // Hook for streaming assistant response (alternative approach)
 export function useStreamAssistantResponse() {
   return {
-    streamResponse: async (chatId: string, message: string, onChunk: (chunk: string) => void) => {
+    streamResponse: async (chatId: string, message: string, onChunk: (chunk: string) => void, retryCount = 0): Promise<void> => {
+      const MAX_RETRIES = 2;
+      
       try {
         if (!chatId || !message) {
           throw new Error("chatId and message are required");
         }
         
-              const requestBody = { chatId, content: message };
+        const requestBody = { chatId, content: message };
         
         const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apilegalv205.infrahive.ai";
         const response = await fetch(`${baseUrl}/api/assistant/conversation`, {
@@ -395,6 +397,13 @@ export function useStreamAssistantResponse() {
 
         if (!response.ok) {
           const errorText = await response.text();
+          
+          // Retry on network errors or 5xx status codes
+          if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+            return useStreamAssistantResponse().streamResponse(chatId, message, onChunk, retryCount + 1);
+          }
+          
           throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
@@ -405,6 +414,8 @@ export function useStreamAssistantResponse() {
 
         const decoder = new TextDecoder();
         let buffer = "";
+        let lastUpdateTime = 0;
+        const DEBOUNCE_MS = 16; // ~60fps
 
         while (true) {
           const { done, value } = await reader.read();
@@ -421,11 +432,19 @@ export function useStreamAssistantResponse() {
               try {
                 const data = JSON.parse(line);
                 if (data.type === "response" && data.content) {
-                  onChunk(data.content);
+                  // Debounce updates for smoother rendering
+                  const now = Date.now();
+                  if (now - lastUpdateTime >= DEBOUNCE_MS) {
+                    onChunk(data.content);
+                    lastUpdateTime = now;
+                  } else {
+                    // Queue the update for the next frame
+                    setTimeout(() => onChunk(data.content), DEBOUNCE_MS - (now - lastUpdateTime));
+                  }
                 }
-            } catch (e) {
-              // Ignore malformed JSON
-            }
+              } catch (e) {
+                // Ignore malformed JSON
+              }
             }
           }
         }
