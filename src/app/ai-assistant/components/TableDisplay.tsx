@@ -19,6 +19,11 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
   const [isExporting, setIsExporting] = useState(false);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   
+  // Reset to first page when data changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [data]);
+  
   // Validate data structure
   if (!data || !data.columns || !data.rows || !Array.isArray(data.columns) || !Array.isArray(data.rows)) {
     return (
@@ -37,11 +42,6 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
   const endIndex = startIndex + rowsPerPage;
   const displayRows = rows.slice(startIndex, endIndex);
   
-  // Reset to first page when data changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [data]);
-  
   const handleExportCSV = async () => {
     try {
       setIsExporting(true);
@@ -51,10 +51,8 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
         throw new Error('No data to export');
       }
       
-      // For large datasets, show a progress message
-      if (data.rows.length > 1000) {
-        console.log(`Exporting ${data.rows.length} records... This may take a moment.`);
-      }
+      // For large datasets, the export may take a moment
+      // (Progress information is handled by UI state)
       
       const csvContent = tableDataToCSV(data);
       

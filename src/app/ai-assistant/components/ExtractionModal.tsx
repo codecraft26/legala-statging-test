@@ -1,11 +1,10 @@
 "use client";
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileSpreadsheet, Download, X } from 'lucide-react';
-import { TableDisplay } from './TableDisplay';
 import { type TableData, tableDataToCSV, downloadCSV } from '@/lib/extraction-utils';
 
 interface ExtractionModalProps {
@@ -21,7 +20,27 @@ export function ExtractionModal({
   tableData, 
   title = "Extracted Data" 
 }: ExtractionModalProps) {
-  if (!tableData) return null;
+  // Handle escape key press
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !tableData) return null;
 
   const handleExportCSV = () => {
     try {
@@ -35,16 +54,27 @@ export function ExtractionModal({
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[99vw] max-h-[98vh] w-full h-full flex flex-col p-2">
-        <DialogHeader className="flex-shrink-0">
+  const modalContent = (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className="fixed inset-0 z-[9999] flex flex-col bg-background">
+        {/* Header */}
+        <div className="flex-shrink-0 px-6 py-4 border-b bg-background shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileSpreadsheet className="w-6 h-6 text-blue-600" />
-              <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+              <h2 className="text-xl font-semibold">{title}</h2>
               <Badge variant="secondary" className="text-sm">
                 {tableData.rows.length} {tableData.rows.length === 1 ? 'record' : 'records'}
+              </Badge>
+              <Badge variant="outline" className="text-sm">
+                {tableData.columns.length} columns
               </Badge>
             </div>
             <div className="flex items-center gap-2">
@@ -52,7 +82,7 @@ export function ExtractionModal({
                 variant="outline"
                 size="sm"
                 onClick={handleExportCSV}
-                className="h-8 px-3 text-sm"
+                className="h-9 px-4 text-sm"
               >
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
@@ -61,68 +91,77 @@ export function ExtractionModal({
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
-        </DialogHeader>
-        
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 bg-background border-b">
-                <tr>
-                  {tableData.columns.map((column, index) => (
-                    <th
-                      key={`${column.key}_${index}`}
-                      className="px-4 py-3 text-left font-medium text-muted-foreground border-r last:border-r-0 whitespace-nowrap"
-                      style={{ minWidth: '150px', maxWidth: '300px' }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="truncate" title={column.label}>{column.label}</span>
-                        {column.type && column.type !== 'text' && (
-                          <span className="text-xs px-2 py-1 bg-muted rounded text-muted-foreground">
-                            {column.type}
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.rows.map((row, rowIndex) => (
-                  <tr
-                    key={rowIndex}
-                    className={`border-b hover:bg-muted/30 transition-colors ${
-                      rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/10'
-                    }`}
-                  >
-                    {tableData.columns.map((column, colIndex) => {
-                      const dataKey = column.originalKey || column.key;
-                      const value = row[dataKey];
-                      const cellValue = value === null || value === undefined ? '-' : String(value);
-                      return (
-                        <td
-                          key={`${column.key}_${colIndex}`}
-                          className="px-4 py-3 text-sm border-r last:border-r-0 whitespace-nowrap"
-                          style={{ minWidth: '150px', maxWidth: '300px' }}
-                        >
-                          <div className="truncate" title={String(cellValue)}>
-                            {cellValue}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+        
+        {/* Table Content */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto bg-background">
+          <table className="w-full border-collapse" style={{ minWidth: '100%' }}>
+            <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm shadow-md">
+              <tr>
+                {tableData.columns.map((column, index) => (
+                  <th
+                    key={`${column.key}_${index}`}
+                    className="px-6 py-3 text-left text-sm font-semibold text-foreground border-r border-border last:border-r-0 whitespace-nowrap bg-muted/80"
+                    style={{ minWidth: '200px' }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span title={column.label}>{column.label}</span>
+                      {column.type && column.type !== 'text' && (
+                        <span className="text-xs px-2 py-0.5 bg-background rounded text-muted-foreground border">
+                          {column.type}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.rows.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className={`border-b border-border hover:bg-muted/50 transition-colors ${
+                    rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'
+                  }`}
+                >
+                  {tableData.columns.map((column, colIndex) => {
+                    const dataKey = column.originalKey || column.key;
+                    const value = row[dataKey];
+                    const cellValue = value === null || value === undefined ? '-' : String(value);
+                    const isLongText = cellValue.length > 50;
+                    
+                    return (
+                      <td
+                        key={`${column.key}_${colIndex}`}
+                        className="px-6 py-3 text-sm border-r border-border last:border-r-0"
+                        style={{ minWidth: '200px', maxWidth: '400px' }}
+                      >
+                        <div 
+                          className={isLongText ? "whitespace-normal break-words" : "whitespace-nowrap overflow-hidden text-ellipsis"}
+                          title={String(cellValue)}
+                        >
+                          {cellValue}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
+
+  // Use portal to render at the root level
+  return typeof document !== 'undefined' 
+    ? createPortal(modalContent, document.body)
+    : null;
 }

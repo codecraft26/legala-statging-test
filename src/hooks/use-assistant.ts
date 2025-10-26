@@ -374,38 +374,37 @@ export function useSendAssistantMessage() {
 
 // Hook for streaming assistant response (alternative approach)
 export function useStreamAssistantResponse() {
-  return {
-    streamResponse: async (chatId: string, message: string, onChunk: (chunk: string) => void, retryCount = 0): Promise<void> => {
-      const MAX_RETRIES = 2;
+  const streamResponseFn = async (chatId: string, message: string, onChunk: (chunk: string) => void, retryCount = 0): Promise<void> => {
+    const MAX_RETRIES = 2;
+    
+    try {
+      if (!chatId || !message) {
+        throw new Error("chatId and message are required");
+      }
       
-      try {
-        if (!chatId || !message) {
-          throw new Error("chatId and message are required");
-        }
-        
-        const requestBody = { chatId, content: message };
-        
-        const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apilegalv205.infrahive.ai";
-        const response = await fetch(`${baseUrl}/api/assistant/conversation`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${document.cookie.match(/token=([^;]+)/)?.[1] || ""}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
+      const requestBody = { chatId, content: message };
+      
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://apilegalv205.infrahive.ai";
+      const response = await fetch(`${baseUrl}/api/assistant/conversation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${document.cookie.match(/token=([^;]+)/)?.[1] || ""}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          
-          // Retry on network errors or 5xx status codes
-          if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-            return useStreamAssistantResponse().streamResponse(chatId, message, onChunk, retryCount + 1);
-          }
-          
-          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        // Retry on network errors or 5xx status codes
+        if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+          return streamResponseFn(chatId, message, onChunk, retryCount + 1);
         }
+        
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
 
         const reader = response.body?.getReader();
         if (!reader) {
@@ -463,6 +462,9 @@ export function useStreamAssistantResponse() {
         } catch (error) {
           throw error;
         }
-    }
+  };
+  
+  return {
+    streamResponse: streamResponseFn
   };
 }
