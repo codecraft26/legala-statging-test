@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { TableDisplay, CompactTableDisplay } from "./TableDisplay";
+import { ExtractionModal } from "./ExtractionModal";
 import { Badge } from "@/components/ui/badge";
-import { FileSpreadsheet } from "lucide-react";
-import { isExtractionResponse, parseExtractionData } from "@/lib/extraction-utils";
+import { Button } from "@/components/ui/button";
+import { FileSpreadsheet, Eye, Download } from "lucide-react";
+import { isExtractionResponse, parseExtractionData, tableDataToCSV, downloadCSV } from "@/lib/extraction-utils";
 
 interface StreamingMessageProps {
   streamingMessage: string;
@@ -14,6 +16,7 @@ interface StreamingMessageProps {
 export function StreamingMessage({ streamingMessage }: StreamingMessageProps) {
   const [showCursor, setShowCursor] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
+  const [showExtractionModal, setShowExtractionModal] = useState(false);
 
   // Smooth cursor blinking animation
   useEffect(() => {
@@ -41,7 +44,7 @@ export function StreamingMessage({ streamingMessage }: StreamingMessageProps) {
   const isValidTableData = tableData && tableData.columns && tableData.rows && 
                           Array.isArray(tableData.columns) && Array.isArray(tableData.rows);
 
-  // For extraction tables, show compact table in chat
+  // For extraction tables, show compact preview with modal button
   if (isExtraction && isValidTableData) {
     return (
       <div className="flex gap-3 justify-start">
@@ -54,64 +57,78 @@ export function StreamingMessage({ streamingMessage }: StreamingMessageProps) {
         </div>
         <div className="max-w-[80%]">
           <div className="bg-muted rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium">
-                {isComplete ? 'Extracted Data' : 'Extracting Data...'}
-              </span>
-              <Badge variant="secondary" className="text-xs">
-                {tableData!.rows.length} records
-              </Badge>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium">
+                  {isComplete ? 'Extracted Data' : 'Extracting Data...'}
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {tableData!.rows.length} records
+                </Badge>
+              </div>
+              {isComplete && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExtractionModal(true)}
+                    className="h-7 px-3 text-xs"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    View Data
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const csvContent = tableDataToCSV(tableData!);
+                      const timestamp = new Date().toISOString().split('T')[0];
+                      const filename = `extraction_data_${timestamp}.csv`;
+                      downloadCSV(csvContent, filename);
+                    }}
+                    className="h-7 px-3 text-xs"
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    Export CSV
+                  </Button>
+                </div>
+              )}
             </div>
             
-            {/* Compact table display */}
-            <div className="overflow-x-auto max-h-48 border rounded">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-muted/50 border-b">
-                    {tableData!.columns.slice(0, 4).map((column, index) => (
-                      <th key={`${column.key}_${index}`} className="px-2 py-1 text-left font-medium text-muted-foreground min-w-16">
+            {/* Data preview */}
+            <div className="text-sm text-muted-foreground">
+              {isComplete ? (
+                <>
+                  <p className="mb-2">
+                    Successfully extracted <strong>{tableData!.rows.length}</strong> records with <strong>{tableData!.columns.length}</strong> columns.
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {tableData!.columns.slice(0, 6).map((column, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
                         {column.label}
-                      </th>
+                      </Badge>
                     ))}
-                    {tableData!.columns.length > 4 && (
-                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">
-                        +{tableData!.columns.length - 4} more
-                      </th>
+                    {tableData!.columns.length > 6 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{tableData!.columns.length - 6} more
+                      </Badge>
                     )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableData!.rows.slice(0, 5).map((row, rowIndex) => (
-                    <tr key={rowIndex} className="border-b last:border-b-0">
-                      {tableData!.columns.slice(0, 4).map((column, colIndex) => {
-                        const dataKey = column.originalKey || column.key;
-                        const value = row[dataKey];
-                        const displayValue = value ? String(value).substring(0, 20) + (String(value).length > 20 ? '...' : '') : '-';
-                        return (
-                          <td key={`${column.key}_${colIndex}`} className="px-2 py-1 min-w-16">
-                            <span className="text-xs">{displayValue}</span>
-                          </td>
-                        );
-                      })}
-                      {tableData!.columns.length > 4 && (
-                        <td className="px-2 py-1 text-xs text-muted-foreground">
-                          ...
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="mt-2 text-xs text-muted-foreground text-center">
-              {isComplete 
-                ? `Showing ${Math.min(5, tableData!.rows.length)} of ${tableData!.rows.length} rows`
-                : 'Processing extraction data...'
-              }
+                  </div>
+                </>
+              ) : (
+                <p>Processing extraction data...</p>
+              )}
             </div>
           </div>
+          
+          {/* Extraction Modal */}
+          <ExtractionModal
+            isOpen={showExtractionModal}
+            onClose={() => setShowExtractionModal(false)}
+            tableData={tableData}
+            title="Extracted Data"
+          />
         </div>
       </div>
     );

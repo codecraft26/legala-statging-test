@@ -202,8 +202,8 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
         )}
       </CardHeader>
       <CardContent className="p-0 flex-1 overflow-hidden">
-        <div className="table-content overflow-auto h-full">
-          <table className="w-full border-collapse">
+        <div className="table-content overflow-auto h-full max-w-full">
+          <table className="border-collapse" style={{ minWidth: 'max-content' }}>
             <thead>
               <tr className="border-b bg-muted/50">
                 {columns.map((column, index) => {
@@ -212,10 +212,11 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
                   return (
                     <th
                       key={uniqueKey}
-                      className="px-3 py-2 text-left text-sm font-medium text-muted-foreground border-r last:border-r-0 min-w-32"
+                      className="px-3 py-2 text-left text-sm font-medium text-muted-foreground border-r last:border-r-0 whitespace-nowrap"
+                      style={{ minWidth: '150px', maxWidth: '300px' }}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="truncate">{column.label}</span>
+                        <span className="truncate" title={column.label}>{column.label}</span>
                         {column.type && column.type !== 'text' && (
                           <Badge variant="outline" className="text-xs px-1 py-0 flex-shrink-0">
                             {column.type}
@@ -240,15 +241,15 @@ export function TableDisplay({ data, title = "Extracted Data", className = "" }:
                     {columns.map((column, colIndex) => {
                       const dataKey = column.originalKey || column.key;
                       const uniqueKey = `${column.key}_${colIndex}`;
+                      const cellValue = formatCellValue(row[dataKey], column.type);
                       return (
                         <td
                           key={uniqueKey}
-                          className="px-3 py-2 text-sm border-r last:border-r-0 min-w-32"
+                          className="px-3 py-2 text-sm border-r last:border-r-0 whitespace-nowrap"
+                          style={{ minWidth: '150px', maxWidth: '300px' }}
                         >
-                          <div className="max-w-xs">
-                            <span className="break-words">
-                              {formatCellValue(row[dataKey], column.type)}
-                            </span>
+                          <div className="truncate" title={String(cellValue)}>
+                            {cellValue}
                           </div>
                         </td>
                       );
@@ -306,15 +307,15 @@ export function CompactTableDisplay({ data, className = "" }: { data: TableData;
         </div>
       </div>
       
-      <div className="overflow-auto flex-1">
-        <table className="w-full text-sm">
+      <div className="overflow-auto flex-1 max-w-full">
+        <table className="text-sm" style={{ minWidth: 'max-content' }}>
           <thead>
             <tr className="border-b bg-muted/20">
               {columns.map((column, index) => {
                 const uniqueKey = `${column.key}_${index}`;
                 return (
-                  <th key={uniqueKey} className="px-2 py-2 text-left font-medium text-muted-foreground min-w-24">
-                    <span className="truncate block">{column.label}</span>
+                  <th key={uniqueKey} className="px-2 py-2 text-left font-medium text-muted-foreground whitespace-nowrap" style={{ minWidth: '100px', maxWidth: '200px' }}>
+                    <span className="truncate block" title={column.label}>{column.label}</span>
                   </th>
                 );
               })}
@@ -326,10 +327,11 @@ export function CompactTableDisplay({ data, className = "" }: { data: TableData;
                 {columns.map((column, colIndex) => {
                   const dataKey = column.originalKey || column.key;
                   const uniqueKey = `${column.key}_${colIndex}`;
+                  const cellValue = formatCellValue(row[dataKey]);
                   return (
-                    <td key={uniqueKey} className="px-2 py-2 min-w-24">
-                      <span className="break-words block text-xs">
-                        {formatCellValue(row[dataKey])}
+                    <td key={uniqueKey} className="px-2 py-2 whitespace-nowrap" style={{ minWidth: '100px', maxWidth: '200px' }}>
+                      <span className="truncate block text-xs" title={String(cellValue)}>
+                        {cellValue}
                       </span>
                     </td>
                   );
