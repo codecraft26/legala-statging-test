@@ -53,7 +53,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
       <DocumentList currentChat={currentChat} chatDetail={chatDetail} />
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 streaming-container">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 streaming-container min-h-0">
         {conversations.length === 0 && !isStreaming && !conversationsLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-4">
@@ -98,7 +98,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
       </div>
 
       {/* Input Area */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <ChatInput
           inputMessage={inputMessage}
           setInputMessage={setInputMessage}
