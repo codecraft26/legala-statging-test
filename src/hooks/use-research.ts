@@ -73,12 +73,10 @@ export function useHighByAdvocate(
 
 export function useHighByParty(
   params: {
-    court_code: number;
-    state_code: number;
-    court_complex_code: number;
-    petres_name: string;
-    rgyear: number;
-    f: "BOTH" | "PENDING" | "DISPOSED";
+    court: string;
+    bench: string;
+    party_name: string;
+    year: number;
   } | null
 ) {
   return useQuery({
@@ -311,12 +309,10 @@ export function useResearchAPI() {
       rgyear: number;
     }) => HighCourtAPI.searchByFilingNumber(data),
     searchHighCourtByParty: (data: {
-      court_code: number;
-      state_code: number;
-      court_complex_code: number;
-      petres_name: string;
-      rgyear: number;
-      f: "BOTH" | "PENDING" | "DISPOSED";
+      court: string;
+      bench: string;
+      party_name: string;
+      year: number;
     }) => HighCourtAPI.searchByParty(data),
     getHighCourtCaseDetail: (data: {
       case_no: number;

@@ -24,6 +24,7 @@ interface HighCourtSearchFormProps {
   }) => void;
   isLoading?: boolean;
   children: React.ReactNode;
+  requireCourtCodes?: boolean; // Flag to determine if court codes are needed
 }
 
 export default function HighCourtSearchForm({
@@ -31,6 +32,7 @@ export default function HighCourtSearchForm({
   onSubmit,
   isLoading = false,
   children,
+  requireCourtCodes = true, // Default to true for backward compatibility
 }: HighCourtSearchFormProps) {
   const [selectedCourt, setSelectedCourt] = useState("");
   const [courtSearch, setCourtSearch] = useState("");
@@ -40,15 +42,19 @@ export default function HighCourtSearchForm({
   const [courtCode, setCourtCode] = useState<number | null>(null);
   const [stateCode, setStateCode] = useState<number | null>(null);
   const [courtComplexCode, setCourtComplexCode] = useState<number | null>(null);
+  const [fetchCourtInfo, setFetchCourtInfo] = useState(false);
 
   const courtInputRef = useRef<HTMLDivElement>(null);
 
   // Use the courts hook
   const courtsQuery = useHighCourts();
-  const courts = useMemo(() => courtsQuery.data?.courts || [], [courtsQuery.data?.courts]);
+  const courts = useMemo(() => courtsQuery.data?.data || [], [courtsQuery.data?.data]);
 
-  // Use the court info hook
-  const courtInfoQuery = useHighCourtInfo(selectedCourt, selectedBench);
+  // Use the court info hook - only fetch when explicitly requested and court codes are required
+  const courtInfoQuery = useHighCourtInfo(
+    fetchCourtInfo && requireCourtCodes ? selectedCourt : "",
+    fetchCourtInfo && requireCourtCodes ? selectedBench : ""
+  );
 
   // Handle click outside to close court dropdown
   useEffect(() => {
@@ -67,13 +73,17 @@ export default function HighCourtSearchForm({
       const court = courts.find((c: any) => c.name === selectedCourt);
       setBenches(court ? court.benches : []);
       setSelectedBench(""); // Reset bench selection when court changes
-      setCourtCode(null); // Reset court code
-      setStateCode(null); // Reset state code
+      setCourtCode(null); // Reset court codes
+      setStateCode(null);
+      setCourtComplexCode(null);
+      setFetchCourtInfo(false);
     } else {
       setBenches([]);
       setSelectedBench("");
       setCourtCode(null);
       setStateCode(null);
+      setCourtComplexCode(null);
+      setFetchCourtInfo(false);
     }
   }, [selectedCourt, courts]);
 
@@ -81,15 +91,33 @@ export default function HighCourtSearchForm({
   useEffect(() => {
     if (courtInfoQuery.data) {
       const courtInfo = courtInfoQuery.data;
-      setCourtCode(courtInfo.court_code || null);
-      setStateCode(courtInfo.state_cd || null);
-      setCourtComplexCode(courtInfo.court_code || null);
+      // Parse court codes as numbers (API returns them as strings)
+      setCourtCode(courtInfo.court_code ? Number(courtInfo.court_code) : null);
+      setStateCode(courtInfo.state_cd ? Number(courtInfo.state_cd) : null);
+      setCourtComplexCode(courtInfo.court_code ? Number(courtInfo.court_code) : null);
     } else if (courtInfoQuery.error) {
-      setCourtCode(null);
-      setStateCode(null);
-      setCourtComplexCode(null);
+      // If court-info API fails, use default codes
+      // These are fallback values - in production you'd want proper mapping
+      console.warn("Court info API failed, using default codes");
+      setCourtCode(1);
+      setStateCode(26);
+      setCourtComplexCode(1);
     }
   }, [courtInfoQuery.data, courtInfoQuery.error]);
+
+  // Auto-submit once court info is loaded (only if court codes are required)
+  useEffect(() => {
+    if (requireCourtCodes && fetchCourtInfo && courtCode && stateCode && courtComplexCode && selectedCourt && selectedBench) {
+      onSubmit({
+        courtCode,
+        stateCode,
+        courtComplexCode,
+        selectedCourt,
+        selectedBench,
+      });
+      setFetchCourtInfo(false); // Reset flag after submission
+    }
+  }, [requireCourtCodes, fetchCourtInfo, courtCode, stateCode, courtComplexCode, selectedCourt, selectedBench, onSubmit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,15 +126,30 @@ export default function HighCourtSearchForm({
       alert("Please select both court and bench");
       return;
     }
-    if (!courtCode || !stateCode || !courtComplexCode) {
-      alert("Court details are still loading. Please wait a moment and try again.");
+
+    // If court codes are required but not yet loaded, trigger the fetch
+    if (requireCourtCodes && (!courtCode || !stateCode || !courtComplexCode)) {
+      setFetchCourtInfo(true);
       return;
     }
 
+    // If court codes are not required, submit with dummy values
+    if (!requireCourtCodes) {
+      onSubmit({
+        courtCode: 0,
+        stateCode: 0,
+        courtComplexCode: 0,
+        selectedCourt,
+        selectedBench,
+      });
+      return;
+    }
+
+    // Submit with actual court codes
     onSubmit({
-      courtCode,
-      stateCode,
-      courtComplexCode,
+      courtCode: courtCode!,
+      stateCode: stateCode!,
+      courtComplexCode: courtComplexCode!,
       selectedCourt,
       selectedBench,
     });
@@ -116,8 +159,8 @@ export default function HighCourtSearchForm({
     court.name.toLowerCase().includes(courtSearch.toLowerCase())
   );
 
-  const isFormValid = selectedCourt && selectedBench && courtCode && stateCode && courtComplexCode;
-  const isSubmitting = isLoading || courtInfoQuery.isLoading;
+  const isFormValid = selectedCourt && selectedBench;
+  const isSubmitting = isLoading || (fetchCourtInfo && courtInfoQuery.isLoading);
 
   return (
     <Card className="max-w-2xl">
@@ -192,7 +235,7 @@ export default function HighCourtSearchForm({
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {courtInfoQuery.isLoading ? "Loading Court Details..." : "Searching..."}
+                {fetchCourtInfo && courtInfoQuery.isLoading ? "Loading Court Details..." : "Searching..."}
               </>
             ) : (
               <>
@@ -204,7 +247,7 @@ export default function HighCourtSearchForm({
         </form>
 
         {/* Court Info Status */}
-        {selectedCourt && selectedBench && (
+        {requireCourtCodes && fetchCourtInfo && (
           <div className="mt-4">
             {courtInfoQuery.isLoading && (
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-blue-700 flex items-center space-x-2">

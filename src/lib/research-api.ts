@@ -128,7 +128,7 @@ export class SupremeCourtAPI {
 export class HighCourtAPI {
   static async getCourts() {
     try {
-      const response = await fetch(`${RESEARCH_API_BASE_URL}/hc/courts`, {
+      const response = await fetch(`${API_BASE_URL}/high-court/courts`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -164,9 +164,9 @@ export class HighCourtAPI {
       const response = await fetch(
         `${RESEARCH_API_BASE_URL}/hc/court-info?name=${encodeURIComponent(courtName)}&bench=${encodeURIComponent(benchName)}`,
         {
-          method: "GET",
+          method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "accept": "application/json",
           },
         }
       );
@@ -308,15 +308,13 @@ export class HighCourtAPI {
   }
 
   static async searchByParty(data: {
-    court_code: number;
-    state_code: number;
-    court_complex_code: number;
-    petres_name: string;
-    rgyear: number;
-    f: "BOTH" | "PENDING" | "DISPOSED";
+    court: string;
+    bench: string;
+    party_name: string;
+    year: number;
   }) {
     try {
-      const response = await fetch(`${API_BASE_URL}/high-court/search-party`, {
+      const response = await fetch(`${API_BASE_URL}/high-court/case-party-name`, {
         method: "POST",
         headers: getAuthHeaders(),
         body: JSON.stringify(data),
@@ -359,13 +357,13 @@ export class HighCourtAPI {
     try {
       // Format payload according to backend expectations
       const payload = {
-        case_no: String(data.case_no).trim(),
-        state_code: String(data.state_code).trim(),
-        cino: String(data.cino || "").trim(),
-        court_code: String(data.court_code).trim(),
-        national_court_code: String(data.national_court_code || "").trim(),
-        dist_cd: String(data.dist_cd).trim(),
-      } as const;
+        case_no: data.case_no,
+        state_code: data.state_code,
+        cino: data.cino || "",
+        court_code: data.court_code,
+        national_court_code: data.national_court_code || "",
+        dist_cd: data.dist_cd,
+      };
 
       // eslint-disable-next-line no-console
       console.warn("High Court Case Detail API call initiated");
