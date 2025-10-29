@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import HighCourtCaseDetailsModal from "./common/HighCourtCaseDetailsModal";
 import { parseHighCourtHtml, ParsedHighCourtDetails } from "../utils/highCourtParser";
-import { useFollowResearch, useUnfollowResearch, useFollowedResearch, useHighCaseStatusByParty } from "@/hooks/use-research";
+import { useFollowResearch, useUnfollowResearch, useFollowedResearch, useHighByParty } from "@/hooks/use-research";
 import HighCourtSearchForm from "./common/HighCourtSearchForm";
 import HighCourtResultsSection from "./common/HighCourtResultsSection";
 
@@ -63,16 +63,15 @@ export default function HighCourtPartySearch() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [searchParams, setSearchParams] = useState<{
-    court_code: string;
-    state_code: string;
-    court_complex_code: string;
-    petres_name: string;
-    rgyear: string;
+    court: string;
+    bench: string;
+    party_name: string;
+    year: number;
   } | null>(null);
   const queryClient = useQueryClient();
 
   // Queries
-  const partyQuery = useHighCaseStatusByParty(searchParams);
+  const partyQuery = useHighByParty(searchParams);
 
   const detailQuery = useQuery({
     queryKey: ["highCourtDetail", detailParams],
@@ -143,11 +142,10 @@ export default function HighCourtPartySearch() {
       if (!partyName.trim()) return;
 
       setSearchParams({
-        court_code: params.courtCode.toString(),
-        state_code: params.stateCode.toString(),
-        court_complex_code: params.courtComplexCode.toString(),
-        petres_name: partyName,
-        rgyear: rgYear,
+        court: params.selectedCourt,
+        bench: params.selectedBench,
+        party_name: partyName,
+        year: parseInt(rgYear),
       });
       setPage(1);
     },
@@ -363,6 +361,7 @@ export default function HighCourtPartySearch() {
         title="Search by Party Name"
         onSubmit={handleFormSubmit}
         isLoading={partyQuery.isLoading || partyQuery.isFetching}
+        requireCourtCodes={false}
       >
         {/* Party Name */}
         <div className="space-y-2">
