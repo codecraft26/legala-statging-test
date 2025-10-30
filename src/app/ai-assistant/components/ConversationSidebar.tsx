@@ -84,7 +84,17 @@ export function ConversationSidebar({ workspaceId, currentChatId, onChatSelect, 
           </div>
         ) : (
           chats.map((chat) => {
-            const IconComponent = modelIcons[chat.type] || MessageSquare;
+            let IconComponent, chatTitle;
+            if (!chat.type || !(chat.type in modelIcons)) {
+              // Use company logo for icon and friendly greeting title if missing/undefined type
+              IconComponent = (props) => (
+                <img src="/logo.png" alt="Infrahive" className="w-3.5 h-3.5 object-contain" {...props} />
+              );
+              chatTitle = "How may I help you today?";
+            } else {
+              IconComponent = modelIcons[chat.type];
+              chatTitle = chat.name;
+            }
             const isActive = currentChatId === chat.id;
             
             return (
@@ -102,8 +112,8 @@ export function ConversationSidebar({ workspaceId, currentChatId, onChatSelect, 
                     <IconComponent className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
-                        <h3 className="text-[11px] font-medium truncate flex-1" title={chat.name}>
-                          {chat.name}
+                        <h3 className="text-[11px] font-medium truncate flex-1" title={chatTitle}>
+                          {chatTitle}
                         </h3>
                         <Button
                           variant="ghost"
