@@ -14,6 +14,7 @@ import {
   Calendar
 } from "lucide-react";
 import { useAssistantChats, useDeleteAssistantChat, type AssistantChat } from "@/hooks/use-assistant";
+import Image from "next/image";
 
 interface ConversationSidebarProps {
   workspaceId: string;
@@ -27,6 +28,11 @@ const modelIcons = {
   summary: FileText,
   extract: Search,
 } as const;
+
+const InfrahiveLogoIcon = ({className = "", ...rest}: {className?: string}) => (
+  <Image src="/logo.png" alt="Infrahive" width={14} height={14} className={`w-3.5 h-3.5 object-contain ${className}`} {...rest} />
+);
+InfrahiveLogoIcon.displayName = "InfrahiveLogoIcon";
 
 export function ConversationSidebar({ workspaceId, currentChatId, onChatSelect, onNewChat }: ConversationSidebarProps) {
   const { data: chatsResponse, isLoading } = useAssistantChats(workspaceId);
@@ -87,9 +93,7 @@ export function ConversationSidebar({ workspaceId, currentChatId, onChatSelect, 
             let IconComponent, chatTitle;
             if (!chat.type || !(chat.type in modelIcons)) {
               // Use company logo for icon and friendly greeting title if missing/undefined type
-              IconComponent = (props) => (
-                <img src="/logo.png" alt="Infrahive" className="w-3.5 h-3.5 object-contain" {...props} />
-              );
+              IconComponent = InfrahiveLogoIcon;
               chatTitle = "How may I help you today?";
             } else {
               IconComponent = modelIcons[chat.type];
