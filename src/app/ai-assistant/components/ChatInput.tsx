@@ -11,7 +11,6 @@ import {
   Loader2,
   MessageSquare, 
   FileText, 
-  BarChart3,
   Search
 } from "lucide-react";
 import { type AssistantFile } from "@/hooks/use-assistant";
@@ -21,11 +20,6 @@ const modelConfig = {
     label: "General",
     icon: MessageSquare,
     description: "Interactive Q&A with documents"
-  },
-  analyse: {
-    label: "Analyze",
-    icon: BarChart3,
-    description: "Compare and analyze documents"
   },
   summary: {
     label: "Summary",

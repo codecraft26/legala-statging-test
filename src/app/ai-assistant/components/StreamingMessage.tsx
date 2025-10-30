@@ -11,9 +11,10 @@ import { isExtractionResponse, parseExtractionData, tableDataToCSV, downloadCSV 
 
 interface StreamingMessageProps {
   streamingMessage: string;
+  currentChatType?: string;
 }
 
-export function StreamingMessage({ streamingMessage }: StreamingMessageProps) {
+export function StreamingMessage({ streamingMessage, currentChatType }: StreamingMessageProps) {
   const [showCursor, setShowCursor] = useState(true);
   const [isComplete, setIsComplete] = useState(false);
   const [showExtractionModal, setShowExtractionModal] = useState(false);
@@ -45,7 +46,7 @@ export function StreamingMessage({ streamingMessage }: StreamingMessageProps) {
                           Array.isArray(tableData.columns) && Array.isArray(tableData.rows);
 
   // For extraction tables, show compact preview with modal button
-  if (isExtraction && isValidTableData) {
+  if (currentChatType === 'extract' && isExtraction && isValidTableData) {
     return (
       <div className="flex gap-3 justify-start">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">

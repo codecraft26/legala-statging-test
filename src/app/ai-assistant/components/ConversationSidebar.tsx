@@ -8,7 +8,6 @@ import {
   Plus, 
   MessageSquare, 
   FileText, 
-  BarChart3, 
   Search,
   Trash2,
   Bot,
@@ -25,7 +24,6 @@ interface ConversationSidebarProps {
 
 const modelIcons = {
   general: MessageSquare,
-  analyse: BarChart3,
   summary: FileText,
   extract: Search,
 } as const;
@@ -86,7 +84,7 @@ export function ConversationSidebar({ workspaceId, currentChatId, onChatSelect, 
           </div>
         ) : (
           chats.map((chat) => {
-            const IconComponent = modelIcons[chat.type];
+            const IconComponent = modelIcons[chat.type] || MessageSquare;
             const isActive = currentChatId === chat.id;
             
             return (

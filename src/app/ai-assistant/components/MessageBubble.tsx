@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, User, FileSpreadsheet, Eye } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -16,7 +16,7 @@ interface MessageBubbleProps {
   currentChat?: AssistantChat | null;
 }
 
-export function MessageBubble({ conversation, currentChat }: MessageBubbleProps) {
+function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProps) {
   const [showExtractionModal, setShowExtractionModal] = useState(false);
 
   // Export individual message to DOCX
@@ -79,7 +79,7 @@ export function MessageBubble({ conversation, currentChat }: MessageBubbleProps)
     URL.revokeObjectURL(url);
   };
 
-  const cleanContent = (() => {
+  const cleanContent = useMemo(() => {
     try {
       const lines = conversation.content.split('\n');
       const parts: string[] = [];
@@ -90,8 +90,8 @@ export function MessageBubble({ conversation, currentChat }: MessageBubbleProps)
           const data = JSON.parse(trimmed);
           if (data.type === "response" && data.content) {
             // Remove citation codes like [[C:...]] from the content
-            const cleanContent = String(data.content).replace(/\[\[C:[^\]]+\]\]/g, '');
-            parts.push(cleanContent);
+            const clean = String(data.content).replace(/\[\[C:[^\]]+\]\]/g, '');
+            parts.push(clean);
           }
         } catch {
           // ignore non-JSON lines
@@ -103,7 +103,7 @@ export function MessageBubble({ conversation, currentChat }: MessageBubbleProps)
     } catch {
       return conversation.content.replace(/\[\[C:[^\]]+\]\]/g, '');
     }
-  })();
+  }, [conversation.content]);
 
   // Check if this is an extraction response and parse it
   const isExtraction = isExtractionResponse(cleanContent);
@@ -113,8 +113,13 @@ export function MessageBubble({ conversation, currentChat }: MessageBubbleProps)
   const isValidTableData = tableData && tableData.columns && tableData.rows && 
                           Array.isArray(tableData.columns) && Array.isArray(tableData.rows);
 
-  // For extraction tables, show compact preview with modal button
-  if (conversation.role === "assistant" && isExtraction && isValidTableData) {
+  // Show extraction tables only for messages with type 'extract' (do not force using chat type)
+  if (
+    conversation.role === "assistant" &&
+    isExtraction &&
+    isValidTableData &&
+    conversation.type === "extract"
+  ) {
     return (
       <div className="flex gap-3 justify-start">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
@@ -257,3 +262,5 @@ export function MessageBubble({ conversation, currentChat }: MessageBubbleProps)
     </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleComponent);

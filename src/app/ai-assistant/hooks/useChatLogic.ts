@@ -21,10 +21,6 @@ const modelConfig = {
     label: "General",
     description: "Interactive Q&A with documents"
   },
-  analyse: {
-    label: "Analyze",
-    description: "Compare and analyze documents"
-  },
   summary: {
     label: "Summary",
     description: "Generate document summaries"

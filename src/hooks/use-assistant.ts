@@ -18,7 +18,7 @@ export interface AssistantFile {
 export interface AssistantChat {
   id: string;
   name: string;
-  type: "general" | "analyse" | "summary" | "extract";
+  type: "general" | "summary" | "extract";
   userId: string;
   workspaceId: string;
   createdAt: string;
@@ -38,11 +38,12 @@ export interface Conversation {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  type?: "general" | "summary" | "extract"; // optional message/chat type from API
 }
 
 export interface CreateChatRequest {
   name: string;
-  type: "general" | "analyse" | "summary" | "extract";
+  type: "general" | "summary" | "extract";
   workspaceId: string;
   fileIds: string[];
 }

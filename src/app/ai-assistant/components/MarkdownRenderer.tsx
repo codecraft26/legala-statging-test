@@ -1,5 +1,6 @@
 "use client";
 
+import React, { memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -10,7 +11,7 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
-export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
+function MarkdownRendererBase({ content, className = "" }: MarkdownRendererProps) {
   return (
     <div className={`prose prose-sm max-w-none ${className}`}>
       <ReactMarkdown
@@ -86,3 +87,5 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     </div>
   );
 }
+
+export const MarkdownRenderer = memo(MarkdownRendererBase);

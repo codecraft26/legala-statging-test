@@ -54,21 +54,22 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 streaming-container min-h-0">
-        {conversations.length === 0 && !isStreaming && !conversationsLoading && (
+        {conversations.length === 0 && isStreaming && !conversationsLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-4">
-              <div className="w-16 h-16 flex items-center justify-center mx-auto">
-                <img 
-                  src="/logo.png" 
-                  alt="Infrahive" 
-                  className="w-16 h-16 object-contain"
+              <div className="w-24 h-24 flex items-center justify-center mx-auto animate-pulse">
+                <img
+                  src="/logo.png"
+                  alt="Infrahive"
+                  className="w-24 h-24 object-contain opacity-70"
                 />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">How can I help you today?</h3>
-                <p className="text-muted-foreground">
-                  Upload documents and ask questions to get started
-                </p>
+                <h3 className="text-xl font-semibold text-primary mb-2 flex items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  Analyzing document...
+                </h3>
+                <p className="text-muted-foreground text-md">Please wait while we process your file.</p>
               </div>
             </div>
           </div>
@@ -92,7 +93,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
         ))}
 
         {/* Streaming Message */}
-        {isStreaming && <StreamingMessage streamingMessage={streamingMessage} />}
+        {isStreaming && <StreamingMessage streamingMessage={streamingMessage} currentChatType={currentChat?.type} />}
 
         <div ref={messagesEndRef} />
       </div>
