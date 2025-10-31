@@ -54,6 +54,21 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 streaming-container min-h-0">
+        {conversations.length === 0 && !isStreaming && !conversationsLoading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-3">
+              <div className="w-24 h-24 flex items-center justify-center mx-auto">
+                <img
+                  src="/logo.png"
+                  alt="Infrahive"
+                  className="w-24 h-24 object-contain opacity-80"
+                />
+              </div>
+              <h3 className="text-xl font-semibold">How may I help you today?</h3>
+              <p className="text-sm text-muted-foreground">Upload documents and ask questions to get started.</p>
+            </div>
+          </div>
+        )}
         {conversations.length === 0 && isStreaming && !conversationsLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-4">

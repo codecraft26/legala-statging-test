@@ -19,6 +19,19 @@ interface MessageBubbleProps {
 function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProps) {
   const [showExtractionModal, setShowExtractionModal] = useState(false);
 
+  // Hide placeholder bullet lists for extract chats (e.g., "- Description", "- **Description**:", "+28 more")
+  const isPlaceholderExtractList = (text: string) => {
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return false;
+    // Matches bullet lines that contain only the label name (Description/Value),
+    // optionally wrapped in **bold** and/or ending with a colon, with no value text after
+    const bulletLabelOnly = /^-\s*(?:\*\*)?\s*(Description|Value)\s*(?:\*\*)?\s*:?(?:\s*)$/i;
+    const plusMoreLine = /^\+\s*\d+\s*more\s*$/i;
+    const onlyPlaceholders = lines.every((l) => bulletLabelOnly.test(l) || plusMoreLine.test(l));
+    const hasAtLeastTwoLabels = lines.filter((l) => bulletLabelOnly.test(l)).length >= 2;
+    return onlyPlaceholders && hasAtLeastTwoLabels;
+  };
+
   // Export individual message to DOCX
   const exportMessageDOCX = async (message: Conversation) => {
     const children: Paragraph[] = [];
@@ -113,6 +126,15 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
   const isValidTableData = tableData && tableData.columns && tableData.rows && 
                           Array.isArray(tableData.columns) && Array.isArray(tableData.rows);
 
+  // Suppress placeholder bullets in extract chats when no table parsed
+  if (
+    (currentChat?.type === "extract" || conversation.type === "extract") &&
+    !isExtraction &&
+    isPlaceholderExtractList(cleanContent.trim())
+  ) {
+    return null;
+  }
+
   // Show extraction tables only for messages with type 'extract' (do not force using chat type)
   if (
     conversation.role === "assistant" &&
@@ -131,12 +153,12 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
         </div>
         <div className="max-w-[80%]">
           <div className="bg-muted rounded-lg p-3">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium">Extracted Data</span>
                 <Badge variant="secondary" className="text-xs">
-                  {tableData!.rows.length} records
+                  {tableData!.rows.length} {tableData!.rows.length === 1 ? 'record' : 'records'}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
@@ -165,25 +187,9 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
                 </Button>
               </div>
             </div>
-            
-            {/* Data preview */}
-            <div className="text-sm text-muted-foreground">
-              <p className="mb-2">
-                Successfully extracted <strong>{tableData!.rows.length}</strong> records with <strong>{tableData!.columns.length}</strong> columns.
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {tableData!.columns.slice(0, 6).map((column, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {column.label}
-                  </Badge>
-                ))}
-                {tableData!.columns.length > 6 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{tableData!.columns.length - 6} more
-                  </Badge>
-                )}
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Successfully extracted <strong>{tableData!.rows.length}</strong> {tableData!.rows.length === 1 ? 'record' : 'records'} with <strong>{tableData!.columns.length}</strong> columns.
+            </p>
           </div>
           
           {/* Export button for extraction data */}
