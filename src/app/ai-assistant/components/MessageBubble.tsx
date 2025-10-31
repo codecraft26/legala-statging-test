@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, memo } from "react";
+import React, { useMemo, useState, memo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, User, FileSpreadsheet, Eye } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -184,7 +184,7 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
     }
   }, [conversation.content]);
 
-  const dedupeConsecutiveLines = (text: string): string => {
+  const dedupeConsecutiveLines = useCallback((text: string): string => {
     // Skip deduplication for extraction data as it might have legitimate repetitions
     if (conversation.type === "extract" || currentChat?.type === "extract") {
       return text;
@@ -200,9 +200,9 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       result.push(line);
     }
     return result.join('\n');
-  };
+  }, [conversation.type, currentChat?.type]);
 
-  const displayContent = useMemo(() => dedupeConsecutiveLines(cleanContent), [cleanContent, conversation.type, currentChat?.type]);
+  const displayContent = useMemo(() => dedupeConsecutiveLines(cleanContent), [cleanContent, dedupeConsecutiveLines]);
 
   // Check if this is an extraction response and parse it
   const isExtraction = isExtractionResponse(cleanContent);
