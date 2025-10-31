@@ -99,6 +99,35 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     }
   }, [existingConversations]);
 
+  // Check for streaming state when chat changes (for navigation persistence)
+  useEffect(() => {
+    if (currentChat?.id && conversationsLoading === false) {
+      const streamingState = sessionStorage.getItem(`streaming_${currentChat.id}`);
+      if (streamingState === "true") {
+        // Only restore streaming state if we have a user message without an assistant response
+        if (conversations.length > 0) {
+          const lastMessage = conversations[conversations.length - 1];
+          // Only restore if last message is user (no assistant response yet)
+          if (lastMessage.role === "user") {
+            setIsStreaming(true);
+            setStreamingMessage("");
+          } else {
+            // Assistant message exists, streaming is complete - clear sessionStorage
+            sessionStorage.removeItem(`streaming_${currentChat.id}`);
+            setIsStreaming(false);
+          }
+        } else if (conversations.length === 0) {
+          // New chat with streaming state - show thinking
+          setIsStreaming(true);
+          setStreamingMessage("");
+        }
+      } else {
+        // No streaming state in sessionStorage, ensure isStreaming is false
+        setIsStreaming(false);
+      }
+    }
+  }, [currentChat?.id, conversations, conversationsLoading]);
+
   // Refetch conversations when currentChat changes and update selected model
   useEffect(() => {
     if (currentChat?.id) {
@@ -209,8 +238,11 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     const message = inputMessage.trim();
     setInputMessage("");
 
-    try {
-      setIsLoading(true);
+      try {
+        setIsLoading(true);
+        // Show streaming indicator immediately so first prompt shows "Thinking"
+        setIsStreaming(true);
+        setStreamingMessage("");
 
       let chatToUse = currentChat;
 
@@ -293,9 +325,9 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
       // Send message and get streaming response
       const chatId = chatToUse?.id;
       if (chatId) {
-        setIsStreaming(true);
-        setStreamingMessage("");
-
+        // Save streaming state to sessionStorage for navigation persistence
+        sessionStorage.setItem(`streaming_${chatId}`, "true");
+        
         const finalStreamingMessageRef = { current: "" };
         
         try {
@@ -340,15 +372,32 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
           };
           setConversations(prev => [...prev, errorMessage]);
         } finally {
-          // Clear any pending streaming updates
+          // Flush any pending debounced updates first
           if (streamingUpdateRef.current) {
             clearTimeout(streamingUpdateRef.current);
             streamingUpdateRef.current = null;
           }
-          pendingChunksRef.current = [];
           
-          setStreamingMessage("");
-          setIsStreaming(false);
+          // Flush any remaining pending chunks immediately
+          if (pendingChunksRef.current.length > 0) {
+            const remainingChunks = pendingChunksRef.current.join('');
+            pendingChunksRef.current = [];
+            setStreamingMessage(prev => {
+              const finalMessage = prev + remainingChunks;
+              finalStreamingMessageRef.current = finalMessage;
+              return finalMessage;
+            });
+          }
+          
+          // Small delay to ensure state updates complete
+          setTimeout(() => {
+            setStreamingMessage("");
+            setIsStreaming(false);
+            // Clear streaming state from sessionStorage
+            if (chatId) {
+              sessionStorage.removeItem(`streaming_${chatId}`);
+            }
+          }, 50);
         }
       } else {
         // Add error message
@@ -362,9 +411,15 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
           updatedAt: new Date().toISOString()
         };
         setConversations(prev => [...prev, errorMessage]);
+        setIsStreaming(false);
       }
     } catch (error) {
       // Handle error silently
+      setIsStreaming(false);
+      // Clear streaming state from sessionStorage if we have a chat
+      if (currentChat?.id) {
+        sessionStorage.removeItem(`streaming_${currentChat.id}`);
+      }
     } finally {
       setIsLoading(false);
     }

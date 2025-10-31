@@ -79,30 +79,18 @@ export function StreamingMessage({ streamingMessage, currentChatType, isStreamin
               )}
             </div>
             
-            {/* Data preview */}
-            <div className="text-sm text-muted-foreground">
-              {!isStreaming ? (
-                <>
-                  <p className="mb-2">
-                    Successfully extracted <strong>{tableData!.rows.length}</strong> records with <strong>{tableData!.columns.length}</strong> columns.
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {tableData!.columns.slice(0, 6).map((column, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {column.label}
-                      </Badge>
-                    ))}
-                    {tableData!.columns.length > 6 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{tableData!.columns.length - 6} more
-                      </Badge>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p>Processing extraction data...</p>
-              )}
-            </div>
+            {/* While streaming, show live streamed markdown; after complete, show a concise summary */}
+            {isStreaming ? (
+              <div className="text-sm text-foreground">
+                <MarkdownRenderer content={streamingMessage} />
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-1">
+                  Successfully extracted <strong>{tableData!.rows.length}</strong> records with <strong>{tableData!.columns.length}</strong> columns.
+                </p>
+              </div>
+            )}
           </div>
           
           {/* Extraction Modal */}
@@ -130,11 +118,17 @@ export function StreamingMessage({ streamingMessage, currentChatType, isStreamin
       <div className="max-w-[80%]">
         <div className="bg-muted rounded-lg p-3 streaming-message">
           <div className="relative">
-            <Reasoning isStreaming={isStreaming} defaultOpen={false}>
-              <ReasoningTrigger title="Thinking" />
-              <ReasoningContent>{"Thinking..."}</ReasoningContent>
-            </Reasoning>
-            <MarkdownRenderer content={streamingMessage} />
+            {/* Only show thinking indicator when streaming and no content yet */}
+            {isStreaming && !streamingMessage && (
+              <Reasoning isStreaming={true} defaultOpen={true}>
+                <ReasoningTrigger title="Thinking" />
+                <ReasoningContent>{"Processing your request..."}</ReasoningContent>
+              </Reasoning>
+            )}
+            {/* Show content when available */}
+            {streamingMessage && (
+              <MarkdownRenderer content={streamingMessage} />
+            )}
           </div>
         </div>
       </div>

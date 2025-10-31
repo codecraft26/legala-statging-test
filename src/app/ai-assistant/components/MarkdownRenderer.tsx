@@ -19,11 +19,16 @@ marked.setOptions({
 function MarkdownRendererBase({ content, className = "" }: MarkdownRendererProps) {
   const sanitizedHtml = useMemo(() => {
     const rawHtml = marked.parse(content || "");
-    return DOMPurify.sanitize(rawHtml as string);
+    return DOMPurify.sanitize(rawHtml as string, {
+      ADD_ATTR: ['target', 'rel'] // Allow target and rel attributes for links
+    });
   }, [content]);
 
   return (
-    <div className={`prose prose-sm max-w-none ${className}`} dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
+    <div 
+      className={`prose prose-sm max-w-none ${className} [&_a]:text-primary [&_a]:underline [&_a]:font-medium [&_a:hover]:opacity-80`}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }} 
+    />
   );
 }
 
