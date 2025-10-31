@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
-import { TableDisplay, CompactTableDisplay } from "./TableDisplay";
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ui/shadcn-io/ai/reasoning";
+// Removed unused table display imports
 import { ExtractionModal } from "./ExtractionModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,30 +13,11 @@ import { isExtractionResponse, parseExtractionData, tableDataToCSV, downloadCSV 
 interface StreamingMessageProps {
   streamingMessage: string;
   currentChatType?: string;
+  isStreaming: boolean;
 }
 
-export function StreamingMessage({ streamingMessage, currentChatType }: StreamingMessageProps) {
-  const [showCursor, setShowCursor] = useState(true);
-  const [isComplete, setIsComplete] = useState(false);
+export function StreamingMessage({ streamingMessage, currentChatType, isStreaming }: StreamingMessageProps) {
   const [showExtractionModal, setShowExtractionModal] = useState(false);
-
-  // Smooth cursor blinking animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setShowCursor(prev => !prev);
-    }, 500); // Blink every 500ms for smoother animation
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Check if streaming is complete (no new content for a while)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsComplete(true);
-    }, 2000); // Consider complete after 2 seconds of no updates
-
-    return () => clearTimeout(timer);
-  }, [streamingMessage]);
 
   // Check if this is an extraction response and parse it
   const isExtraction = isExtractionResponse(streamingMessage);
@@ -62,13 +44,13 @@ export function StreamingMessage({ streamingMessage, currentChatType }: Streamin
               <div className="flex items-center gap-2">
                 <FileSpreadsheet className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium">
-                  {isComplete ? 'Extracted Data' : 'Extracting Data...'}
+                  {isStreaming ? 'Extracting Data...' : 'Extracted Data'}
                 </span>
                 <Badge variant="secondary" className="text-xs">
                   {tableData!.rows.length} records
                 </Badge>
               </div>
-              {isComplete && (
+              {!isStreaming && (
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -99,7 +81,7 @@ export function StreamingMessage({ streamingMessage, currentChatType }: Streamin
             
             {/* Data preview */}
             <div className="text-sm text-muted-foreground">
-              {isComplete ? (
+              {!isStreaming ? (
                 <>
                   <p className="mb-2">
                     Successfully extracted <strong>{tableData!.rows.length}</strong> records with <strong>{tableData!.columns.length}</strong> columns.
@@ -148,19 +130,11 @@ export function StreamingMessage({ streamingMessage, currentChatType }: Streamin
       <div className="max-w-[80%]">
         <div className="bg-muted rounded-lg p-3 streaming-message">
           <div className="relative">
+            <Reasoning isStreaming={isStreaming} defaultOpen={false}>
+              <ReasoningTrigger title="Thinking" />
+              <ReasoningContent>{"Thinking..."}</ReasoningContent>
+            </Reasoning>
             <MarkdownRenderer content={streamingMessage} />
-            {!isComplete && (
-              <span 
-                className={`inline-block w-2 h-4 ml-1 bg-current streaming-cursor ${
-                  showCursor ? 'opacity-100' : 'opacity-0'
-                }`}
-                style={{ 
-                  verticalAlign: 'text-bottom'
-                }}
-              >
-                |
-              </span>
-            )}
           </div>
         </div>
       </div>

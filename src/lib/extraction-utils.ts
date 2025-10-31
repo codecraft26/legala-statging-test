@@ -181,7 +181,68 @@ function convertToTableData(data: any): TableData | null {
 function parseStructuredText(content: string): TableData | null {
   const lines = content.split('\n').filter(line => line.trim());
   
-  // Try key-value pairs first
+  // Try markdown Description/Value format first (## Header followed by - **Description:** and - **Value:**)
+  const markdownDescValuePattern = /^##\s+(.+)$/;
+  const descPattern = /^-\s+\*\*Description:\*\*\s*(.+)$/i;
+  const valuePatternWithBacktick = /^-\s+\*\*Value:\*\*\s*`([^`]+)`\s*$/i;
+  const valuePatternWithoutBacktick = /^-\s+\*\*Value:\*\*\s*(.+)$/i;
+  
+  let currentSection: string | null = null;
+  let currentDesc: string | null = null;
+  const rows: ExtractionData[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check for section header (## Header)
+    const sectionMatch = line.match(markdownDescValuePattern);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1].trim();
+      currentDesc = null;
+      continue;
+    }
+    
+    // Check for Description line
+    const descMatch = line.match(descPattern);
+    if (descMatch) {
+      currentDesc = descMatch[1].trim();
+      continue;
+    }
+    
+    // Check for Value line (try backticked first, then non-backticked)
+    let valueMatch = line.match(valuePatternWithBacktick);
+    if (!valueMatch) {
+      valueMatch = line.match(valuePatternWithoutBacktick);
+    }
+    
+    if (valueMatch && currentSection && currentDesc) {
+      const value = valueMatch[1].trim();
+      
+      if (value) {
+        // Create a row for this section
+        rows.push({
+          'Section': currentSection,
+          'Description': currentDesc,
+          'Value': value
+        });
+      }
+      
+      currentSection = null;
+      currentDesc = null;
+    }
+  }
+  
+  if (rows.length > 0) {
+    const columns: TableColumn[] = [
+      { key: 'section', originalKey: 'Section', label: 'Section', type: 'text' },
+      { key: 'description', originalKey: 'Description', label: 'Description', type: 'text' },
+      { key: 'value', originalKey: 'Value', label: 'Value', type: 'text' }
+    ];
+    
+    return { columns, rows };
+  }
+  
+  // Try key-value pairs
   const keyValuePattern = /^([^:]+):\s*(.+)$/;
   const keyValueLines = lines.filter(line => keyValuePattern.test(line.trim()));
   

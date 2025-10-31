@@ -9,6 +9,7 @@ import { FileUploadModal } from "./FileUploadModal";
 import { ChatInput } from "./ChatInput";
 import { DocumentList } from "./DocumentList";
 import { StreamingMessage } from "./StreamingMessage";
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ui/shadcn-io/ai/reasoning";
 
 interface ChatInterfaceProps {
   workspaceId: string;
@@ -71,20 +72,15 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
         )}
         {conversations.length === 0 && isStreaming && !conversationsLoading && (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center space-y-4">
-              <div className="w-24 h-24 flex items-center justify-center mx-auto animate-pulse">
-                <img
-                  src="/logo.png"
-                  alt="Infrahive"
-                  className="w-24 h-24 object-contain opacity-70"
-                />
+            <div className="text-center space-y-3">
+              <div className="w-20 h-20 flex items-center justify-center mx-auto">
+                <img src="/logo.png" alt="Infrahive" className="w-20 h-20 object-contain opacity-80" />
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-primary mb-2 flex items-center justify-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  Analyzing document...
-                </h3>
-                <p className="text-muted-foreground text-md">Please wait while we process your file.</p>
+              <div className="max-w-sm mx-auto">
+                <Reasoning isStreaming={true} defaultOpen={false}>
+                  <ReasoningTrigger title="Thinking" />
+                  <ReasoningContent>{"Processing your files and preparing a response..."}</ReasoningContent>
+                </Reasoning>
               </div>
             </div>
           </div>
@@ -108,7 +104,13 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
         ))}
 
         {/* Streaming Message */}
-        {isStreaming && <StreamingMessage streamingMessage={streamingMessage} currentChatType={currentChat?.type} />}
+        {isStreaming && (
+          <StreamingMessage
+            streamingMessage={streamingMessage}
+            currentChatType={currentChat?.type}
+            isStreaming={isStreaming}
+          />
+        )}
 
         <div ref={messagesEndRef} />
       </div>

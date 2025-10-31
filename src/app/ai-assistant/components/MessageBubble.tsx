@@ -78,6 +78,7 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       .replace(/<sup>\s*\[\[[^\]]+\]\]\s*<\/sup>/gi, "")
       .replace(/\[\[[^\]]+\]\]/g, "");
     const normalized = stripCitations(stripHtml((cleanContent || "").replace(/\r\n/g, "\n")));
+    const normalizedDeduped = dedupeConsecutiveLines(normalized);
 
     const createRunsWithInlineStyles = (text: string): TextRun[] => {
       const runs: TextRun[] = [];
@@ -100,7 +101,7 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       return runs;
     };
 
-    const blocks = normalized.split(/\n\n+/);
+    const blocks = normalizedDeduped.split(/\n\n+/);
     for (const block of blocks) {
       const lines = block.split("\n");
       const isListBlock = lines.every(l => /^\s*([*-])\s+/.test(l));
@@ -182,6 +183,26 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       return conversation.content.replace(/\[\[C:[^\]]+\]\]/g, '');
     }
   }, [conversation.content]);
+
+  const dedupeConsecutiveLines = (text: string): string => {
+    // Skip deduplication for extraction data as it might have legitimate repetitions
+    if (conversation.type === "extract" || currentChat?.type === "extract") {
+      return text;
+    }
+    const lines = text.split('\n');
+    const result: string[] = [];
+    for (const line of lines) {
+      const trimmed = line.trim();
+      const last = result.length > 0 ? result[result.length - 1].trim() : null;
+      if (last !== null && trimmed && last === trimmed) {
+        continue;
+      }
+      result.push(line);
+    }
+    return result.join('\n');
+  };
+
+  const displayContent = useMemo(() => dedupeConsecutiveLines(cleanContent), [cleanContent, conversation.type, currentChat?.type]);
 
   // Check if this is an extraction response and parse it
   const isExtraction = isExtractionResponse(cleanContent);
@@ -302,7 +323,7 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
             : "bg-muted"
         }`}>
           {conversation.role === "assistant" ? (
-            <MarkdownRenderer content={cleanContent} />
+            <MarkdownRenderer content={displayContent} />
           ) : (
             <p className="text-sm whitespace-pre-wrap">
               {conversation.content}
