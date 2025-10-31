@@ -72,15 +72,80 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       cleanContent = message.content.replace(/\[\[C:[^\]]+\]\]/g, '');
     }
 
-    // Add the message content
-    children.push(
-      new Paragraph({
-        children: [
-          new TextRun({ text: cleanContent }),
-        ],
-        spacing: { after: 200 },
-      })
-    );
+    // Add the message content with Markdown-aware formatting for readability in DOCX
+    const stripHtml = (s: string) => s.replace(/<[^>]+>/g, "");
+    const stripCitations = (s: string) => s
+      .replace(/<sup>\s*\[\[[^\]]+\]\]\s*<\/sup>/gi, "")
+      .replace(/\[\[[^\]]+\]\]/g, "");
+    const normalized = stripCitations(stripHtml((cleanContent || "").replace(/\r\n/g, "\n")));
+
+    const createRunsWithInlineStyles = (text: string): TextRun[] => {
+      const runs: TextRun[] = [];
+      if (!text) return [new TextRun("")];
+      // Handle bold (**text**) and italics (*text*) minimally
+      let remaining = text;
+      const boldRegex = /\*\*(.+?)\*\*/g;
+      let lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = boldRegex.exec(text))) {
+        if (m.index > lastIndex) {
+          runs.push(new TextRun({ text: text.slice(lastIndex, m.index) }));
+        }
+        runs.push(new TextRun({ text: m[1], bold: true }));
+        lastIndex = m.index + m[0].length;
+      }
+      if (lastIndex < text.length) {
+        runs.push(new TextRun({ text: text.slice(lastIndex) }));
+      }
+      return runs;
+    };
+
+    const blocks = normalized.split(/\n\n+/);
+    for (const block of blocks) {
+      const lines = block.split("\n");
+      const isListBlock = lines.every(l => /^\s*([*-])\s+/.test(l));
+      const headingMatch = /^\s*(#{1,6})\s+(.*)$/.exec(lines[0] || "");
+
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const headingText = headingMatch[2];
+        children.push(new Paragraph({
+          text: headingText,
+          heading: Math.min(level, 3) === 1 ? HeadingLevel.HEADING_1 : Math.min(level, 3) === 2 ? HeadingLevel.HEADING_2 : HeadingLevel.HEADING_3,
+          spacing: { after: 120 },
+        }));
+        const rest = lines.slice(1).join("\n").trim();
+        if (rest) {
+          const restLines = rest.split("\n");
+          const runs: TextRun[] = [];
+          restLines.forEach((line, idx) => {
+            createRunsWithInlineStyles(line).forEach(r => runs.push(r));
+            if (idx < restLines.length - 1) runs.push(new TextRun({ break: 1 }));
+          });
+          children.push(new Paragraph({ children: runs, spacing: { after: 200 } }));
+        }
+        continue;
+      }
+
+      if (isListBlock) {
+        for (const line of lines) {
+          const itemText = line.replace(/^\s*([*-])\s+/, "");
+          children.push(new Paragraph({
+            children: createRunsWithInlineStyles(itemText),
+            bullet: { level: 0 },
+            spacing: { after: 80 },
+          }));
+        }
+        continue;
+      }
+
+      const runs: TextRun[] = [];
+      lines.forEach((line, idx) => {
+        createRunsWithInlineStyles(line).forEach(r => runs.push(r));
+        if (idx < lines.length - 1) runs.push(new TextRun({ break: 1 }));
+      });
+      children.push(new Paragraph({ children: runs, spacing: { after: 200 } }));
+    }
 
     const doc = new Document({ sections: [{ properties: {}, children }] });
     const blob = await Packer.toBlob(doc);
