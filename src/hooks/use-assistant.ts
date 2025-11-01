@@ -375,7 +375,7 @@ export function useSendAssistantMessage() {
 
 // Hook for streaming assistant response (alternative approach)
 export function useStreamAssistantResponse() {
-  const streamResponseFn = async (chatId: string, message: string, onChunk: (chunk: string) => void, retryCount = 0): Promise<void> => {
+  const streamResponseFn = async (chatId: string, message: string, onChunk: (chunk: string) => void, signal?: AbortSignal, retryCount = 0): Promise<void> => {
     const MAX_RETRIES = 2;
     
     try {
@@ -393,6 +393,7 @@ export function useStreamAssistantResponse() {
           "Authorization": `Bearer ${document.cookie.match(/token=([^;]+)/)?.[1] || ""}`,
         },
         body: JSON.stringify(requestBody),
+        signal, // Add abort signal support
       });
 
       if (!response.ok) {
@@ -401,7 +402,7 @@ export function useStreamAssistantResponse() {
         // Retry on network errors or 5xx status codes
         if (retryCount < MAX_RETRIES && (response.status >= 500 || response.status === 0)) {
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-          return streamResponseFn(chatId, message, onChunk, retryCount + 1);
+          return streamResponseFn(chatId, message, onChunk, signal, retryCount + 1);
         }
         
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);

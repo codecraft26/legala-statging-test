@@ -40,6 +40,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
     handleChangeModel,
     handleFileUpload,
     handleSendMessage,
+    handleStopProcessing,
     handleKeyPress,
     removeFile,
     addExistingFile,
@@ -128,6 +129,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
           isCreatingChat={isCreatingChat}
           showFileUpload={showFileUpload}
           onSendMessage={handleSendMessage}
+          onStopProcessing={handleStopProcessing}
           onKeyPress={handleKeyPress}
           onToggleFileUpload={() => setShowFileUpload(!showFileUpload)}
         />
