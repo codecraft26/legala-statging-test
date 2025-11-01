@@ -56,6 +56,9 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // AbortController for stopping requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Debounced streaming update function
   const debouncedStreamingUpdate = useCallback((chunk: string, finalMessageRef: { current: string }) => {
@@ -232,6 +235,35 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     }
   };
 
+  const handleStopProcessing = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      
+      // Clean up streaming state
+      setIsStreaming(false);
+      setStreamingMessage("");
+      setIsLoading(false);
+      
+      // Clear streaming state from sessionStorage
+      if (currentChat?.id) {
+        sessionStorage.removeItem(`streaming_${currentChat.id}`);
+      }
+      
+      // Add a "stopped" message to conversations
+      const stoppedMessage: Conversation = {
+        id: (Date.now() + 1).toString(),
+        content: "Processing stopped by user.",
+        role: "assistant",
+        chatId: currentChat?.id || "",
+        userId: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setConversations(prev => [...prev, stoppedMessage]);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isCreatingChat) return;
 
@@ -243,6 +275,9 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
         // Show streaming indicator immediately so first prompt shows "Thinking"
         setIsStreaming(true);
         setStreamingMessage("");
+        
+        // Create new AbortController for this request
+        abortControllerRef.current = new AbortController();
 
       let chatToUse = currentChat;
 
@@ -337,7 +372,8 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
             (chunk: string) => {
               // Use debounced updates for smoother streaming
               debouncedStreamingUpdate(chunk, finalStreamingMessageRef);
-            }
+            },
+            abortControllerRef.current?.signal
           );
 
           // Add assistant message to conversations
@@ -360,7 +396,13 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
             });
           }
         } catch (error) {
-          // Add error message
+          // Check if it was an abort error
+          if (error instanceof Error && error.name === 'AbortError') {
+            // Request was aborted, don't add error message (already handled by handleStopProcessing)
+            return;
+          }
+          
+          // Add error message for other errors
           const errorMessage: Conversation = {
             id: (Date.now() + 1).toString(),
             content: "Sorry, I encountered an error while processing your request. Please try again.",
@@ -398,6 +440,9 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
               sessionStorage.removeItem(`streaming_${chatId}`);
             }
           }, 50);
+          
+          // Clear abort controller
+          abortControllerRef.current = null;
         }
       } else {
         // Add error message
@@ -493,6 +538,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     handleChangeModel,
     handleFileUpload,
     handleSendMessage,
+    handleStopProcessing,
     handleKeyPress,
     removeFile,
     addExistingFile,

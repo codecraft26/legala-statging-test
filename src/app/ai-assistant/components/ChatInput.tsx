@@ -11,7 +11,8 @@ import {
   Loader2,
   MessageSquare, 
   FileText, 
-  Search
+  Search,
+  StopCircle
 } from "lucide-react";
 import { type AssistantFile } from "@/hooks/use-assistant";
 
@@ -46,6 +47,7 @@ interface ChatInputProps {
   isCreatingChat: boolean;
   showFileUpload: boolean;
   onSendMessage: () => void;
+  onStopProcessing: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onToggleFileUpload: () => void;
 }
@@ -61,6 +63,7 @@ export function ChatInput({
   isCreatingChat,
   showFileUpload,
   onSendMessage,
+  onStopProcessing,
   onKeyPress,
   onToggleFileUpload
 }: ChatInputProps) {
@@ -101,17 +104,28 @@ export function ChatInput({
           className="flex-1"
         />
         
-        <Button
-          onClick={onSendMessage}
-          disabled={!inputMessage.trim() || isLoading || isStreaming || isCreatingChat}
-          size="icon"
-        >
-          {isLoading || isStreaming || isCreatingChat ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-        </Button>
+        {isStreaming ? (
+          <Button
+            onClick={onStopProcessing}
+            variant="destructive"
+            size="icon"
+            title="Stop processing"
+          >
+            <StopCircle className="w-4 h-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={onSendMessage}
+            disabled={!inputMessage.trim() || isLoading || isCreatingChat}
+            size="icon"
+          >
+            {isLoading || isCreatingChat ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        )}
       </div>
       
       {uploadedFiles.length > 0 && (
