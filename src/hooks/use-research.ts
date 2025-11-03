@@ -1,7 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getApiBaseUrl, getCookie } from "@/lib/utils";
+import { getApiBaseUrl, getCookie, getResearchApiBaseUrl } from "@/lib/utils";
+import { http } from "@/lib/http";
 import {
   SupremeCourtAPI,
   HighCourtAPI,
@@ -21,6 +22,80 @@ export const researchKeys = {
   followed: (workspaceId: string, court: string) =>
     [...researchKeys.all, "followed", workspaceId, court] as const,
 };
+
+// AI Court Search (top-level feature)
+export type AICourtSearchResponse = {
+  success: boolean;
+  data?: {
+    // Supreme Court can be a list of results or an error object
+    supreme_court?:
+      | Array<{
+          index: number;
+          case_title?: { full_title?: string };
+          citation?: { scr_citation?: string; neutral_citation?: string };
+          bench?: { judges?: string[]; author_judge?: string };
+          case_details?: {
+            decision_date?: string;
+            case_number?: string;
+            disposal_nature?: string;
+            bench_size?: string;
+          };
+          cnr?: string;
+          highlights?: string[];
+          pdf_params?: {
+            court_code?: string;
+            year?: string;
+            case_id?: string;
+            citation_code?: string;
+            flag?: string;
+          };
+        }>
+      | { error: string };
+
+    // High Court results as seen in sample response
+    high_court?: Array<{
+      serial_number?: number;
+      case_number?: string;
+      petitioner?: string;
+      respondent?: string;
+      judge?: string;
+      judgment_excerpt?: string;
+      cnr?: string;
+      registration_date?: string;
+      decision_date?: string;
+      disposal_nature?: string;
+      status?: string;
+      court?: string;
+    }>;
+  };
+  error?: string;
+};
+
+export function useAICourtSearch(query: string | null) {
+  return useQuery({
+    queryKey: ["ai-court-search", query],
+    enabled: !!(query && query.trim().length > 0),
+    queryFn: async (): Promise<AICourtSearchResponse> => {
+      const token = getCookie("token");
+      if (!token) {
+        const err: any = new Error("Authentication token not found");
+        err.status = 401;
+        throw err;
+      }
+
+      // Use existing axios instance with research base URL from utils
+      const base = getApiBaseUrl();
+      const resp = await http.post<AICourtSearchResponse>(
+        `${base}/research/court-search`,
+        { query }
+      );
+      return resp.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
 
 export function useSupremeByParty(
   params: {

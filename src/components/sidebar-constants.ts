@@ -16,6 +16,12 @@ export const NAVIGATION_ITEMS = [
     badge: "New",
   },
   {
+    href: "/ai-court-search",
+    iconName: "Gavel",
+    label: "AI Court Search",
+    badge: "New",
+  },
+  {
     href: "/extract",
     iconName: "FileText",
     label: "Smart Extract",
