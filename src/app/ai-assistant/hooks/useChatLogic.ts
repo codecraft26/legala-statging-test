@@ -285,7 +285,9 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
       if (!chatToUse) {
         try {
           setIsCreatingChat(true);
-          const chatName = message.length > 50 ? message.substring(0, 50) + "..." : message;
+          // Use the first 50 characters of the trimmed message as the chat name
+          const baseName = message.trim();
+          const chatName = (baseName.length > 50 ? baseName.substring(0, 50) : baseName) || "New chat";
           
           const response = await createChatMutation.mutateAsync({
             name: chatName,
