@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bot,
+  Gavel,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -39,6 +40,7 @@ const iconMap = {
   Folder,
   Newspaper,
   Bot,
+  Gavel,
 } as const;
 
 const NavItem = ({
