@@ -159,6 +159,15 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
   };
 
   const cleanContent = useMemo(() => {
+    const sanitize = (text: string): string => {
+      return text
+        // Remove any leading 'data:' prefixes at the start or after newlines
+        .replace(/^\s*data:\s*/i, "")
+        .replace(/\n\s*data:\s*/gi, "\n")
+        // Remove citation superscripts and inline citations like [[1]] or [[C:...]]
+        .replace(/<sup>\s*\[\[[^\]]+\]\]\s*<\/sup>/gi, "")
+        .replace(/\[\[[^\]]+\]\]/g, "");
+    };
     try {
       const lines = conversation.content.split('\n');
       const parts: string[] = [];
@@ -168,8 +177,8 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
         try {
           const data = JSON.parse(trimmed);
           if (data.type === "response" && data.content) {
-            // Remove citation codes like [[C:...]] from the content
-            const clean = String(data.content).replace(/\[\[C:[^\]]+\]\]/g, '');
+            // Sanitize streamed JSONL content
+            const clean = sanitize(String(data.content));
             parts.push(clean);
           }
         } catch {
@@ -177,10 +186,10 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
         }
       }
       if (parts.length > 0) return parts.join("");
-      // Also clean the fallback content
-      return conversation.content.replace(/\[\[C:[^\]]+\]\]/g, '');
+      // Also clean the fallback content for saved messages
+      return sanitize(conversation.content);
     } catch {
-      return conversation.content.replace(/\[\[C:[^\]]+\]\]/g, '');
+      return sanitize(conversation.content);
     }
   }, [conversation.content]);
 
