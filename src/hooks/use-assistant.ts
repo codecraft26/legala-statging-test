@@ -338,6 +338,14 @@ export function useSendAssistantMessage() {
       let assistantMessage = "";
       const decoder = new TextDecoder();
 
+      const sanitize = (text: string): string => {
+        // Remove leading "data:" prefix if present and strip citation markers like [[1]] or [[C:...]]
+        return text
+          .replace(/^\s*data:\s*/i, "")
+          .replace(/<sup>\s*\[\[[^\]]+\]\]\s*<\/sup>/gi, "")
+          .replace(/\[\[[^\]]+\]\]/g, "");
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -350,7 +358,7 @@ export function useSendAssistantMessage() {
             try {
               const data = JSON.parse(line);
               if (data.type === "response" && data.content) {
-                assistantMessage += data.content;
+                assistantMessage += sanitize(String(data.content));
               }
             } catch (e) {
               // Ignore malformed JSON
@@ -418,6 +426,13 @@ export function useStreamAssistantResponse() {
         let lastUpdateTime = 0;
         const DEBOUNCE_MS = 16; // ~60fps
 
+        const sanitize = (text: string): string => {
+          return text
+            .replace(/^\s*data:\s*/i, "")
+            .replace(/<sup>\s*\[\[[^\]]+\]\]\s*<\/sup>/gi, "")
+            .replace(/\[\[[^\]]+\]\]/g, "");
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -431,16 +446,16 @@ export function useStreamAssistantResponse() {
           for (const line of lines) {
             if (line.trim()) {
               try {
-                const data = JSON.parse(line);
-                if (data.type === "response" && data.content) {
+              const data = JSON.parse(line);
+              if (data.type === "response" && data.content) {
                   // Debounce updates for smoother rendering
                   const now = Date.now();
                   if (now - lastUpdateTime >= DEBOUNCE_MS) {
-                    onChunk(data.content);
+                  onChunk(sanitize(String(data.content)));
                     lastUpdateTime = now;
                   } else {
                     // Queue the update for the next frame
-                    setTimeout(() => onChunk(data.content), DEBOUNCE_MS - (now - lastUpdateTime));
+                  setTimeout(() => onChunk(sanitize(String(data.content))), DEBOUNCE_MS - (now - lastUpdateTime));
                   }
                 }
               } catch (e) {
@@ -455,7 +470,7 @@ export function useStreamAssistantResponse() {
           try {
             const data = JSON.parse(buffer);
             if (data.type === "response" && data.content) {
-              onChunk(data.content);
+              onChunk(sanitize(String(data.content)));
             }
           } catch (e) {
             // Ignore malformed JSON
