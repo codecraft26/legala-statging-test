@@ -1,18 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Pagination from "@/app/research/components/common/Pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -46,6 +38,14 @@ export default function AICourtSearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
   const { data, isLoading, isError, error } = useAICourtSearch(submittedQuery);
   const [activeTab, setActiveTab] = useState<"supreme" | "high">("supreme");
+  const [selectedCase, setSelectedCase] = useState<SupremeCourtItem | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const samplePrompts: string[] = [
+    "Find me court cases having phrase 'release on probation under Section 4 of the Probation of Offenders Act' from 2023",
+    "Show Supreme Court cases about anticipatory bail with Section 438 CrPC since 2022",
+    "High Court decisions on cheque dishonour under Section 138 NI Act in 2024",
+  ];
 
   // Extract Supreme Court and High Court results
   const supremeRaw = data?.data?.supreme_court as
@@ -77,7 +77,8 @@ export default function AICourtSearchPage() {
     : [];
 
   // Map High Court results into SupremeCourtItem shape for the table
-  const highAsSupreme: SupremeCourtItem[] = (highRaw ?? []).map((h, i) => {
+  const highArray = Array.isArray(highRaw) ? highRaw : [];
+  const highAsSupreme: SupremeCourtItem[] = highArray.map((h, i) => {
     const titleParts = [h.petitioner, h.respondent].filter(Boolean);
     return {
       index: h.serial_number ?? i + 1,
@@ -173,6 +174,7 @@ export default function AICourtSearchPage() {
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
   const pagedRows = tableRows.slice(start, end);
+  const pagedItems = results.slice(start, end);
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -188,12 +190,14 @@ export default function AICourtSearchPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            ref={inputRef}
             placeholder="e.g. Find me court cases having phrase 'release on probation under Section 4 of the Probation of Offenders Act' from 2023"
           />
           <Button onClick={handleSearch} disabled={isLoading || !query.trim()}>
             {isLoading ? "Searching..." : "Search"}
           </Button>
         </div>
+        {/* sample prompts moved to empty state below for better UX */}
         {isError && (
           <div className="text-sm text-destructive">{(error as any)?.message || "Something went wrong"}</div>
         )}
@@ -211,9 +215,19 @@ export default function AICourtSearchPage() {
           </div>
         </div>
       ) : (
-        <div className="p-4 overflow-auto">
+        <div className="p-4">
         {/* Only show tables when we actually have results */}
         {(supremeResults.length > 0 || highAsSupreme.length > 0) ? (
+          <>
+          {/* Results summary and quick preview */}
+          <div className="mb-4">
+            <div className="text-sm text-muted-foreground">
+              Found <span className="font-medium text-foreground">
+                {activeTab === "supreme" ? supremeResults.length : highAsSupreme.length}
+              </span> result(s)
+            </div>
+          </div>
+
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
           <TabsList>
             <TabsTrigger value="supreme" disabled={(supremeResults.length === 0 || !!supremeError) && highAsSupreme.length > 0}>
@@ -225,203 +239,257 @@ export default function AICourtSearchPage() {
           </TabsList>
 
           <TabsContent value="supreme">
-            <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead className="min-w-[250px]">Case Title</TableHead>
-              <TableHead className="min-w-[180px]">Court</TableHead>
-              <TableHead className="min-w-[180px]">SCR Citation</TableHead>
-              <TableHead className="min-w-[180px]">Neutral Citation</TableHead>
-              <TableHead className="min-w-[120px]">Decision Date</TableHead>
-              <TableHead className="min-w-[180px]">Case Number</TableHead>
-              <TableHead className="min-w-[100px]">Bench Size</TableHead>
-              <TableHead className="min-w-[160px]">Disposal Nature</TableHead>
-              <TableHead className="min-w-[250px]">Judges</TableHead>
-              <TableHead className="min-w-[180px]">Author Judge</TableHead>
-              <TableHead className="min-w-[160px]">CNR</TableHead>
-              <TableHead className="min-w-[350px]">Highlights</TableHead>
-              <TableHead className="w-32">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
             {hasResults ? (
-              pagedRows.map((row) => (
-                <TableRow key={row.index}>
-                  <TableCell className="align-top">{row.index}</TableCell>
-                  <TableCell className="font-medium max-w-[300px] whitespace-normal break-words align-top">
-                    {row.title}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.court}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.scr}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.neutral}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap align-top">{row.date}</TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.caseNo}
-                  </TableCell>
-                  <TableCell className="align-top">{row.bench}</TableCell>
-                  <TableCell className="align-top">{row.disposalNature}</TableCell>
-                  <TableCell className="text-xs max-w-[300px] whitespace-normal break-words align-top">
-                    {row.judges}
-                  </TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.author}
-                  </TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.cnr}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[400px] whitespace-normal break-words align-top">
-                    {row.highlights}
-                  </TableCell>
-                  <TableCell className="align-top">
-                    {row.pdfParams ? (
+              <div className="flex gap-4 items-start">
+                <div className="flex-1 space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
+                  {pagedItems.map((item, idx) => {
+                    const row = pagedRows[idx];
+                    return (
+                      <Card key={row.index}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base font-semibold">
+                            {row.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            {row.court && row.court !== '-' && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded">{row.court}</span>
+                            )}
+                            {row.date && row.date !== '-' && (
+                              <span className="text-[10px] text-muted-foreground">• {row.date}</span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {row.caseNo && row.caseNo !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Case No: {row.caseNo}</span>
+                            )}
+                            {row.cnr && row.cnr !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">CNR: {row.cnr}</span>
+                            )}
+                            {row.disposalNature && row.disposalNature !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Disposal: {row.disposalNature}</span>
+                            )}
+                          </div>
+                          {row.highlights && row.highlights !== '-' && (
+                            <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                              {row.highlights}
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="pt-0 flex gap-2">
+                          <Button size="sm" onClick={() => setSelectedCase(item)}>Summarize this case</Button>
+                          {row.pdfParams ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (!row.pdfParams) return;
+                                const url = `https://main.sci.gov.in/pdf/${row.pdfParams.court_code}/${row.pdfParams.year}/${row.pdfParams.case_id}/${row.pdfParams.citation_code}/${row.pdfParams.flag}`;
+                                window.open(url, "_blank");
+                              }}
+                            >
+                              View PDF
+                            </Button>
+                          ) : null}
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                  <div className="mt-4">
+                    <Pagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={total}
+                      onPageChange={setPage}
+                      onPageSizeChange={(n: number) => {
+                        setPageSize(n);
+                        setPage(1);
+                      }}
+                      pageSizeOptions={[10, 20, 50]}
+                    />
+                  </div>
+                </div>
+                {selectedCase && (
+                  <div className="w-[420px] shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto border rounded-md p-4 bg-card">
+                    <div className="text-sm font-semibold mb-1">Summary</div>
+                    <div className="text-base font-medium mb-2">{selectedCase.case_title?.full_title || '-'}</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                      <div><span className="font-medium text-foreground">Court:</span> {selectedCase.court || '-'}</div>
+                      <div><span className="font-medium text-foreground">Date:</span> {selectedCase.case_details?.decision_date || '-'}</div>
+                      <div><span className="font-medium text-foreground">Case No:</span> {selectedCase.case_details?.case_number || '-'}</div>
+                      <div><span className="font-medium text-foreground">CNR:</span> {selectedCase.cnr || '-'}</div>
+                      <div><span className="font-medium text-foreground">SCR Citation:</span> {selectedCase.citation?.scr_citation || '-'}</div>
+                      <div><span className="font-medium text-foreground">Neutral Citation:</span> {selectedCase.citation?.neutral_citation || '-'}</div>
+                      <div><span className="font-medium text-foreground">Bench Size:</span> {selectedCase.case_details?.bench_size || '-'}</div>
+                      <div><span className="font-medium text-foreground">Author Judge:</span> {selectedCase.bench?.author_judge || '-'}</div>
+                    </div>
+                    <div className="mb-3">
+                      <div className="text-sm font-medium">Judges</div>
+                      <div className="text-sm text-muted-foreground mt-1">{(selectedCase.bench?.judges || []).join(', ') || '-'}</div>
+                    </div>
+                    <div className="mb-3">
+                      <div className="text-sm font-medium">Disposal / Verdict</div>
+                      <div className="text-sm text-muted-foreground mt-1">{selectedCase.case_details?.disposal_nature || '-'}</div>
+                    </div>
+                    {selectedCase.highlights && selectedCase.highlights.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-sm font-medium">Relevance</div>
+                        <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{selectedCase.highlights.join("\n\n")}</div>
+                      </div>
+                    )}
+                    {selectedCase.pdf_params && (
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          if (!row.pdfParams) return;
-                          const url = `https://main.sci.gov.in/pdf/${row.pdfParams.court_code}/${row.pdfParams.year}/${row.pdfParams.case_id}/${row.pdfParams.citation_code}/${row.pdfParams.flag}`;
+                          const p = selectedCase.pdf_params;
+                          if (!p) return;
+                          const url = `https://main.sci.gov.in/pdf/${p.court_code}/${p.year}/${p.case_id}/${p.citation_code}/${p.flag}`;
                           window.open(url, "_blank");
                         }}
                       >
                         View PDF
                       </Button>
-                    ) : (
-                      "-"
                     )}
-                  </TableCell>
-                </TableRow>
-              ))
+                  </div>
+                )}
+              </div>
             ) : (
-              <TableRow>
-                <TableCell className="py-10 text-center" colSpan={14}>
-                  {isLoading ? "Loading results..." : "No results yet. Try a search."}
-                </TableCell>
-              </TableRow>
+              <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>
             )}
-          </TableBody>
-          <TableCaption>
-            {hasResults ? `${results.length} result(s) from Supreme Court` : ""}
-          </TableCaption>
-        </Table>
-        {hasResults && (
-          <div className="mt-4">
-            <Pagination
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              onPageSizeChange={(n: number) => {
-                setPageSize(n);
-                setPage(1);
-              }}
-              pageSizeOptions={[10, 20, 50]}
-            />
-          </div>
-        )}
           </TabsContent>
 
           <TabsContent value="high">
-            <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead className="min-w-[250px]">Case Title</TableHead>
-              <TableHead className="min-w-[180px]">Court</TableHead>
-              <TableHead className="min-w-[180px]">SCR Citation</TableHead>
-              <TableHead className="min-w-[180px]">Neutral Citation</TableHead>
-              <TableHead className="min-w-[120px]">Decision Date</TableHead>
-              <TableHead className="min-w-[180px]">Case Number</TableHead>
-              <TableHead className="min-w-[100px]">Bench Size</TableHead>
-              <TableHead className="min-w-[160px]">Disposal Nature</TableHead>
-              <TableHead className="min-w-[250px]">Judges</TableHead>
-              <TableHead className="min-w-[180px]">Author Judge</TableHead>
-              <TableHead className="min-w-[160px]">CNR</TableHead>
-              <TableHead className="min-w-[350px]">Highlights</TableHead>
-              <TableHead className="w-32">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
             {hasResults ? (
-              pagedRows.map((row) => (
-                <TableRow key={row.index}>
-                  <TableCell className="align-top">{row.index}</TableCell>
-                  <TableCell className="font-medium max-w-[300px] whitespace-normal break-words align-top">
-                    {row.title}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.court}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.scr}
-                  </TableCell>
-                  <TableCell className="whitespace-normal break-words align-top">
-                    {row.neutral}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap align-top">{row.date}</TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.caseNo}
-                  </TableCell>
-                  <TableCell className="align-top">{row.bench}</TableCell>
-                  <TableCell className="align-top">{row.disposalNature}</TableCell>
-                  <TableCell className="text-xs max-w-[300px] whitespace-normal break-words align-top">
-                    {row.judges}
-                  </TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.author}
-                  </TableCell>
-                  <TableCell className="text-sm max-w-[200px] whitespace-normal break-words align-top">
-                    {row.cnr}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[400px] whitespace-normal break-words align-top">
-                    {row.highlights}
-                  </TableCell>
-                  <TableCell className="align-top">-</TableCell>
-                </TableRow>
-              ))
+              <div className="flex gap-4 items-start">
+                <div className="flex-1 space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
+                  {pagedItems.map((item, idx) => {
+                    const row = pagedRows[idx];
+                    return (
+                      <Card key={row.index}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base font-semibold">
+                            {row.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex flex-wrap gap-2">
+                            {row.caseNo && row.caseNo !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Case No: {row.caseNo}</span>
+                            )}
+                            {row.court && row.court !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Court: {row.court}</span>
+                            )}
+                            {row.date && row.date !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Date: {row.date}</span>
+                            )}
+                            {row.cnr && row.cnr !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">CNR: {row.cnr}</span>
+                            )}
+                            {row.disposalNature && row.disposalNature !== '-' && (
+                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Disposal: {row.disposalNature}</span>
+                            )}
+                          </div>
+                          {row.highlights && row.highlights !== '-' && (
+                            <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                              {row.highlights}
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="pt-0 flex gap-2">
+                          <Button size="sm" onClick={() => setSelectedCase(item)}>Summarize this case</Button>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                  <div className="mt-4">
+                    <Pagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={total}
+                      onPageChange={setPage}
+                      onPageSizeChange={(n: number) => {
+                        setPageSize(n);
+                        setPage(1);
+                      }}
+                      pageSizeOptions={[10, 20, 50]}
+                    />
+                  </div>
+                </div>
+                {selectedCase && (
+                  <div className="w-[420px] shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto border rounded-md p-4 bg-card">
+                    <div className="text-sm font-semibold mb-1">Summary</div>
+                    <div className="text-base font-medium mb-1">{selectedCase.case_title?.full_title || '-'}</div>
+                    <div className="text-xs text-muted-foreground mb-3">
+                      {(selectedCase.court || '-')}{selectedCase.case_details?.decision_date ? ` • ${selectedCase.case_details.decision_date}` : ''}
+                    </div>
+                    {selectedCase.highlights && selectedCase.highlights.length > 0 && (
+                      <div className="mb-3">
+                        <div className="text-sm font-medium">Relevance</div>
+                        <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">
+                          {selectedCase.highlights.join("\n\n")}
+                        </div>
+                      </div>
+                    )}
+                    <div className="mb-3">
+                      <div className="text-sm font-medium">Verdict</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {selectedCase.case_details?.disposal_nature || '-'}
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <div className="text-sm font-medium">Fact</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Case No: {selectedCase.case_details?.case_number || '-'}
+                        <br />Bench Size: {selectedCase.case_details?.bench_size || '-'}
+                        <br />Judges: {(selectedCase.bench?.judges || []).join(', ') || '-'}
+                        <br />Author Judge: {selectedCase.bench?.author_judge || '-'}
+                        <br />CNR: {selectedCase.cnr || '-'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              <TableRow>
-                <TableCell className="py-10 text-center" colSpan={14}>
-                  {isLoading ? "Loading results..." : "No results yet. Try a search."}
-                </TableCell>
-              </TableRow>
+              <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>
             )}
-          </TableBody>
-          <TableCaption>
-            {hasResults ? `${results.length} result(s) from High Court` : ""}
-          </TableCaption>
-        </Table>
-        {hasResults && (
-          <div className="mt-4">
-            <Pagination
-              page={page}
-              pageSize={pageSize}
-              total={total}
-              onPageChange={setPage}
-              onPageSizeChange={(n: number) => {
-                setPageSize(n);
-                setPage(1);
-              }}
-              pageSizeOptions={[10, 20, 50]}
-            />
-          </div>
-        )}
           </TabsContent>
           </Tabs>
+          </>
         ) : (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="flex flex-col items-center justify-center py-20 gap-6">
             <Image src="/logo.png" alt="Infrahive" width={72} height={72} />
             {submittedQuery ? (
               <div className="text-sm text-muted-foreground">No results found for your query.</div>
             ) : (
               <div className="text-sm text-muted-foreground">Discover legal insights with Infrahive</div>
             )}
+            <div className="w-full max-w-3xl">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Try a sample prompt</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid gap-2 sm:grid-cols-1">
+                    {samplePrompts.map((p, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setQuery(p);
+                          if (inputRef.current) inputRef.current.focus();
+                        }}
+                        className="w-full text-left text-sm px-3 py-2 rounded border bg-card hover:bg-accent hover:text-accent-foreground transition"
+                        aria-label={`Use sample prompt ${i + 1}`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
         </div>
