@@ -38,7 +38,6 @@ export default function AICourtSearchPage() {
   const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
   const { data, isLoading, isError, error } = useAICourtSearch(submittedQuery);
   const [activeTab, setActiveTab] = useState<"supreme" | "high">("supreme");
-  const [selectedCase, setSelectedCase] = useState<SupremeCourtItem | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const samplePrompts: string[] = [
@@ -175,6 +174,7 @@ export default function AICourtSearchPage() {
   const end = start + pageSize;
   const pagedRows = tableRows.slice(start, end);
   const pagedItems = results.slice(start, end);
+  const totalCount = supremeResults.length + highAsSupreme.length;
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -219,12 +219,10 @@ export default function AICourtSearchPage() {
         {/* Only show tables when we actually have results */}
         {(supremeResults.length > 0 || highAsSupreme.length > 0) ? (
           <>
-          {/* Results summary and quick preview */}
+          {/* Results summary */}
           <div className="mb-4">
             <div className="text-sm text-muted-foreground">
-              Found <span className="font-medium text-foreground">
-                {activeTab === "supreme" ? supremeResults.length : highAsSupreme.length}
-              </span> result(s)
+              Found <span className="font-medium text-foreground">{totalCount}</span> result(s)
             </div>
           </div>
 
@@ -240,8 +238,7 @@ export default function AICourtSearchPage() {
 
           <TabsContent value="supreme">
             {hasResults ? (
-              <div className="flex gap-4 items-start">
-                <div className="flex-1 space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
+              <div className="space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
                   {pagedItems.map((item, idx) => {
                     const row = pagedRows[idx];
                     return (
@@ -271,27 +268,33 @@ export default function AICourtSearchPage() {
                               <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Disposal: {row.disposalNature}</span>
                             )}
                           </div>
+                          {/* Full details inline */}
+                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div><span className="font-medium text-foreground">SCR Citation:</span> {row.scr}</div>
+                            <div><span className="font-medium text-foreground">Neutral Citation:</span> {row.neutral}</div>
+                            <div><span className="font-medium text-foreground">Bench Size:</span> {row.bench}</div>
+                            <div><span className="font-medium text-foreground">Author Judge:</span> {row.author}</div>
+                            <div className="sm:col-span-2"><span className="font-medium text-foreground">Judges:</span> {row.judges}</div>
+                          </div>
                           {row.highlights && row.highlights !== '-' && (
                             <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
                               {row.highlights}
                             </div>
                           )}
                         </CardContent>
-                        <CardFooter className="pt-0 flex gap-2">
-                          <Button size="sm" onClick={() => setSelectedCase(item)}>Summarize this case</Button>
-                          {row.pdfParams ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (!row.pdfParams) return;
-                                const url = `https://main.sci.gov.in/pdf/${row.pdfParams.court_code}/${row.pdfParams.year}/${row.pdfParams.case_id}/${row.pdfParams.citation_code}/${row.pdfParams.flag}`;
-                                window.open(url, "_blank");
-                              }}
-                            >
-                              View PDF
-                            </Button>
-                          ) : null}
+                        <CardFooter className="pt-0 flex gap-2 items-center">
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>Summarize</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>Chat with AI</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>PDF</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
                         </CardFooter>
                       </Card>
                     );
@@ -309,51 +312,6 @@ export default function AICourtSearchPage() {
                       pageSizeOptions={[10, 20, 50]}
                     />
                   </div>
-                </div>
-                {selectedCase && (
-                  <div className="w-[420px] shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto border rounded-md p-4 bg-card">
-                    <div className="text-sm font-semibold mb-1">Summary</div>
-                    <div className="text-base font-medium mb-2">{selectedCase.case_title?.full_title || '-'}</div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
-                      <div><span className="font-medium text-foreground">Court:</span> {selectedCase.court || '-'}</div>
-                      <div><span className="font-medium text-foreground">Date:</span> {selectedCase.case_details?.decision_date || '-'}</div>
-                      <div><span className="font-medium text-foreground">Case No:</span> {selectedCase.case_details?.case_number || '-'}</div>
-                      <div><span className="font-medium text-foreground">CNR:</span> {selectedCase.cnr || '-'}</div>
-                      <div><span className="font-medium text-foreground">SCR Citation:</span> {selectedCase.citation?.scr_citation || '-'}</div>
-                      <div><span className="font-medium text-foreground">Neutral Citation:</span> {selectedCase.citation?.neutral_citation || '-'}</div>
-                      <div><span className="font-medium text-foreground">Bench Size:</span> {selectedCase.case_details?.bench_size || '-'}</div>
-                      <div><span className="font-medium text-foreground">Author Judge:</span> {selectedCase.bench?.author_judge || '-'}</div>
-                    </div>
-                    <div className="mb-3">
-                      <div className="text-sm font-medium">Judges</div>
-                      <div className="text-sm text-muted-foreground mt-1">{(selectedCase.bench?.judges || []).join(', ') || '-'}</div>
-                    </div>
-                    <div className="mb-3">
-                      <div className="text-sm font-medium">Disposal / Verdict</div>
-                      <div className="text-sm text-muted-foreground mt-1">{selectedCase.case_details?.disposal_nature || '-'}</div>
-                    </div>
-                    {selectedCase.highlights && selectedCase.highlights.length > 0 && (
-                      <div className="mb-3">
-                        <div className="text-sm font-medium">Relevance</div>
-                        <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">{selectedCase.highlights.join("\n\n")}</div>
-                      </div>
-                    )}
-                    {selectedCase.pdf_params && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          const p = selectedCase.pdf_params;
-                          if (!p) return;
-                          const url = `https://main.sci.gov.in/pdf/${p.court_code}/${p.year}/${p.case_id}/${p.citation_code}/${p.flag}`;
-                          window.open(url, "_blank");
-                        }}
-                      >
-                        View PDF
-                      </Button>
-                    )}
-                  </div>
-                )}
               </div>
             ) : (
               <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>
@@ -362,8 +320,7 @@ export default function AICourtSearchPage() {
 
           <TabsContent value="high">
             {hasResults ? (
-              <div className="flex gap-4 items-start">
-                <div className="flex-1 space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
+              <div className="space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
                   {pagedItems.map((item, idx) => {
                     const row = pagedRows[idx];
                     return (
@@ -374,15 +331,17 @@ export default function AICourtSearchPage() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            {row.court && row.court !== '-' && (
+                              <span className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded">{row.court}</span>
+                            )}
+                            {row.date && row.date !== '-' && (
+                              <span className="text-[10px] text-muted-foreground">• {row.date}</span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-2">
                             {row.caseNo && row.caseNo !== '-' && (
                               <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Case No: {row.caseNo}</span>
-                            )}
-                            {row.court && row.court !== '-' && (
-                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Court: {row.court}</span>
-                            )}
-                            {row.date && row.date !== '-' && (
-                              <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Date: {row.date}</span>
                             )}
                             {row.cnr && row.cnr !== '-' && (
                               <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">CNR: {row.cnr}</span>
@@ -391,14 +350,33 @@ export default function AICourtSearchPage() {
                               <span className="text-[10px] bg-muted text-foreground px-2 py-1 rounded">Disposal: {row.disposalNature}</span>
                             )}
                           </div>
+                          {/* Full details inline */}
+                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div><span className="font-medium text-foreground">SCR Citation:</span> {row.scr}</div>
+                            <div><span className="font-medium text-foreground">Neutral Citation:</span> {row.neutral}</div>
+                            <div><span className="font-medium text-foreground">Bench Size:</span> {row.bench}</div>
+                            <div><span className="font-medium text-foreground">Author Judge:</span> {row.author}</div>
+                            <div className="sm:col-span-2"><span className="font-medium text-foreground">Judges:</span> {row.judges}</div>
+                          </div>
                           {row.highlights && row.highlights !== '-' && (
                             <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
                               {row.highlights}
                             </div>
                           )}
                         </CardContent>
-                        <CardFooter className="pt-0 flex gap-2">
-                          <Button size="sm" onClick={() => setSelectedCase(item)}>Summarize this case</Button>
+                        <CardFooter className="pt-0 flex gap-2 items-center">
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>Summarize With AI</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>Chat with AI</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
+                          <Button disabled title="Coming soon" className="bg-foreground text-background hover:bg-foreground/90">
+                            <span>PDF</span>
+                            <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">soon</span>
+                          </Button>
                         </CardFooter>
                       </Card>
                     );
@@ -416,40 +394,6 @@ export default function AICourtSearchPage() {
                       pageSizeOptions={[10, 20, 50]}
                     />
                   </div>
-                </div>
-                {selectedCase && (
-                  <div className="w-[420px] shrink-0 sticky top-20 max-h-[calc(100vh-6rem)] overflow-auto border rounded-md p-4 bg-card">
-                    <div className="text-sm font-semibold mb-1">Summary</div>
-                    <div className="text-base font-medium mb-1">{selectedCase.case_title?.full_title || '-'}</div>
-                    <div className="text-xs text-muted-foreground mb-3">
-                      {(selectedCase.court || '-')}{selectedCase.case_details?.decision_date ? ` • ${selectedCase.case_details.decision_date}` : ''}
-                    </div>
-                    {selectedCase.highlights && selectedCase.highlights.length > 0 && (
-                      <div className="mb-3">
-                        <div className="text-sm font-medium">Relevance</div>
-                        <div className="text-sm text-muted-foreground whitespace-pre-wrap mt-1">
-                          {selectedCase.highlights.join("\n\n")}
-                        </div>
-                      </div>
-                    )}
-                    <div className="mb-3">
-                      <div className="text-sm font-medium">Verdict</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        {selectedCase.case_details?.disposal_nature || '-'}
-                      </div>
-                    </div>
-                    <div className="mb-3">
-                      <div className="text-sm font-medium">Fact</div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Case No: {selectedCase.case_details?.case_number || '-'}
-                        <br />Bench Size: {selectedCase.case_details?.bench_size || '-'}
-                        <br />Judges: {(selectedCase.bench?.judges || []).join(', ') || '-'}
-                        <br />Author Judge: {selectedCase.bench?.author_judge || '-'}
-                        <br />CNR: {selectedCase.cnr || '-'}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>
