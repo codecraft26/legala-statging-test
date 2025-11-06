@@ -49,7 +49,7 @@ export default function LoginPage() {
     }
   };
 
-  const isSubmitting = loading || loginMutation.isLoading;
+  const isSubmitting = loading || (loginMutation as any).isPending || (loginMutation as any).isLoading;
 
   return (
     <main className="min-h-svh flex items-center justify-center p-6 relative">
