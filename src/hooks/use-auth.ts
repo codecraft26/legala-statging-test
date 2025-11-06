@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api, apiRequest } from "@/lib/api-client";
 import { useToast } from "@/components/ui/toast";
@@ -52,8 +53,30 @@ export function useAuth() {
     ? (query.data as any).data || (query.data as any)
     : undefined;
 
+  // Keep a lightweight copy of the user in localStorage for immediate UI fallback
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      } else {
+        // If user becomes undefined (e.g., after logout), clear the cached copy
+        localStorage.removeItem("user");
+      }
+    } catch (_) {
+      // ignore storage errors
+    }
+  }, [user]);
+
   const signOut = () => {
-    if (typeof window !== "undefined") deleteCookie("token");
+    if (typeof window !== "undefined") {
+      deleteCookie("token");
+      try {
+        localStorage.removeItem("user");
+      } catch (_) {
+        // ignore
+      }
+    }
   };
 
   return {
@@ -151,11 +174,26 @@ export function useLogin() {
     mutationFn: async (args: { email: string; password: string }) => {
       return await Api.post<{ token: string }>("/user/login", args);
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Set the token in cookie and invalidate auth queries
       if (typeof window !== "undefined" && data?.token) {
         document.cookie = `token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
       }
+      // Eagerly fetch the user profile so UI has the name immediately
+      try {
+        const detail = await Api.get<any>("/user/detail");
+        const user = (detail && (detail.data ?? detail)) as AuthUser;
+        // Prime the query cache
+        queryClient.setQueryData(authKeys.me(), user);
+        // Also cache in localStorage for components that read from it
+        if (typeof window !== "undefined") {
+          localStorage.setItem("user", JSON.stringify(user));
+        }
+      } catch (_) {
+        // If eager fetch fails, fall back to normal invalidation
+        queryClient.invalidateQueries({ queryKey: authKeys.all });
+      }
+      // Still invalidate to ensure consistency across tabs/components
       queryClient.invalidateQueries({ queryKey: authKeys.all });
     },
     onError: (error: any) => {

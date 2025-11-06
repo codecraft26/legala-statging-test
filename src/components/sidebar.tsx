@@ -21,8 +21,9 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getCookie } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import WorkspaceSelector from "./workspace-selector";
-import { UserDropdown } from "./user-dropdown";
+const UserDropdown = dynamic(() => import("./user-dropdown").then(m => m.UserDropdown), { ssr: false });
 import {
   SIDEBAR_WIDTHS,
   NAVIGATION_ITEMS,
@@ -87,7 +88,7 @@ const NavItem = ({
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
-  const { isOwner, mounted } = useUserRole(user);
+  const { isOwner } = useUserRole(user);
 
   const isAuthed = Boolean(
     user || (typeof window !== "undefined" && getCookie("token"))
@@ -156,7 +157,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto pt-4">
-        {mounted && isAuthed ? (
+        {isAuthed ? (
           <UserDropdown collapsed={collapsed} />
         ) : (
           <div className="flex items-center gap-2">
