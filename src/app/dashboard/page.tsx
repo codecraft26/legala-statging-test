@@ -7,19 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  FileText,
-  Clock,
-  Shield,
-  Users as UsersIcon,
-  Star,
-  ArrowRight,
-  Lightbulb,
-  Zap,
-  Target,
-  Brain,
-  PenTool,
-} from "lucide-react";
+import { FileText, Star, ArrowRight, Lightbulb, Zap, Target, Brain, PenTool } from "lucide-react";
 
 export default function DashboardPage() {
   const [authed, setAuthed] = useState(false);
@@ -62,56 +50,7 @@ export default function DashboardPage() {
   return (
     <>
       <main className="max-w-6xl mx-auto p-8 space-y-6">
-        {/* Stats */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              label: "Documents Processed",
-              value: "10,247",
-              icon: <FileText size={18} />,
-              gradient: "from-blue-500 to-blue-600",
-            },
-            {
-              label: "Time Saved",
-              value: "1,200hrs",
-              icon: <Clock size={18} />,
-              gradient: "from-emerald-500 to-emerald-600",
-            },
-            {
-              label: "Accuracy Rate",
-              value: "99.2%",
-              icon: <Shield size={18} />,
-              gradient: "from-amber-500 to-amber-600",
-            },
-            {
-              label: "Active Users",
-              value: "847",
-              icon: <UsersIcon size={18} />,
-              gradient: "from-purple-500 to-purple-600",
-            },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className={`relative overflow-hidden rounded-lg border p-5 transition-all ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
-              style={{ transitionDelay: `${i * 60}ms` }}
-            >
-              <div
-                className={`absolute inset-0 opacity-10 bg-gradient-to-br ${s.gradient}`}
-              />
-              <div className="relative z-10 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-muted-foreground">{s.label}</div>
-                  <div className="text-xl font-semibold">{s.value}</div>
-                </div>
-                <div
-                  className={`rounded-md text-white p-2 bg-gradient-to-br ${s.gradient}`}
-                >
-                  {s.icon}
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
+        {/* Stats section removed as requested */}
 
         {/* Feature cards */}
         <section className="space-y-6">
