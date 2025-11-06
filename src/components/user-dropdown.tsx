@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserRole } from "@/hooks/use-user-role";
+import { getCookie } from "@/lib/utils";
+import { Api } from "@/lib/api-client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,17 +48,42 @@ interface UserDropdownProps {
 export function UserDropdown({ collapsed }: UserDropdownProps) {
   const { signOut, user } = useAuth();
   const router = useRouter();
-  const { currentRole, mounted } = useUserRole(user);
+  const { currentRole } = useUserRole(user);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const safeGetLsUser = () => {
+    try {
+      if (typeof window === "undefined") return {} as any;
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {} as any;
+    }
+  };
+
+  const getTokenPayload = () => {
+    try {
+      const token = getCookie("token");
+      if (!token) return null;
+      const parts = token.split(".");
+      if (parts.length !== 3) return null;
+      const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
+  };
 
   const getUserDisplayName = () => {
     if (user?.name) return user.name;
     if (user?.email) return user.email.split("@")[0];
 
-    if (mounted && typeof window !== "undefined") {
-      const lsUser = JSON.parse(localStorage.getItem("user") || "{}");
-      return lsUser.name || lsUser.email?.split("@")[0] || "User";
-    }
+    const lsUser = safeGetLsUser();
+    if (lsUser?.name) return lsUser.name;
+    if (lsUser?.email) return String(lsUser.email).split("@")[0];
+
+    const payload = getTokenPayload();
+    if (payload?.name) return String(payload.name);
+    if (payload?.email) return String(payload.email).split("@")[0];
 
     return "User";
   };
@@ -64,15 +91,59 @@ export function UserDropdown({ collapsed }: UserDropdownProps) {
   const getUserEmail = () => {
     if (user?.email) return user.email;
 
-    if (mounted && typeof window !== "undefined") {
-      const lsUser = JSON.parse(localStorage.getItem("user") || "{}");
-      return lsUser.email;
-    }
+    const lsUser = safeGetLsUser();
+    if (lsUser?.email) return String(lsUser.email);
+
+    const payload = getTokenPayload();
+    if (payload?.email) return String(payload.email);
 
     return null;
   };
 
-  const initials = (user?.email || "U").charAt(0).toUpperCase();
+  const [resolvedEmail, setResolvedEmail] = useState<string | null>(getUserEmail());
+
+  useEffect(() => {
+    // Update from auth changes
+    if (user?.email && user.email !== resolvedEmail) {
+      setResolvedEmail(user.email);
+      try {
+        const lsUser = safeGetLsUser();
+        localStorage.setItem(
+          "user",
+          JSON.stringify({ ...lsUser, email: user.email, name: user.name ?? lsUser.name })
+        );
+      } catch {}
+      return;
+    }
+
+    // If we still don't have an email, fetch it once
+    if (!resolvedEmail) {
+      (async () => {
+        try {
+          const detail: any = await Api.get("/user/detail");
+          const data = (detail && (detail as any).data) || detail || {};
+          const email = data?.email ? String(data.email) : null;
+          if (email) {
+            setResolvedEmail(email);
+            try {
+              localStorage.setItem("user", JSON.stringify(data));
+            } catch {}
+          }
+        } catch {}
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]);
+
+  const initials = (() => {
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    const lsUser = safeGetLsUser();
+    if (lsUser?.email) return String(lsUser.email).charAt(0).toUpperCase();
+    const payload = getTokenPayload();
+    if (payload?.email) return String(payload.email).charAt(0).toUpperCase();
+    if (payload?.name) return String(payload.name).charAt(0).toUpperCase();
+    return "U";
+  })();
   const displayName = getUserDisplayName();
   const email = getUserEmail();
 
@@ -139,8 +210,8 @@ export function UserDropdown({ collapsed }: UserDropdownProps) {
               <p className="text-sm font-medium truncate">{displayName}</p>
               <RoleBadge role={currentRole} />
             </div>
-            {email && (
-              <p className="text-xs text-muted-foreground truncate">{email}</p>
+            {(resolvedEmail || email) && (
+              <p className="text-xs text-muted-foreground truncate">{resolvedEmail || email}</p>
             )}
           </div>
           <ChevronDown

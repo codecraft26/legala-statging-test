@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth, useLogin } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { getCookie, setCookie } from "@/lib/utils";
@@ -49,8 +49,18 @@ export default function LoginPage() {
     }
   };
 
+  const isSubmitting = loading || loginMutation.isLoading;
+
   return (
-    <main className="min-h-svh flex items-center justify-center p-6">
+    <main className="min-h-svh flex items-center justify-center p-6 relative">
+      {isSubmitting ? (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-background/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 rounded-md border bg-background px-4 py-2 shadow-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Signing you in…</span>
+          </div>
+        </div>
+      ) : null}
       <div className="w-full max-w-3xl rounded-lg border p-0 shadow-sm bg-background overflow-hidden">
         <div className="grid md:grid-cols-2">
           {/* Left: Form */}
@@ -120,10 +130,11 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="inline-flex w-full items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
               >
-                {loading ? "Signing in..." : "Login"}
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isSubmitting ? "Signing in…" : "Login"}
               </button>
 
               <div className="text-muted-foreground text-center text-xs">
