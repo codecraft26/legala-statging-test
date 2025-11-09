@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getCookie } from "@/lib/utils";
+import { getApiBaseUrl, getCookie, deleteCookie } from "@/lib/utils";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -53,6 +53,18 @@ export async function apiRequest<TResponse = unknown, TBody = unknown>(
   });
 
   if (!res.ok) {
+    // Handle 401 Unauthorized (expired token)
+    if (res.status === 401 && typeof window !== "undefined") {
+      // Clear token and localStorage
+      deleteCookie("token");
+      try {
+        localStorage.removeItem("user");
+      } catch {}
+      // Redirect to login
+      window.location.href = "/login";
+      throw new Error("Token expired. Please login again.");
+    }
+    
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
       const errJson = (await res.json()) as { message?: string };

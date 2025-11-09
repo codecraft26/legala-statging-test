@@ -28,6 +28,19 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (resp) => resp,
   (error) => {
+    // Handle 401 Unauthorized (expired token)
+    if (error?.response?.status === 401 && typeof window !== "undefined") {
+      // Clear token and localStorage
+      const { deleteCookie } = require("@/lib/utils");
+      deleteCookie("token");
+      try {
+        localStorage.removeItem("user");
+      } catch {}
+      // Redirect to login
+      window.location.href = "/login";
+      return Promise.reject(new Error("Token expired. Please login again."));
+    }
+    
     const message =
       error?.response?.data?.message || error?.message || "Request failed";
     return Promise.reject(new Error(message));
