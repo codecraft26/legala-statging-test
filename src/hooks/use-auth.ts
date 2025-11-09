@@ -39,14 +39,24 @@ export function useAuth() {
       try {
         const res = await Api.get<any>("/user/detail");
         return res?.data || res || null;
-      } catch (_) {
+      } catch (error: any) {
+        // If 401 error, token is expired - clear it and redirect
+        if (error?.message?.includes("401") || error?.message?.includes("expired")) {
+          if (typeof window !== "undefined") {
+            deleteCookie("token");
+            try {
+              localStorage.removeItem("user");
+            } catch {}
+            window.location.href = "/login";
+          }
+        }
         return null;
       }
     },
     enabled: !!token,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
-    retry: 2,
+    retry: false, // Don't retry on auth errors
   });
 
   const user: AuthUser | undefined = query.data
