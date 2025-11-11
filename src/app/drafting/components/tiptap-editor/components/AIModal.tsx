@@ -8,18 +8,176 @@ import {
   X, 
   File as FileIcon, 
   Send,
+  Trash2,
+  History,
 } from "lucide-react";
 import { useRefineText } from "@/hooks/use-refine";
 import { useDocuments, type DocumentItem, useUploadDocuments, useDeleteDocument } from "@/hooks/use-documents";
-import { useDeleteDrafting, useUpdateDraft, useDraftFromDocuments } from "@/hooks/use-drafting";
+import { 
+  useDeleteDrafting, 
+  useUpdateDraft, 
+  useDraftFromDocuments,
+  useDraftingInstructions,
+  useCreateDraftingInstruction,
+  useDeleteDraftingInstruction,
+} from "@/hooks/use-drafting";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
 import DataHubPicker from "./DataHubPicker";
 import GeneratedContentView from "./GeneratedContentView";
 import AIModalFooter from "./AIModalFooter";
 import { getCookie as getCookieUtil } from "@/lib/utils";
 import { normalizeToHtml } from "../utils/html";
+
+// Component for displaying instruction items with hover tooltip
+function InstructionItem({
+  instruction,
+  onSelect,
+  onDelete,
+  isDeleting,
+}: {
+  instruction: string;
+  onSelect: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+  isDeleting: boolean;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const textRef = useRef<HTMLSpanElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check if text is truncated
+  useEffect(() => {
+    if (textRef.current) {
+      const element = textRef.current;
+      setIsTruncated(element.scrollWidth > element.clientWidth);
+    }
+  }, [instruction]);
+
+  // Update tooltip position when it's shown
+  useEffect(() => {
+    if (showTooltip && isTruncated && textRef.current) {
+      const updatePosition = () => {
+        if (textRef.current) {
+          const rect = textRef.current.getBoundingClientRect();
+          setTooltipPosition({
+            top: rect.top,
+            left: rect.left,
+          });
+        }
+      };
+      
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [showTooltip, isTruncated]);
+
+  const handleMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    if (isTruncated) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        setShowTooltip(true);
+      }, 200); // Reduced delay for better UX
+    }
+  };
+
+  const handleMouseLeave = () => {
+    // Use a small delay to allow moving to tooltip
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowTooltip(false);
+    }, 100);
+  };
+
+  const handleTooltipMouseEnter = () => {
+    // Cancel any pending hide
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setShowTooltip(true);
+  };
+
+  const handleTooltipMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+    setShowTooltip(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="flex items-center justify-between group hover:bg-gray-100 rounded px-2 py-1 cursor-pointer relative"
+      onClick={onSelect}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <span
+        ref={textRef}
+        className="text-xs text-gray-700 flex-1 truncate"
+        title={isTruncated ? instruction : undefined}
+      >
+        {instruction}
+      </span>
+      
+      {/* Tooltip for truncated text - using fixed positioning */}
+      {showTooltip && isTruncated && (
+        <div
+          ref={tooltipRef}
+          className="fixed z-[9999] w-auto max-w-md p-3 text-sm bg-gray-900 text-white border border-gray-700 shadow-xl rounded-md break-words pointer-events-auto"
+          style={{
+            top: `${tooltipPosition.top - 8}px`,
+            left: `${tooltipPosition.left}px`,
+            transform: 'translateY(-100%)',
+          }}
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
+        >
+          {instruction}
+          {/* Tooltip arrow */}
+          <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
+      
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(e);
+        }}
+        disabled={isDeleting}
+        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-opacity ml-2 flex-shrink-0"
+        title="Delete instruction"
+      >
+        <Trash2 size={12} />
+      </button>
+    </div>
+  );
+}
 
 function TemplatesInlineList({
   workspaceId,
@@ -135,6 +293,14 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
   const { mutateAsync: draftFromDocuments } = useDraftFromDocuments(workspaceId);
   const queryClient = useQueryClient();
 
+  // Drafting instructions hooks
+  const { data: previousInstructions = [], isLoading: loadingInstructions } = useDraftingInstructions(workspaceId);
+  const { mutateAsync: createInstruction, isPending: isSavingInstruction } = useCreateDraftingInstruction(workspaceId);
+  const { mutateAsync: deleteInstruction, isPending: isDeletingInstruction } = useDeleteDraftingInstruction(workspaceId);
+  const [showPreviousInstructions, setShowPreviousInstructions] = useState(false);
+  const [isPromptFromHistory, setIsPromptFromHistory] = useState(false);
+  const { showToast } = useToast();
+
   // moved to shared util normalizeToHtml
 
   // Quick prompts for quick selection
@@ -150,6 +316,53 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     "Write a user story",
     "Generate a business plan outline",
   ];
+
+  // Handle deleting an instruction
+  const handleDeleteInstruction = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteInstruction(id);
+      showToast("Instruction deleted successfully!", "success");
+    } catch (error) {
+      console.error("Failed to delete instruction:", error);
+      showToast("Failed to delete instruction", "error");
+    }
+  };
+
+  // Handle selecting a previous instruction
+  const handleSelectInstruction = (instruction: string) => {
+    setPrompt(instruction);
+    setIsPromptFromHistory(true); // Mark that this came from history
+    setShowPreviousInstructions(false);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  // Check if instruction already exists in history
+  const isInstructionAlreadySaved = (instruction: string): boolean => {
+    return previousInstructions.some(
+      (item) => item.instruction.trim().toLowerCase() === instruction.trim().toLowerCase()
+    );
+  };
+
+  // Auto-save instruction if it's new and not from history
+  const autoSaveInstruction = async (instruction: string) => {
+    if (!instruction.trim() || !workspaceId || isPromptFromHistory) return;
+    
+    // Check if already saved
+    if (isInstructionAlreadySaved(instruction)) return;
+
+    try {
+      await createInstruction({
+        instruction: instruction.trim(),
+        workspaceId,
+      });
+    } catch (error) {
+      console.error("Failed to auto-save instruction:", error);
+      // Don't show toast for auto-save failures to avoid noise
+    }
+  };
 
 
 
@@ -197,6 +410,9 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     setError("");
     setGeneratedContent("");
     setActiveDraftId(null);
+
+    // Auto-save the instruction if it's new
+    await autoSaveInstruction(prompt);
 
     try {
       // Get data hub files to process
@@ -338,6 +554,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     setFolderPath([]);
     setIsGenerating(false);
     setActiveDraftId(null);
+    setShowPreviousInstructions(false);
+    setIsPromptFromHistory(false);
     onClose();
   };
 
@@ -477,13 +695,57 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
 
             {/* Prompt Input */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                What would you like me to write?
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-700">
+                  What would you like me to write?
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPreviousInstructions(!showPreviousInstructions)}
+                  className="h-6 px-2 text-xs"
+                  title="Show previous instructions"
+                >
+                  <History size={12} className="mr-1" />
+                  History
+                </Button>
+              </div>
+              
+              {/* Previous Instructions Dropdown */}
+              {showPreviousInstructions && previousInstructions.length > 0 && (
+                <div className="mb-2 bg-gray-50 border border-gray-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+                  <div className="text-xs font-medium text-gray-700 mb-1">Previous Instructions:</div>
+                  <div className="space-y-1">
+                    {previousInstructions.map((item) => (
+                      <InstructionItem
+                        key={item.id}
+                        instruction={item.instruction}
+                        onSelect={() => handleSelectInstruction(item.instruction)}
+                        onDelete={(e) => handleDeleteInstruction(item.id, e)}
+                        isDeleting={isDeletingInstruction}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {showPreviousInstructions && previousInstructions.length === 0 && !loadingInstructions && (
+                <div className="mb-2 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-500">
+                  No previous instructions found
+                </div>
+              )}
+
               <Textarea
                 ref={textareaRef}
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  // Reset the flag when user manually types
+                  if (isPromptFromHistory) {
+                    setIsPromptFromHistory(false);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 placeholder="E.g., Draft an NDA for a software company..."
                 className="resize-none border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[80px] text-xs"

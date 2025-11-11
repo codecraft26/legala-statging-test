@@ -284,3 +284,123 @@ export async function fetchDraftingDetailViaClient(
     },
   });
 }
+
+// Drafting Instructions (for AskAI section slash commands)
+export type DraftingInstruction = {
+  id: string;
+  instruction: string;
+};
+
+export type DraftingInstructionListResponse = {
+  success: boolean;
+  data: DraftingInstruction[];
+};
+
+export type CreateDraftingInstructionRequest = {
+  instruction: string;
+  workspaceId: string;
+};
+
+export type CreateDraftingInstructionResponse = {
+  success: boolean;
+  data: DraftingInstruction;
+};
+
+export function useDraftingInstructions(workspaceId?: string | null) {
+  return useQuery({
+    queryKey: ["drafting-instructions", workspaceId],
+    enabled: !!workspaceId,
+    queryFn: async (): Promise<DraftingInstruction[]> => {
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(
+        `${base}/drafting/instruction?workspaceId=${encodeURIComponent(workspaceId!)}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: "no-store",
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as DraftingInstructionListResponse;
+      return json.data || [];
+    },
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateDraftingInstruction(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      request: CreateDraftingInstructionRequest
+    ): Promise<DraftingInstruction> => {
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(`${base}/drafting/instruction`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(request),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as CreateDraftingInstructionResponse;
+      return json.data;
+    },
+    onSuccess: () => {
+      if (workspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: ["drafting-instructions", workspaceId],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Error creating drafting instruction:", error);
+    },
+  });
+}
+
+export function useDeleteDraftingInstruction(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const base = getApiBaseUrl();
+      const token = getCookie("token") || "";
+      const res = await fetch(
+        `${base}/drafting/instruction?id=${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return id;
+    },
+    onMutate: async (id: string) => {
+      const key = ["drafting-instructions", workspaceId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<DraftingInstruction[]>(key) || [];
+      queryClient.setQueryData<DraftingInstruction[]>(key, (old) =>
+        (old || []).filter((it) => it.id !== id)
+      );
+      return { previous } as { previous: DraftingInstruction[] };
+    },
+    onError: (_err, _id, context) => {
+      const key = ["drafting-instructions", workspaceId];
+      if (context?.previous) queryClient.setQueryData(key, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["drafting-instructions", workspaceId],
+      });
+    },
+  });
+}
