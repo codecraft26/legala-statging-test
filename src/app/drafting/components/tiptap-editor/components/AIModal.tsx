@@ -2,27 +2,29 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  Sparkles, 
-  Loader2, 
-  X, 
-  File as FileIcon, 
+import {
+  Sparkles,
+  Loader2,
+  X,
   Send,
   Trash2,
   History,
 } from "lucide-react";
 import { useRefineText } from "@/hooks/use-refine";
 import { useDocuments, type DocumentItem, useUploadDocuments, useDeleteDocument } from "@/hooks/use-documents";
-import { 
-  useDeleteDrafting, 
-  useUpdateDraft, 
+import {
+  useDeleteDrafting,
+  useUpdateDraft,
   useDraftFromDocuments,
   useDraftingInstructions,
   useCreateDraftingInstruction,
   useDeleteDraftingInstruction,
+  useDraftingList,
 } from "@/hooks/use-drafting";
+import type { DraftingItem, DraftFromDocumentsRequest } from "@/hooks/use-drafting";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import DataHubPicker from "./DataHubPicker";
@@ -257,6 +259,8 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
   const [generatedContent, setGeneratedContent] = useState("");
   const [error, setError] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
+  const [draftName, setDraftName] = useState("");
   
   // Data hub related state
   const [showDataHub, setShowDataHub] = useState(false);
@@ -275,6 +279,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     data: availableDocuments = [], 
     isLoading: loadingDocuments 
   } = useDocuments(workspaceId, currentFolderId);
+  const { data: availableDrafts = [], isLoading: loadingDrafts } = useDraftingList(workspaceId);
   const uploadDocuments = useUploadDocuments();
   const deleteDocument = useDeleteDocument();
 
@@ -364,9 +369,20 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     }
   };
 
+  const handleDraftSelection = useCallback((id: string) => {
+    setSelectedDraftIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((draftId) => draftId !== id);
+      }
+      return [...prev, id];
+    });
+  }, []);
 
-
-  
+  const getDraftDisplayName = useCallback((draft: DraftingItem) => {
+    if (draft?.name?.trim()) return draft.name.trim();
+    if (draft?.instruction?.trim()) return draft.instruction.trim();
+    return "Untitled draft";
+  }, []);
 
   // Handle data hub file selection
   const handleDataHubFileSelect = (file: DocumentItem) => {
@@ -420,46 +436,55 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
         .map((id) => dataHubSelectedFiles.find((f) => f.id === id))
         .filter(Boolean);
 
-      // If we have files, use the drafting API
-      if (dataHubFilesToProcess.length > 0) {
-        const documentIds = dataHubSelectedFiles
-          .filter((f) => selectedFiles.includes(f.id))
-          .map((f) => f.originalFile.id);
+      const documentIds = dataHubSelectedFiles
+        .filter((f) => selectedFiles.includes(f.id))
+        .map((f) => f.originalFile.id);
 
-        const draftPayload = {
-          documentId: documentIds,
+      const shouldUseDraftingApi =
+        dataHubFilesToProcess.length > 0 || selectedDraftIds.length > 0;
+
+      if (shouldUseDraftingApi) {
+        if (!workspaceId) {
+          throw new Error("Workspace not found. Please refresh and try again.");
+        }
+
+        const draftPayload: DraftFromDocumentsRequest = {
           instruction: prompt,
-          workspaceId: workspaceId,
+          workspaceId,
+          ...(documentIds.length ? { documentId: documentIds } : {}),
+          ...(selectedDraftIds.length ? { draftIds: selectedDraftIds } : {}),
+          ...(draftName.trim() ? { name: draftName.trim() } : {}),
         };
 
-        const created = await draftFromDocuments(draftPayload as any);
+        const created = await draftFromDocuments(draftPayload);
         const createdId = created?.id;
         if (!createdId) {
           throw new Error("Invalid response: draft id missing");
         }
         setActiveDraftId(createdId);
-        // list invalidation handled by hook
 
-        // Poll detail until completed
-        const POLL_INTERVAL_MS = 5000; // 3 seconds
+        const POLL_INTERVAL_MS = 5000;
         await new Promise<void>((resolve, reject) => {
           const start = Date.now();
-          const timeoutMs = 2 * 60 * 1000; // 2 minutes
+          const timeoutMs = 2 * 60 * 1000;
           const interval = setInterval(async () => {
             try {
-              // use query client to fetch detail (deduped via cache)
               const data = await queryClient.fetchQuery({
                 queryKey: ["drafting-detail", createdId],
                 queryFn: async () => {
-                  const base = (await import("@/lib/utils")).getApiBaseUrl();
-                  const token = (await import("@/lib/utils")).getCookie("token") || "";
-                  const res = await fetch(`${base}/drafting/detail?id=${encodeURIComponent(createdId)}`, {
-                    headers: {
-                      "Content-Type": "application/json",
-                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    cache: "no-store",
-                  });
+                  const utils = await import("@/lib/utils");
+                  const base = utils.getApiBaseUrl();
+                  const token = utils.getCookie("token") || "";
+                  const res = await fetch(
+                    `${base}/drafting/detail?id=${encodeURIComponent(createdId)}`,
+                    {
+                      headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      },
+                      cache: "no-store",
+                    }
+                  );
                   if (!res.ok) throw new Error(`HTTP ${res.status}`);
                   const json = await res.json();
                   return json?.data || json;
@@ -470,7 +495,6 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
               if (status === "COMPLETED") {
                 clearInterval(interval);
                 setGeneratedContent(data?.content || "");
-                // Refresh drafts list to reflect updated status/content
                 if (workspaceId) {
                   queryClient.invalidateQueries({
                     queryKey: ["drafting", workspaceId],
@@ -491,7 +515,6 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
           }, POLL_INTERVAL_MS);
         });
       } else {
-        // Use the refine API for text-only generation
         const request = {
           text: "",
           instruction: prompt,
@@ -547,6 +570,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     setGeneratedContent("");
     setError("");
     setSelectedFiles([]);
+    setSelectedDraftIds([]);
     setDataHubSelectedFiles([]);
     setShowDataHub(false);
     setSearchTerm("");
@@ -556,6 +580,7 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
     setActiveDraftId(null);
     setShowPreviousInstructions(false);
     setIsPromptFromHistory(false);
+    setDraftName("");
     onClose();
   };
 
@@ -582,6 +607,11 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
       textareaRef.current.focus();
     }
   }, [isOpen]);
+
+  const selectedDrafts = React.useMemo(
+    () => availableDrafts.filter((draft) => selectedDraftIds.includes(draft.id)),
+    [availableDrafts, selectedDraftIds]
+  );
 
   const allFiles = getAllFiles();
 
@@ -691,6 +721,90 @@ export default function AIModal({ isOpen, onClose, editor, onSwitchToDraft }: AI
                   <p className="text-xs text-gray-500">No files selected</p>
                 )}
               </div>
+            </div>
+
+            {/* Existing Drafts */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Existing Drafts
+              </label>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 max-h-40 overflow-y-auto space-y-1">
+                {loadingDrafts ? (
+                  <p className="text-xs text-gray-500">Loading drafts...</p>
+                ) : availableDrafts.length > 0 ? (
+                  availableDrafts.map((draft) => {
+                    const displayName = getDraftDisplayName(draft);
+                    const statusLabel = draft.status
+                      ? draft.status.replace(/_/g, " ").toLowerCase()
+                      : "unknown";
+                    return (
+                      <label
+                        key={draft.id}
+                        className="flex items-start gap-2 p-1 rounded hover:bg-gray-100 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDraftIds.includes(draft.id)}
+                          onChange={() => handleDraftSelection(draft.id)}
+                          className="mt-0.5 h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-xs font-medium text-gray-800 truncate">
+                            {displayName}
+                          </p>
+                          <p className="text-[10px] text-gray-500">
+                            Status: {statusLabel}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-gray-500">No drafts available</p>
+                )}
+              </div>
+            </div>
+
+            {/* Selected Drafts */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Selected Drafts
+              </label>
+              <div className="bg-gray-50 p-2 rounded-lg max-h-20 overflow-y-auto">
+                {selectedDrafts.length > 0 ? (
+                  selectedDrafts.map((draft) => (
+                    <div
+                      key={draft.id}
+                      className="flex items-center gap-1.5 py-0.5 text-xs text-gray-700"
+                    >
+                      <span className="truncate flex-1">
+                        {getDraftDisplayName(draft)}
+                      </span>
+                      <button
+                        onClick={() => handleDraftSelection(draft.id)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">No drafts selected</p>
+                )}
+              </div>
+            </div>
+
+            {/* Draft Name */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Draft Name (optional)
+              </label>
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder="Enter a name for the generated draft"
+                className="h-8 text-xs"
+              />
             </div>
 
             {/* Prompt Input */}
