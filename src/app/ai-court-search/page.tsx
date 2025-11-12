@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import Pagination from "@/app/research/components/common/Pagination";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type SupremeCourtItem = {
   index: number;
@@ -33,10 +33,38 @@ type SupremeCourtItem = {
 
 import { useAICourtSearch } from "@/hooks/use-research";
 
+const YEAR_REGEX = /\b(19|20)\d{2}\b/;
+
+function normalizeQueryWithYear(input: string) {
+  const clean = input.trim();
+  if (YEAR_REGEX.test(clean)) {
+    return {
+      normalizedQuery: clean,
+      addedYear: null as number | null,
+    };
+  }
+  const currentYear = new Date().getFullYear();
+  const base = clean.replace(/[.\s]+$/, "");
+  return {
+    normalizedQuery: `${base} from ${currentYear}`,
+    addedYear: currentYear,
+  };
+}
+
 export default function AICourtSearchPage() {
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState<string | null>(null);
-  const { data, isLoading, isError, error } = useAICourtSearch(submittedQuery);
+  const [searchPage, setSearchPage] = useState<number>(1);
+  const [effectiveQuery, setEffectiveQuery] = useState<string | null>(null);
+  const [queryNotice, setQueryNotice] = useState<string | null>(null);
+  const { data, isLoading, isError, error } = useAICourtSearch(
+    submittedQuery
+      ? {
+          query: submittedQuery,
+          page: searchPage,
+        }
+      : null
+  );
   const [activeTab, setActiveTab] = useState<"supreme" | "high">("supreme");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -52,6 +80,25 @@ export default function AICourtSearchPage() {
     | { error: string }
     | undefined;
   const highRaw = (data?.data as any)?.high_court as
+    | {
+        records?: Array<{
+          serial_number?: number;
+          case_number?: string;
+          petitioner?: string;
+          respondent?: string;
+          judge?: string;
+          judgment_excerpt?: string;
+          cnr?: string;
+          registration_date?: string;
+          decision_date?: string;
+          disposal_nature?: string;
+          status?: string;
+          court?: string;
+        }>;
+        totalpages?: number;
+        currentpage?: number;
+        totalrecords?: number;
+      }
     | Array<{
         serial_number?: number;
         case_number?: string;
@@ -76,7 +123,27 @@ export default function AICourtSearchPage() {
     : [];
 
   // Map High Court results into SupremeCourtItem shape for the table
-  const highArray = Array.isArray(highRaw) ? highRaw : [];
+  const highArray = Array.isArray(highRaw)
+    ? highRaw
+    : Array.isArray(highRaw?.records)
+      ? highRaw.records
+      : [];
+  const highPagination = !Array.isArray(highRaw) && highRaw
+    ? {
+        totalPages:
+          Number(
+            (highRaw as any).totalpages ?? (highRaw as any).totalPages ?? 1
+          ) || 1,
+        currentPage:
+          Number(
+            (highRaw as any).currentpage ?? (highRaw as any).currentPage ?? searchPage
+          ) || searchPage,
+        totalRecords:
+          Number(
+            (highRaw as any).totalrecords ?? (highRaw as any).totalRecords ?? highArray.length
+          ) || highArray.length,
+      }
+    : null;
   const highAsSupreme: SupremeCourtItem[] = highArray.map((h, i) => {
     const titleParts = [h.petitioner, h.respondent].filter(Boolean);
     return {
@@ -117,64 +184,85 @@ export default function AICourtSearchPage() {
   }, [activeTab, supremeResults.length, highAsSupreme.length, supremeError]);
 
   // Select results based on active tab
-  const results: SupremeCourtItem[] =
-    activeTab === "supreme" ? supremeResults : highAsSupreme;
-  const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
-
-  const hasResults = results && results.length > 0;
 
   const handleSearch = () => {
-    setSubmittedQuery(query.trim());
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    const { normalizedQuery, addedYear } = normalizeQueryWithYear(trimmed);
+    setSubmittedQuery(normalizedQuery);
+    setEffectiveQuery(normalizedQuery);
+    setSearchPage(1);
+    setQueryNotice(
+      addedYear
+        ? `No year detected in your prompt. Added ${addedYear} automatically for better results.`
+        : null
+    );
   };
 
-  const tableRows = useMemo(() => {
-    return results.map((item) => {
-      const title = item.case_title?.full_title || "-";
-      const scr = item.citation?.scr_citation || "-";
-      const neutral = item.citation?.neutral_citation || "-";
-      const date = item.case_details?.decision_date || "-";
-      const caseNo = item.case_details?.case_number || "-";
-      const bench = item.case_details?.bench_size || "-";
-      const disposalNature = item.case_details?.disposal_nature || "-";
-      const judges = (item.bench?.judges || []).join(", ") || "-";
-      const author = item.bench?.author_judge || "-";
-      const cnr = item.cnr || "-";
-      const highlights = (item.highlights && item.highlights.length > 0)
+  const toRow = (item: SupremeCourtItem) => {
+    const title = item.case_title?.full_title || "-";
+    const scr = item.citation?.scr_citation || "-";
+    const neutral = item.citation?.neutral_citation || "-";
+    const date = item.case_details?.decision_date || "-";
+    const caseNo = item.case_details?.case_number || "-";
+    const benchSize = item.case_details?.bench_size || "-";
+    const disposalNature = item.case_details?.disposal_nature || "-";
+    const judges = (item.bench?.judges || []).join(", ") || "-";
+    const author = item.bench?.author_judge || "-";
+    const cnr = item.cnr || "-";
+    const highlights =
+      item.highlights && item.highlights.length > 0
         ? item.highlights.join(" | ")
         : "-";
-      const pdfParams = item.pdf_params;
-      const court = item.court || "-";
-      return {
-        index: item.index,
-        title,
-        scr,
-        neutral,
-        date,
-        caseNo,
-        bench,
-        disposalNature,
-        judges,
-        author,
-        cnr,
-        highlights,
-        pdfParams,
-        court,
-      };
-    });
-  }, [results]);
+    const court = item.court || "-";
 
-  // Reset pagination when results change
+    return {
+      index: item.index,
+      title,
+      scr,
+      neutral,
+      date,
+      caseNo,
+      bench: benchSize,
+      disposalNature,
+      judges,
+      author,
+      cnr,
+      highlights,
+      court,
+    };
+  };
+
   React.useEffect(() => {
-    setPage(1);
-  }, [results.length, activeTab]);
+    if (!submittedQuery) return;
+    if (
+      highPagination?.currentPage &&
+      highPagination.currentPage !== searchPage
+    ) {
+      setSearchPage(highPagination.currentPage);
+    }
+  }, [highPagination?.currentPage, searchPage, submittedQuery]);
 
-  const total = tableRows.length;
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-  const pagedRows = tableRows.slice(start, end);
-  const pagedItems = results.slice(start, end);
-  const totalCount = supremeResults.length + highAsSupreme.length;
+  const highTotalRecords = highPagination?.totalRecords ?? highAsSupreme.length;
+  const totalCount = supremeResults.length + (highTotalRecords || 0);
+  const canPaginate =
+    !!submittedQuery && !!highPagination && highPagination.totalPages > 1;
+  const isFirstPage =
+    (highPagination?.currentPage ?? 1) <= 1;
+  const isLastPage =
+    !!highPagination && highPagination.currentPage >= highPagination.totalPages;
+  const handlePageStep = (direction: "prev" | "next") => {
+    if (!submittedQuery || !highPagination) return;
+    const delta = direction === "prev" ? -1 : 1;
+    const target = Math.min(
+      highPagination.totalPages,
+      Math.max(1, (highPagination.currentPage ?? 1) + delta)
+    );
+    if (target !== searchPage) {
+      setSearchPage(target);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -197,12 +285,21 @@ export default function AICourtSearchPage() {
             {isLoading ? "Searching..." : "Search"}
           </Button>
         </div>
+        <Alert className="bg-amber-50 border-amber-200 text-amber-900">
+          <AlertTitle>Prompt needs to be precise</AlertTitle>
+          <AlertDescription>
+            Specify statutes, sections, parties, and a time period for best results. Broader prompts may return limited or no data.
+          </AlertDescription>
+        </Alert>
         {/* sample prompts moved to empty state below for better UX */}
         {isError && (
           <div className="text-sm text-destructive">{(error as any)?.message || "Something went wrong"}</div>
         )}
         {!isError && supremeError && activeTab === "supreme" && (
           <div className="text-sm text-destructive">Supreme Court: {supremeError}</div>
+        )}
+        {queryNotice && (
+          <div className="text-xs text-amber-600">{queryNotice}</div>
         )}
       </div>
 
@@ -224,6 +321,16 @@ export default function AICourtSearchPage() {
             <div className="text-sm text-muted-foreground">
               Found <span className="font-medium text-foreground">{totalCount}</span> result(s)
             </div>
+            {effectiveQuery && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Showing results for: <span className="font-medium text-foreground">{effectiveQuery}</span>
+              </div>
+            )}
+            {highPagination && (
+              <div className="text-xs text-muted-foreground mt-1">
+                High Court index: page {highPagination.currentPage} of {highPagination.totalPages} ({highPagination.totalRecords} total records)
+              </div>
+            )}
           </div>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
@@ -231,18 +338,18 @@ export default function AICourtSearchPage() {
             <TabsTrigger value="supreme" disabled={(supremeResults.length === 0 || !!supremeError) && highAsSupreme.length > 0}>
               Supreme Court ({supremeResults.length})
             </TabsTrigger>
-            <TabsTrigger value="high" disabled={highAsSupreme.length === 0 && supremeResults.length > 0}>
-              High Court ({highAsSupreme.length})
+            <TabsTrigger value="high" disabled={highTotalRecords === 0 && supremeResults.length > 0}>
+              High Court ({highTotalRecords})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="supreme">
-            {hasResults ? (
+            {supremeResults.length > 0 ? (
               <div className="space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
-                  {pagedItems.map((item, idx) => {
-                    const row = pagedRows[idx];
+                  {supremeResults.map((item) => {
+                    const row = toRow(item);
                     return (
-                      <Card key={row.index}>
+                      <Card key={`${row.index}-${row.caseNo}-${row.title}`}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base font-semibold">
                             {row.title}
@@ -299,19 +406,6 @@ export default function AICourtSearchPage() {
                       </Card>
                     );
                   })}
-                  <div className="mt-4">
-                    <Pagination
-                      page={page}
-                      pageSize={pageSize}
-                      total={total}
-                      onPageChange={setPage}
-                      onPageSizeChange={(n: number) => {
-                        setPageSize(n);
-                        setPage(1);
-                      }}
-                      pageSizeOptions={[10, 20, 50]}
-                    />
-                  </div>
               </div>
             ) : (
               <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>
@@ -319,12 +413,12 @@ export default function AICourtSearchPage() {
           </TabsContent>
 
           <TabsContent value="high">
-            {hasResults ? (
+            {highAsSupreme.length > 0 ? (
               <div className="space-y-3 max-h-[calc(100vh-6rem)] overflow-auto pr-2">
-                  {pagedItems.map((item, idx) => {
-                    const row = pagedRows[idx];
+                  {highAsSupreme.map((item) => {
+                    const row = toRow(item);
                     return (
-                      <Card key={row.index}>
+                      <Card key={`${row.index}-${row.caseNo}-${row.title}`}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base font-semibold">
                             {row.title}
@@ -381,19 +475,31 @@ export default function AICourtSearchPage() {
                       </Card>
                     );
                   })}
-                  <div className="mt-4">
-                    <Pagination
-                      page={page}
-                      pageSize={pageSize}
-                      total={total}
-                      onPageChange={setPage}
-                      onPageSizeChange={(n: number) => {
-                        setPageSize(n);
-                        setPage(1);
-                      }}
-                      pageSizeOptions={[10, 20, 50]}
-                    />
-                  </div>
+                  {canPaginate && (
+                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        Page {highPagination?.currentPage} of {highPagination?.totalPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageStep("prev")}
+                          disabled={isFirstPage || isLoading}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageStep("next")}
+                          disabled={isLastPage || isLoading}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
               </div>
             ) : (
               <div className="py-10 text-center text-sm text-muted-foreground">{isLoading ? "Loading results..." : "No results yet. Try a search."}</div>

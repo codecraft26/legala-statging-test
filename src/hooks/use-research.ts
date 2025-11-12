@@ -71,11 +71,20 @@ export type AICourtSearchResponse = {
   error?: string;
 };
 
-export function useAICourtSearch(query: string | null) {
+export type AICourtSearchParams = {
+  query: string;
+  page?: number;
+};
+
+export function useAICourtSearch(params: AICourtSearchParams | null) {
   return useQuery({
-    queryKey: ["ai-court-search", query],
-    enabled: !!(query && query.trim().length > 0),
+    queryKey: ["ai-court-search", params?.query, params?.page ?? 1],
+    enabled: !!(params?.query && params.query.trim().length > 0),
     queryFn: async (): Promise<AICourtSearchResponse> => {
+      if (!params) {
+        throw new Error("Missing search parameters");
+      }
+
       const token = getCookie("token");
       if (!token) {
         const err: any = new Error("Authentication token not found");
@@ -85,9 +94,12 @@ export function useAICourtSearch(query: string | null) {
 
       // Use existing axios instance with research base URL from utils
       const base = getApiBaseUrl();
+      const page = params.page && params.page > 0 ? params.page : 1;
+      const trimmedQuery = params.query.trim();
+
       const resp = await http.post<AICourtSearchResponse>(
-        `${base}/research/court-search`,
-        { query }
+        `${base}/research/court-search?page=${page}`,
+        { query: trimmedQuery }
       );
       return resp.data;
     },
