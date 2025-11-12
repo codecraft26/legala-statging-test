@@ -217,9 +217,11 @@ export function useUpdateDraft(workspaceId?: string | null) {
 
 // Create draft from documents (Ask AI flow)
 export type DraftFromDocumentsRequest = {
-  documentId: string[];
+  documentId?: string[];
+  draftIds?: string[];
   instruction: string;
   workspaceId: string;
+  name?: string;
 };
 
 export type DraftFromDocumentsResponse = {
@@ -235,13 +237,27 @@ export function useDraftFromDocuments(workspaceId?: string | null) {
     ): Promise<DraftingItem> => {
       const base = getApiBaseUrl();
       const token = getCookie("token") || "";
+      const payload: Record<string, unknown> = {
+        instruction: request.instruction,
+        workspaceId: request.workspaceId,
+      };
+      if (request.name?.trim()) {
+        payload.name = request.name.trim();
+      }
+      if (request.documentId?.length) {
+        payload.documentId = request.documentId;
+      }
+      if (request.draftIds?.length) {
+        payload.draftIds = request.draftIds;
+      }
+
       const res = await fetch(`${base}/drafting`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as DraftFromDocumentsResponse;
