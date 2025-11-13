@@ -58,6 +58,21 @@ export interface AttachFilesRequest {
   fileIds: string[];
 }
 
+export interface ChatFileAttachment {
+  id: string;
+  chatId: string;
+  fileId: string;
+  required: boolean;
+  createdAt: string;
+  updatedAt: string;
+  file: {
+    id: string;
+    name: string;
+    fileId: string;
+    summary?: string;
+  };
+}
+
 // Query keys for consistent cache management
 export const assistantKeys = {
   all: ["assistant"] as const,
@@ -285,15 +300,7 @@ export function useAssistantChatDetail(chatId: string) {
       id: string;
       name: string;
       type: string;
-      files: Array<{
-        id: string;
-        fileId: string;
-        file: {
-          id: string;
-          name: string;
-          fileId: string;
-        };
-      }>;
+      files: ChatFileAttachment[];
     };
   }>({
     queryKey: ["assistant", "chat", "detail", chatId],
@@ -304,6 +311,36 @@ export function useAssistantChatDetail(chatId: string) {
     enabled: !!chatId,
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+// Hook for toggling a chat file's required state
+export function useToggleChatFileRequired() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: { chatFileId: string; required: boolean }) => {
+      const { chatFileId, required } = args;
+      return await Api.patch<{ success: boolean; data: ChatFileAttachment }>(
+        `/assistant/chat/chat-file?id=${encodeURIComponent(chatFileId)}`,
+        { required }
+      );
+    },
+    onSuccess: (data) => {
+      const chatId = data?.data?.chatId;
+      if (chatId) {
+        queryClient.invalidateQueries({
+          queryKey: ["assistant", "chat", "detail", chatId],
+        });
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: ["assistant", "chat", "detail"],
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to toggle chat file requirement:", error);
+    },
   });
 }
 

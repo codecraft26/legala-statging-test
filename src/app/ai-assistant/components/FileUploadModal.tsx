@@ -3,7 +3,11 @@
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
-import { type AssistantFile, type AssistantChat } from "@/hooks/use-assistant";
+import {
+  type AssistantFile,
+  type AssistantChat,
+  type ChatFileAttachment,
+} from "@/hooks/use-assistant";
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -11,21 +15,15 @@ interface FileUploadModalProps {
   currentChat?: AssistantChat | null;
   chatDetail?: {
     data: {
-      files: Array<{
-        id: string;
-        fileId: string;
-        file: {
-          id: string;
-          name: string;
-          fileId: string;
-        };
-      }>;
+      files: ChatFileAttachment[];
     };
   } | null;
   uploadedFiles: AssistantFile[];
   isLoading: boolean;
   onFileUpload: (files: FileList | null) => void;
   onRemoveFile: (fileId: string) => void;
+  onToggleChatFile?: (chatFileId: string, required: boolean) => void;
+  togglingChatFileId?: string | null;
 }
 
 export function FileUploadModal({
@@ -36,7 +34,9 @@ export function FileUploadModal({
   uploadedFiles,
   isLoading,
   onFileUpload,
-  onRemoveFile
+  onRemoveFile,
+  onToggleChatFile,
+  togglingChatFileId,
 }: FileUploadModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,14 +92,41 @@ export function FileUploadModal({
             <h4 className="text-xs font-medium text-muted-foreground">Documents in this Chat</h4>
             <div className="space-y-1 max-h-24 overflow-y-auto">
               {chatDetail.data.files.map((fileAttachment) => (
-                <div key={fileAttachment.id} className="flex items-center justify-between p-1.5 bg-muted/50 rounded text-xs">
-                  <span className="truncate flex-1" title={fileAttachment.file.name}>
-                    {fileAttachment.file.name.length > 25 ? fileAttachment.file.name.substring(0, 25) + "..." : fileAttachment.file.name}
-                  </span>
-                  <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded text-[10px]">
-                    ✓
-                  </span>
-                </div>
+                <label
+                  key={fileAttachment.id}
+                  className="flex items-center gap-2 p-1.5 bg-muted/50 rounded text-xs cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={!!fileAttachment.required}
+                    onChange={(e) =>
+                      onToggleChatFile?.(fileAttachment.id, e.target.checked)
+                    }
+                    disabled={
+                      !onToggleChatFile ||
+                      togglingChatFileId === fileAttachment.id
+                    }
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className="truncate flex-1"
+                      title={fileAttachment.file.name}
+                    >
+                      {fileAttachment.file.name.length > 25
+                        ? fileAttachment.file.name.substring(0, 25) + "..."
+                        : fileAttachment.file.name}
+                    </span>
+                    <div className="text-[10px] text-muted-foreground">
+                      {fileAttachment.required
+                        ? "Included in next prompt"
+                        : "Excluded"}
+                    </div>
+                  </div>
+                  {togglingChatFileId === fileAttachment.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                  ) : null}
+                </label>
               ))}
             </div>
           </div>

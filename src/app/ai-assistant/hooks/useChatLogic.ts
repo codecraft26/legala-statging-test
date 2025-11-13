@@ -2,18 +2,19 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { 
-  useUploadAssistantFiles, 
-  useCreateAssistantChat, 
-  useAssistantConversations, 
-  useStreamAssistantResponse, 
-  useAssistantFiles, 
-  useAttachFilesToChat, 
-  useAssistantChatDetail, 
+import {
+  useUploadAssistantFiles,
+  useCreateAssistantChat,
+  useAssistantConversations,
+  useStreamAssistantResponse,
+  useAssistantFiles,
+  useAttachFilesToChat,
+  useAssistantChatDetail,
   useUpdateAssistantChat,
-  type AssistantFile, 
-  type AssistantChat, 
-  type Conversation 
+  useToggleChatFileRequired,
+  type AssistantFile,
+  type AssistantChat,
+  type Conversation,
 } from "@/hooks/use-assistant";
 
 const modelConfig = {
@@ -89,6 +90,10 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
   const { data: existingConversations, isLoading: conversationsLoading, refetch: refetchConversations } = useAssistantConversations(currentChat?.id || "");
   const { data: availableFiles } = useAssistantFiles(workspaceId);
   const { data: chatDetail } = useAssistantChatDetail(currentChat?.id || "");
+  const toggleChatFileRequiredMutation = useToggleChatFileRequired();
+  const [togglingChatFileId, setTogglingChatFileId] = useState<string | null>(
+    null
+  );
 
   // Helper: enforce single-file for General mode
   const associatedCount = (chatDetail?.data?.files?.length || 0) + uploadedFiles.filter(u => !chatDetail?.data?.files?.some(f => f.file.fileId === u.fileId)).length;
@@ -232,6 +237,24 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
       // Handle error silently
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleChatFileRequired = async (
+    chatFileId: string,
+    required: boolean
+  ) => {
+    if (!chatFileId) return;
+    try {
+      setTogglingChatFileId(chatFileId);
+      await toggleChatFileRequiredMutation.mutateAsync({
+        chatFileId,
+        required,
+      });
+    } catch (error) {
+      console.error("Failed to update chat file requirement:", error);
+    } finally {
+      setTogglingChatFileId(null);
     }
   };
 
@@ -546,5 +569,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     addExistingFile,
     selectFilesForChat,
     setShowFileUpload,
+    handleToggleChatFileRequired,
+    togglingChatFileId,
   };
 }
