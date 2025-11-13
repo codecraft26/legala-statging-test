@@ -46,6 +46,8 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
     addExistingFile,
     selectFilesForChat,
     setShowFileUpload,
+    handleToggleChatFileRequired,
+    togglingChatFileId,
   } = useChatLogic({ workspaceId, currentChat, onChatCreated });
 
 
@@ -144,6 +146,8 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
           isLoading={isLoading}
           onFileUpload={handleFileUpload}
           onRemoveFile={removeFile}
+          onToggleChatFile={handleToggleChatFileRequired}
+          togglingChatFileId={togglingChatFileId}
         />
       </div>
     </div>
