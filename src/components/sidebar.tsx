@@ -100,29 +100,37 @@ export default function Sidebar() {
         collapsed ? SIDEBAR_WIDTHS.COLLAPSED : SIDEBAR_WIDTHS.EXPANDED
       }`}
     >
-      <div className="mb-4 flex items-center justify-between">
+      <div className={`mb-4 flex items-center ${collapsed ? "flex-col gap-3" : "justify-between"}`}>
         {!collapsed ? (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="logo" width={28} height={28} />
-            <span className="text-sm font-bold tracking-wide">InfraHive</span>
-          </Link>
+          <>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image src="/logo.png" alt="logo" width={28} height={28} />
+              <span className="text-sm font-bold tracking-wide">InfraHive</span>
+            </Link>
+            <button
+              type="button"
+              aria-label="Toggle sidebar"
+              onClick={() => setCollapsed((v) => !v)}
+              className="rounded-md border p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <PanelLeftClose size={16} />
+            </button>
+          </>
         ) : (
-          <Link href="/dashboard">
-            <Image src="/logo.png" alt="logo" width={28} height={28} />
-          </Link>
+          <>
+            <Link href="/dashboard" className="flex items-center justify-center w-full">
+              <Image src="/logo.png" alt="logo" width={40} height={40} className="object-contain" />
+            </Link>
+            <button
+              type="button"
+              aria-label="Toggle sidebar"
+              onClick={() => setCollapsed((v) => !v)}
+              className="rounded-md border p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors w-full flex items-center justify-center"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+          </>
         )}
-        <button
-          type="button"
-          aria-label="Toggle sidebar"
-          onClick={() => setCollapsed((v) => !v)}
-          className="rounded-md border p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-        >
-          {collapsed ? (
-            <PanelLeftOpen size={16} />
-          ) : (
-            <PanelLeftClose size={16} />
-          )}
-        </button>
       </div>
 
       {/* Workspace Selector */}
