@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ChevronRight,
   ArrowLeft,
@@ -9,6 +10,7 @@ import {
   X,
   FileText,
   Folder,
+  Search,
 } from "lucide-react";
 import { TruncatedFilename } from "@/components/ui/truncated-filename";
 
@@ -48,26 +50,51 @@ export default function DocumentsImportModal({
   onToggleSelect,
   onImport,
 }: DocumentsImportModalProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Clear search when modal closes
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+    }
+  }, [open]);
+
+  // Filter items based on search query
+  const filteredItems = useMemo(() => {
+    if (!searchQuery.trim()) return items;
+    const query = searchQuery.toLowerCase().trim();
+    return items.filter((item) =>
+      item.filename.toLowerCase().includes(query)
+    );
+  }, [items, searchQuery]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-background border rounded-xl p-6 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">
+          <h3 className="text-lg font-medium text-foreground">
             Select Files from Documents
           </h3>
-          <Button onClick={onClose} variant="ghost" size="sm">
+          <Button 
+            onClick={() => {
+              setSearchQuery("");
+              onClose();
+            }} 
+            variant="ghost" 
+            size="sm"
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
 
-        <div className="flex items-center space-x-2 mb-4 text-sm text-gray-600">
+        <div className="flex items-center space-x-2 mb-4 text-sm text-muted-foreground">
           <Button
             onClick={() => onCrumbClick(-1)}
             variant="ghost"
             size="sm"
-            className="p-0 h-auto hover:text-blue-600"
+            className="p-0 h-auto hover:text-primary"
           >
             Documents
           </Button>
@@ -78,7 +105,7 @@ export default function DocumentsImportModal({
                 onClick={() => onCrumbClick(index)}
                 variant="ghost"
                 size="sm"
-                className="p-0 h-auto hover:text-blue-600"
+                className="p-0 h-auto hover:text-primary"
               >
                 {folder.name}
               </Button>
@@ -86,65 +113,91 @@ export default function DocumentsImportModal({
           ))}
         </div>
 
-        {isFetching ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        {/* Search Input */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search files and folders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
-        ) : (
-          <div className="space-y-2 mb-4">
-            {items.length > 0 ? (
-              items.map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    item.type === "file" && selectedIds.includes(item.id)
-                      ? "bg-blue-50 border border-blue-200"
-                      : "hover:bg-gray-50"
-                  }`}
-                  onClick={() => {
-                    if (item.type === "folder") {
-                      onFolderClick(item);
-                    } else {
-                      onToggleSelect(item.id);
-                    }
-                  }}
-                >
-                  {item.type === "folder" ? (
-                    <Folder className="w-5 h-5 text-blue-500 mr-3" />
-                  ) : (
-                    <FileText className="w-5 h-5 text-gray-500 mr-3" />
-                  )}
-                  <span className="flex-1 text-sm font-medium text-gray-900">
-                    <TruncatedFilename
-                      filename={item.filename}
-                      maxLength={25}
-                      showExtension={true}
-                    />
-                  </span>
-                  {item.type === "folder" ? (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(item.id)}
-                      onChange={() => {}}
-                      className="h-4 w-4 text-blue-600 rounded"
-                    />
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center">
-                {folderPath.length > 0
-                  ? "This folder is empty"
-                  : "No documents available"}
-              </p>
-            )}
-          </div>
-        )}
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto mb-4">
+          {isFetching ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                      item.type === "file" && selectedIds.includes(item.id)
+                        ? "bg-primary/10 border border-primary/20"
+                        : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => {
+                      if (item.type === "folder") {
+                        onFolderClick(item);
+                        setSearchQuery(""); // Clear search when navigating
+                      } else {
+                        onToggleSelect(item.id);
+                      }
+                    }}
+                  >
+                    {item.type === "folder" ? (
+                      <Folder className="w-5 h-5 text-primary mr-3" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-muted-foreground mr-3" />
+                    )}
+                    <span className="flex-1 text-sm font-medium text-foreground">
+                      <TruncatedFilename
+                        filename={item.filename}
+                        maxLength={25}
+                        showExtension={true}
+                      />
+                    </span>
+                    {item.type === "folder" ? (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => {}}
+                        className="h-4 w-4 text-primary rounded"
+                      />
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  {searchQuery.trim()
+                    ? "No files or folders match your search"
+                    : folderPath.length > 0
+                      ? "This folder is empty"
+                      : "No documents available"}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end space-x-3">
-          <Button onClick={onClose} variant="outline">
+          <Button 
+            onClick={() => {
+              setSearchQuery("");
+              onClose();
+            }} 
+            variant="outline"
+          >
             Cancel
           </Button>
           <Button

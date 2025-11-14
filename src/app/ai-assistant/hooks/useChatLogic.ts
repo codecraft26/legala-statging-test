@@ -95,7 +95,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
     null
   );
 
-  // Helper: enforce single-file for General mode
+  // Helper: count associated files
   const associatedCount = (chatDetail?.data?.files?.length || 0) + uploadedFiles.filter(u => !chatDetail?.data?.files?.some(f => f.file.fileId === u.fileId)).length;
 
   // Load existing conversations when chat changes
@@ -195,14 +195,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
 
     try {
       setIsLoading(true);
-      let fileArray = Array.from(files);
-      if (selectedModel === "general") {
-        if (associatedCount >= 1) {
-          setIsLoading(false);
-          return;
-        }
-        fileArray = fileArray.slice(0, 1);
-      }
+      const fileArray = Array.from(files);
       const result = await uploadFilesMutation.mutateAsync({
         files: fileArray,
         workspaceId
@@ -225,13 +218,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
         }
       } else {
         // If no current chat, add to local state for new chat creation
-        setUploadedFiles(prev => {
-          const merged = [...prev, ...result];
-          if (selectedModel === "general") {
-            return merged.slice(0, 1);
-          }
-          return merged;
-        });
+        setUploadedFiles(prev => [...prev, ...result]);
       }
     } catch (error) {
       // Handle error silently
@@ -507,7 +494,6 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
   };
 
   const addExistingFile = async (file: AssistantFile) => {
-    if (selectedModel === "general" && associatedCount >= 1) return;
     if (!uploadedFiles.find(f => f.fileId === file.fileId)) {
       // If we're in an existing chat, attach the file to the chat
       if (currentChat) {
@@ -529,17 +515,14 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
         }
       } else {
         // If no current chat, just add to local state for new chat creation
-        setUploadedFiles(prev => {
-          const merged = [...prev, file];
-          return selectedModel === "general" ? merged.slice(0, 1) : merged;
-        });
+        setUploadedFiles(prev => [...prev, file]);
       }
     }
   };
 
   const selectFilesForChat = (files: AssistantFile[]) => {
     if (files.length === 0) return;
-    setUploadedFiles(selectedModel === "general" ? files.slice(0, 1) : files);
+    setUploadedFiles(files);
   };
 
   return {
