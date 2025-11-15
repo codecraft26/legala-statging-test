@@ -235,7 +235,7 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
     conversation.role === "assistant" &&
     isExtraction &&
     isValidTableData &&
-    conversation.type === "extract"
+    (conversation.type === "extract" || currentChat?.type === "extract")
   ) {
     return (
       <div className="flex gap-3 justify-start">
