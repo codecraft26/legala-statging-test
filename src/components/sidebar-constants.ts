@@ -10,10 +10,26 @@ export const NAVIGATION_ITEMS = [
     label: "Dashboard",
   },
   {
+    href: "/drafting",
+    iconName: "PenTool",
+    label: "AutoDraft",
+  },
+  {
     href: "/ai-assistant",
     iconName: "Bot",
     label: "AI Assistant",
     badge: "New",
+  },
+  {
+    href: "/extract",
+    iconName: "FileText",
+    label: "Smart Extract",
+    badge: "Legacy",
+  },
+  {
+    href: "/documents",
+    iconName: "Folder",
+    label: "Documents",
   },
   {
     href: "/ai-court-search",
@@ -22,30 +38,15 @@ export const NAVIGATION_ITEMS = [
     badge: "New",
   },
   {
-    href: "/extract",
-    iconName: "FileText",
-    label: "Smart Extract",
-  },
-  {
     href: "/research",
     iconName: "Brain",
     label: "AI Research",
+    badge: "Legacy",
   },
   {
     href: "/news",
     iconName: "Newspaper",
     label: "Legal News",
-    badge: "New",
-  },
-  {
-    href: "/drafting",
-    iconName: "PenTool",
-    label: "AutoDraft",
-  },
-  {
-    href: "/documents",
-    iconName: "Folder",
-    label: "Documents",
   },
 ] as const;
 
