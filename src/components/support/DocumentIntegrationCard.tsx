@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Copy, Check, Bot, Command } from "lucide-react";
+import { Copy, Check, FileText, Command } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -53,28 +53,28 @@ function Copyable({ text }: { text: string }) {
 }
 
 const COMMANDS: Array<{ name: string; usage: string; description: string }> = [
-  { name: "/search", usage: "/search <filename>", description: "Search for filenames (fuzzy match supported)." },
+  { name: "/draft", usage: "/draft <template_name>", description: "Generate a document draft using a template." },
+  { name: "/search", usage: "/search <filename>", description: "Search for filenames in your workspace." },
   { name: "/list", usage: "/list", description: "List all files in the current workspace." },
   { name: "/get", usage: "/get <file_name>", description: "Retrieve a file from InfraHive storage." },
-  { name: "/teams", usage: "/teams", description: "List Microsoft Teams where the bot is installed." },
-  { name: "/channels", usage: "/channels <team name>", description: "List channels within a specific team." },
+  { name: "/refine", usage: "/refine <instructions>", description: "Refine or edit the current document with AI." },
 ];
 
-export default function TeamsIntegrationCard() {
+export default function DocumentIntegrationCard() {
   return (
     <Card className="border-muted shadow-sm">
       <CardHeader className="flex flex-row items-start gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-500/10">
-          <Bot className="h-6 w-6 text-indigo-600 dark:text-indigo-300" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10">
+          <FileText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
         </div>
         <div className="space-y-1">
           <CardTitle className="text-base">InfraHive AI Assistant</CardTitle>
-          <CardDescription>Use InfraHive directly inside Microsoft Teams.</CardDescription>
+          <CardDescription>Use InfraHive within Microsoft Document to automate drafting.</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-sm text-muted-foreground">
         <p>
-          Search, list, and retrieve workspace documents without leaving Teams. Install the InfraHive assistant to make collaboration fast and context-rich.
+          Automate document drafting, search, and refine documents directly within Microsoft Word. Install the InfraHive add-in to streamline your document workflow.
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -84,6 +84,7 @@ export default function TeamsIntegrationCard() {
           </Badge>
           <Badge variant="outline">Secure login</Badge>
           <Badge variant="outline">Workspace aware</Badge>
+          <Badge variant="outline">AI-powered drafting</Badge>
         </div>
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2">
@@ -93,26 +94,27 @@ export default function TeamsIntegrationCard() {
           </DialogTrigger>
           <DialogContent className="max-w-3xl">
             <DialogHeader>
-              <DialogTitle>Microsoft Teams setup</DialogTitle>
+              <DialogTitle>Microsoft Document setup</DialogTitle>
               <DialogDescription>
-                Follow these steps to install and start using the InfraHive assistant in Teams.
+                Follow these steps to install and start using the InfraHive assistant in Microsoft Word.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6 text-sm">
               <section className="space-y-2">
-                <h3 className="font-medium text-foreground">1. Install the bot</h3>
+                <h3 className="font-medium text-foreground">1. Install the add-in</h3>
                 <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
-                  <li>Open Microsoft Teams and go to the Apps section.</li>
-                  <li>Search for <span className="font-medium text-foreground">InfraHive AI Assistant</span> and click Install.</li>
-                  <li>Optionally pin the bot to your left navigation rail for quick access.</li>
+                  <li>Open Microsoft Word and go to the Insert tab.</li>
+                  <li>Click on <span className="font-medium text-foreground">Get Add-ins</span> or <span className="font-medium text-foreground">Office Add-ins</span>.</li>
+                  <li>Search for <span className="font-medium text-foreground">InfraHive AI Assistant</span> and click Add.</li>
+                  <li>The add-in will appear in your ribbon for quick access.</li>
                 </ol>
               </section>
 
               <section className="space-y-3">
                 <h3 className="font-medium text-foreground">2. Authenticate</h3>
                 <p className="text-muted-foreground">
-                  In the bot chat, send the login command and follow the authentication flow:
+                  Click on the InfraHive add-in icon and sign in with your credentials to connect to your workspace:
                 </p>
                 <Copyable text="/login" />
               </section>
@@ -142,5 +144,4 @@ export default function TeamsIntegrationCard() {
     </Card>
   );
 }
-
 
