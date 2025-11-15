@@ -302,14 +302,9 @@ export default function ProfilePage() {
               Join WhatsApp Group
             </a>
           </div>
-          <div className="rounded-md border p-4">
-            <h3 className="text-sm font-semibold mb-2">Microsoft Teams Assistant</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              Use InfraHive directly in Microsoft Teams
-            </p>
-            {/* Lazy load heavy assets */}
-            {React.createElement(require("@/components/support/TeamsIntegrationCard").default)}
-          </div>
+          {/* Lazy load heavy assets */}
+          {React.createElement(require("@/components/support/TeamsIntegrationCard").default)}
+          {React.createElement(require("@/components/support/DocumentIntegrationCard").default)}
         </div>
       </section>
     </main>
