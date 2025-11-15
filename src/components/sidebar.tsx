@@ -96,10 +96,21 @@ const NavItem = ({
           </span>
           {badge && (
             <span className="relative inline-flex items-center">
-              <span className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full blur-[2px] opacity-50 animate-pulse" />
-              <span className="relative text-[8px] px-1 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500 text-white font-bold shadow-sm shadow-emerald-500/25 uppercase tracking-wider">
-                {badge}
-              </span>
+              {badge === "New" ? (
+                <>
+                  <span className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full blur-[2px] opacity-50 animate-pulse" />
+                  <span className="relative text-[8px] px-1 py-0.5 rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-500 text-white font-bold shadow-sm shadow-emerald-500/25 uppercase tracking-wider">
+                    {badge}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full blur-[2px] opacity-50" />
+                  <span className="relative text-[8px] px-1 py-0.5 rounded-full bg-gradient-to-r from-yellow-500 via-yellow-400 to-amber-500 text-white font-bold shadow-sm shadow-yellow-500/25 uppercase tracking-wider">
+                    {badge}
+                  </span>
+                </>
+              )}
             </span>
           )}
         </span>
@@ -202,7 +213,7 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-0 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700 scrollbar-track-transparent pr-1 -mr-1">
-          {/* Main Section */}
+          {/* Dashboard */}
           <NavItem
             collapsed={collapsed}
             href={NAVIGATION_ITEMS[0].href}
@@ -211,17 +222,36 @@ export default function Sidebar() {
             badge={(NAVIGATION_ITEMS[0] as any).badge}
           />
 
-          {/* AI Tools Section */}
+          {/* Draft & Create Section */}
           {!collapsed && (
             <div className="px-2 pt-2 pb-1">
               <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.1em]">
-                AI Tools
+                Draft & Create
               </span>
             </div>
           )}
           {collapsed && <div className="h-1" />}
           <div className="space-y-0">
-            {NAVIGATION_ITEMS.slice(1, 3).map((item) => (
+            <NavItem
+              collapsed={collapsed}
+              href={NAVIGATION_ITEMS[1].href}
+              iconName={NAVIGATION_ITEMS[1].iconName as keyof typeof iconMap}
+              label={NAVIGATION_ITEMS[1].label}
+              badge={(NAVIGATION_ITEMS[1] as any).badge}
+            />
+          </div>
+
+          {/* Analyze Documents Section */}
+          {!collapsed && (
+            <div className="px-2 pt-2 pb-1">
+              <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.1em]">
+                Analyze Documents
+              </span>
+            </div>
+          )}
+          {collapsed && <div className="h-1" />}
+          <div className="space-y-0">
+            {NAVIGATION_ITEMS.slice(2, 5).map((item) => (
               <NavItem
                 key={item.href}
                 collapsed={collapsed}
@@ -233,61 +263,17 @@ export default function Sidebar() {
             ))}
           </div>
 
-          {/* Research Section */}
+          {/* Research & Updates Section */}
           {!collapsed && (
             <div className="px-2 pt-2 pb-1">
               <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.1em]">
-                Research
+                Research & Updates
               </span>
             </div>
           )}
           {collapsed && <div className="h-1" />}
           <div className="space-y-0">
-            {NAVIGATION_ITEMS.slice(3, 5).map((item) => (
-              <NavItem
-                key={item.href}
-                collapsed={collapsed}
-                href={item.href}
-                iconName={item.iconName as keyof typeof iconMap}
-                label={item.label}
-                badge={(item as any).badge}
-              />
-            ))}
-          </div>
-
-          {/* Content Section */}
-          {!collapsed && (
-            <div className="px-2 pt-2 pb-1">
-              <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.1em]">
-                Content
-              </span>
-            </div>
-          )}
-          {collapsed && <div className="h-1" />}
-          <div className="space-y-0">
-            {NAVIGATION_ITEMS.slice(5, 6).map((item) => (
-              <NavItem
-                key={item.href}
-                collapsed={collapsed}
-                href={item.href}
-                iconName={item.iconName as keyof typeof iconMap}
-                label={item.label}
-                badge={(item as any).badge}
-              />
-            ))}
-          </div>
-
-          {/* Documents Section */}
-          {!collapsed && (
-            <div className="px-2 pt-2 pb-1">
-              <span className="text-[9px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.1em]">
-                Documents
-              </span>
-            </div>
-          )}
-          {collapsed && <div className="h-1" />}
-          <div className="space-y-0">
-            {NAVIGATION_ITEMS.slice(6).map((item) => (
+            {NAVIGATION_ITEMS.slice(5).map((item) => (
               <NavItem
                 key={item.href}
                 collapsed={collapsed}

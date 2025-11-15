@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Copy, Check, FileText, Command } from "lucide-react";
+import { Copy, Check, Command } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -64,11 +65,17 @@ export default function DocumentIntegrationCard() {
   return (
     <Card className="border-muted shadow-sm">
       <CardHeader className="flex flex-row items-start gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10">
-          <FileText className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-500/10 p-2">
+          <Image 
+            src="/msDocs.svg" 
+            alt="Microsoft Word" 
+            width={32} 
+            height={32} 
+            className="object-contain"
+          />
         </div>
         <div className="space-y-1">
-          <CardTitle className="text-base">InfraHive AI Assistant</CardTitle>
+          <CardTitle className="text-base">MS Docs Integration</CardTitle>
           <CardDescription>Use InfraHive within Microsoft Document to automate drafting.</CardDescription>
         </div>
       </CardHeader>
