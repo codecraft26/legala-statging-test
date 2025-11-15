@@ -181,45 +181,45 @@ export default function WorkspaceSelector() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-between bg-white hover:bg-gray-50 border-gray-200 min-w-0"
+              className="w-full justify-between bg-white/60 dark:bg-zinc-900/60 hover:bg-white/80 dark:hover:bg-zinc-900/80 border-zinc-200/60 dark:border-zinc-800/60 backdrop-blur-sm min-w-0 rounded-xl px-3.5 py-2.5 transition-all duration-300 hover:shadow-md hover:border-zinc-300/60 dark:hover:border-zinc-700/60"
             >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Building2Icon className="h-4 w-4 text-gray-500 shrink-0" />
-                <span className="truncate text-left text-sm">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Building2Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400 shrink-0" strokeWidth={2.5} />
+                <span className="truncate text-left text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                   {currentWorkspace?.name || "Select workspace"}
                 </span>
               </div>
-              <ChevronDownIcon className="h-4 w-4 shrink-0 text-gray-400 ml-2" />
+              <ChevronDownIcon className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-400 ml-2" strokeWidth={2.5} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-56 bg-white border-gray-200 shadow-lg"
+            className="w-56 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-zinc-200/60 dark:border-zinc-800/60 shadow-xl rounded-xl p-1.5"
             align="start"
             side="bottom"
-            sideOffset={4}
+            sideOffset={8}
           >
             {workspaces.map((workspace) => (
               <DropdownMenuItem
                 key={workspace.id}
                 onClick={() => handleWorkspaceChange(workspace.id)}
-                className="flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                className="flex items-center justify-between cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 rounded-lg px-3 py-2 transition-colors duration-200"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Building2Icon className="h-4 w-4 text-gray-500 shrink-0" />
-                  <span className="truncate">{workspace.name}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Building2Icon className="h-4 w-4 text-zinc-600 dark:text-zinc-400 shrink-0" strokeWidth={2.5} />
+                  <span className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-300">{workspace.name}</span>
                 </div>
                 {currentWorkspace?.id === workspace.id && (
-                  <CheckIcon className="h-4 w-4 text-blue-600" />
+                  <CheckIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" strokeWidth={3} />
                 )}
               </DropdownMenuItem>
             ))}
             {mounted && isOwner && (
               <>
-                <DropdownMenuSeparator className="bg-gray-100" />
+                <DropdownMenuSeparator className="bg-zinc-200/60 dark:bg-zinc-800/60 my-1.5" />
                 <DialogTrigger asChild>
-                  <DropdownMenuItem className="cursor-pointer hover:bg-gray-50">
-                    <PlusIcon className="h-4 w-4 mr-2 text-gray-500" />
-                    <span>Create new workspace</span>
+                  <DropdownMenuItem className="cursor-pointer hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 rounded-lg px-3 py-2 transition-colors duration-200">
+                    <PlusIcon className="h-4 w-4 mr-2.5 text-zinc-600 dark:text-zinc-400" strokeWidth={2.5} />
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Create new workspace</span>
                   </DropdownMenuItem>
                 </DialogTrigger>
               </>
