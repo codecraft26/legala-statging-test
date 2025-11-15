@@ -123,7 +123,7 @@ export function useAssistantFiles(workspaceId: string) {
     queryFn: async () => {
       if (!workspaceId) return [];
       
-      return await Api.get<AssistantFile[]>(`/assistant/file?workspace=${encodeURIComponent(workspaceId)}`);
+      return await Api.get<AssistantFile[]>(`/assistant/file?workspaceId=${encodeURIComponent(workspaceId)}`);
     },
     enabled: !!workspaceId,
     staleTime: 5 * 60 * 1000, // 5 minutes
