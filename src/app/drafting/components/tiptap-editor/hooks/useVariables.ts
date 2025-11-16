@@ -62,6 +62,7 @@ export const useVariables = (editor: Editor | null) => {
       // Reset extraction state on cleanup
       setIsExtracting(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, triggerUpdate]);
 
   const extractVariables = useCallback(() => {

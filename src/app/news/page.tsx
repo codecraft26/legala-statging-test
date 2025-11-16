@@ -72,7 +72,7 @@ export default function NewsPage() {
     if (!searchQuery) return raw;
     const q = searchQuery.toLowerCase();
     return raw.filter((n) => String(n.title || "").toLowerCase().includes(q));
-  }, [rbiQuery.data, searchQuery]);
+  }, [rbiQuery, searchQuery]);
 
   const rbiPageItems = React.useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -87,7 +87,7 @@ export default function NewsPage() {
     if (page > effectiveTotalPages) {
       setPage(1);
     }
-  }, [effectiveTotal, effectiveTotalPages, pageSize, activeSection, rbiCategory]);
+  }, [page, effectiveTotal, effectiveTotalPages, pageSize, activeSection, rbiCategory]);
 
   return (
     <main className="py-6">

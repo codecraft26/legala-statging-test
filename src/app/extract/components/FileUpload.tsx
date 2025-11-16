@@ -188,9 +188,14 @@ export default function FileUpload({
     <div className="space-y-6">
       {/* Header and description */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-          Upload Your Documents
-        </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl font-semibold text-gray-900">
+            Upload Your Documents
+          </h2>
+          <span className="px-3 py-1 bg-black text-white text-xs font-semibold rounded-md">
+            Security: Documents not saved
+          </span>
+        </div>
         <p className="text-gray-500">
           Select or drag and drop your files to get started
         </p>

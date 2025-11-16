@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, memo, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Download, User, FileSpreadsheet, Eye } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
@@ -240,10 +241,12 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
     return (
       <div className="flex gap-3 justify-start">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-          <img 
+          <Image 
             src="/logo.png" 
             alt="Infrahive" 
-            className="w-8 h-8 object-contain"
+            width={32}
+            height={32}
+            className="object-contain"
           />
         </div>
         <div className="max-w-[80%]">
@@ -318,10 +321,12 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
     <div className={`flex gap-3 ${conversation.role === "user" ? "justify-end" : "justify-start"}`}>
       {conversation.role === "assistant" && (
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-          <img 
+          <Image 
             src="/logo.png" 
             alt="Infrahive" 
-            className="w-8 h-8 object-contain"
+            width={32}
+            height={32}
+            className="object-contain"
           />
         </div>
       )}

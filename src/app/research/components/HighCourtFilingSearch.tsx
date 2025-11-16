@@ -258,7 +258,7 @@ export default function HighCourtFilingSearch() {
       national_court_code: natCode,
       dist_cd: 1,
     });
-  }, []);
+  }, [selectedCase]);
 
   // TanStack Query mutations for follow/unfollow
   // (already declared above)

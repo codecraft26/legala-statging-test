@@ -103,7 +103,7 @@ export default function Drafting() {
         created.getDate() === now.getDate()
       );
     });
-  }, [list.data]);
+  }, [sortedDrafts]);
 
   const handleCreateNewDraft = async () => {
     if (!workspaceId) return;
