@@ -117,12 +117,7 @@ export default function ExtractPage() {
                 <FileText className="text-primary-foreground" size={16} />
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <CardTitle className="text-lg">Recent Extractions</CardTitle>
-                  <span className="px-3 py-1 bg-black text-white text-xs font-semibold rounded-md">
-                    Security: Documents not saved
-                  </span>
-                </div>
+                <CardTitle className="text-lg mb-1">Recent Extractions</CardTitle>
                 <CardDescription className="flex items-center gap-2 text-xs">
                   Browse your latest extraction jobs
                   {currentWorkspace?.name && (

@@ -19,14 +19,9 @@ export default function SelectedFilesList({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">
-          Selected Files ({files.length})
-        </h3>
-        <span className="px-3 py-1 bg-black text-white text-xs font-semibold rounded-md">
-          Security: Documents not saved
-        </span>
-      </div>
+      <h3 className="text-lg font-medium text-gray-900">
+        Selected Files ({files.length})
+      </h3>
       <div className="space-y-2">
         {files.map((file, index) => (
           <div

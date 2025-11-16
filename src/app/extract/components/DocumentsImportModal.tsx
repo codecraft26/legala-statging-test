@@ -79,7 +79,7 @@ export default function DocumentsImportModal({
               Select Files from Documents
             </h3>
             <span className="px-3 py-1 bg-black text-white text-xs font-semibold rounded-md">
-              Security: Documents not saved
+              For security, documents are not saved
             </span>
           </div>
           <Button 
