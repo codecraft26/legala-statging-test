@@ -63,6 +63,11 @@ export default function DragDropArea({
           <Plus className="w-4 h-4 mr-2" />
           Browse Files
         </Button>
+        <div className="mt-4">
+          <span className="px-3 py-1 bg-black text-white text-xs font-semibold rounded-md">
+            Security: Documents not saved
+          </span>
+        </div>
       </div>
     </div>
   );
