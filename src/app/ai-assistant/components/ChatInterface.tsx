@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { type AssistantChat } from "@/hooks/use-assistant";
 import { useChatLogic } from "../hooks/useChatLogic";
@@ -62,10 +63,12 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-3">
               <div className="w-24 h-24 flex items-center justify-center mx-auto">
-                <img
+                <Image
                   src="/logo.png"
                   alt="Infrahive"
-                  className="w-24 h-24 object-contain opacity-80"
+                  width={96}
+                  height={96}
+                  className="object-contain opacity-80"
                 />
               </div>
               <h3 className="text-xl font-semibold">How may I help you today?</h3>
@@ -77,7 +80,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
           <div className="flex items-center justify-center h-full">
             <div className="text-center space-y-3">
               <div className="w-20 h-20 flex items-center justify-center mx-auto">
-                <img src="/logo.png" alt="Infrahive" className="w-20 h-20 object-contain opacity-80" />
+                <Image src="/logo.png" alt="Infrahive" width={80} height={80} className="object-contain opacity-80" />
               </div>
               <div className="max-w-sm mx-auto">
                 <Reasoning isStreaming={true} defaultOpen={false}>

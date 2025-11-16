@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ui/shadcn-io/ai/reasoning";
 // Removed unused table display imports
@@ -32,10 +33,12 @@ export function StreamingMessage({ streamingMessage, currentChatType, isStreamin
     return (
       <div className="flex gap-3 justify-start">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-          <img 
+          <Image 
             src="/logo.png" 
             alt="Infrahive" 
-            className="w-8 h-8 object-contain"
+            width={32}
+            height={32}
+            className="object-contain"
           />
         </div>
         <div className="max-w-[80%]">
@@ -109,10 +112,12 @@ export function StreamingMessage({ streamingMessage, currentChatType, isStreamin
   return (
     <div className="flex gap-3 justify-start">
       <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-        <img 
+        <Image 
           src="/logo.png" 
           alt="Infrahive" 
-          className="w-8 h-8 object-contain"
+          width={32}
+          height={32}
+          className="object-contain"
         />
       </div>
       <div className="max-w-[80%]">
