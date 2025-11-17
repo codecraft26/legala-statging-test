@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/sidebar";
 import { getCookie } from "@/lib/utils";
+import { usePostHogAnalytics } from "@/hooks/use-posthog";
 
 const AUTH_PATHS = [
   "/login",
@@ -17,6 +18,10 @@ const AUTH_PATHS = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Initialize PostHog analytics and identify users
+  usePostHogAnalytics();
+  
   const isAuth = AUTH_PATHS.some(
     (p) =>
       pathname === p ||
