@@ -71,7 +71,7 @@ export default function SignUpPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm" htmlFor="password">
+              <label className="block text-sm font-medium" htmlFor="password">
                 Password
               </label>
               <input
@@ -82,6 +82,9 @@ export default function SignUpPage() {
                 className="w-full rounded-md border px-3 py-2"
                 required
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character
+              </p>
             </div>
             <div className="space-y-2">
               <label className="block text-sm" htmlFor="invite">
