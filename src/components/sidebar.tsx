@@ -162,7 +162,7 @@ export default function Sidebar() {
                     InfraHive
                   </span>
                   <span className="text-[9px] text-zinc-500 dark:text-zinc-400 font-medium uppercase tracking-widest">
-                    AI Platform
+                    AI Legal Workspace
                   </span>
                 </div>
               </Link>

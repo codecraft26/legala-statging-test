@@ -24,7 +24,6 @@ export const NAVIGATION_ITEMS = [
     href: "/extract",
     iconName: "FileText",
     label: "Smart Extract",
-    badge: "Legacy",
   },
   {
     href: "/documents",
@@ -41,7 +40,6 @@ export const NAVIGATION_ITEMS = [
     href: "/research",
     iconName: "Brain",
     label: "AI Research",
-    badge: "Legacy",
   },
   {
     href: "/news",

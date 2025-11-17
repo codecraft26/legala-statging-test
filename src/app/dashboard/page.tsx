@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FileText, Star, ArrowRight, Lightbulb, Zap, Target, Brain, PenTool } from "lucide-react";
+import { FileText, ArrowRight, Lightbulb, Zap, Target, Brain, PenTool } from "lucide-react";
 
 export default function DashboardPage() {
   const [authed, setAuthed] = useState(false);
@@ -86,7 +86,6 @@ export default function DashboardPage() {
                 ],
                 url: "/extract",
                 buttonColor: "from-blue-500 to-blue-600",
-                trending: true,
               },
               {
                 id: "research",
@@ -115,18 +114,12 @@ export default function DashboardPage() {
                 points: ["Templates", "Clause library", "Collaboration"],
                 url: "/drafting",
                 buttonColor: "from-purple-500 to-purple-600",
-                trending: true,
               },
             ].map((page, idx) => (
               <div
                 key={page.id}
                 className="rounded-2xl border p-6 relative overflow-hidden"
               >
-                {page.trending ? (
-                  <div className="absolute top-3 right-3 text-xs font-medium bg-red-500 text-white px-2 py-1 rounded">
-                    <Star className="w-3 h-3 inline mr-1" /> Trending
-                  </div>
-                ) : null}
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs bg-zinc-100 dark:bg-zinc-900/40 text-muted-foreground px-2 py-1 rounded">
                     {page.subtitle}
