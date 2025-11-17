@@ -1,7 +1,7 @@
 'use client'
 
 import { usePostHog } from 'posthog-js/react'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useAuth } from './use-auth'
 
 /**
@@ -11,18 +11,38 @@ import { useAuth } from './use-auth'
 export function usePostHogAnalytics() {
   const posthog = usePostHog()
   const { user } = useAuth()
+  const hasIdentifiedRef = useRef<string | null>(null)
 
   // Identify user when they log in
   useEffect(() => {
-    if (posthog && user) {
-      // Use email as the distinct_id to show email in PostHog activity
-      posthog.identify(user.email || user.id, {
-        $email: user.email, // PostHog person property for email
-        $name: user.name || user.email, // PostHog person property for name
-        email: user.email, // Custom property
-        name: user.name, // Custom property
-        role: user.role,
-      })
+    if (!posthog) return
+
+    if (user && user.email) {
+      // Only re-identify if the email has changed or not yet identified
+      if (hasIdentifiedRef.current !== user.email) {
+        console.log('PostHog: Identifying user with email:', user.email)
+        
+        // Reset PostHog to clear any previous identity
+        posthog.reset()
+        
+        // Identify with email as the distinct_id
+        posthog.identify(user.email, {
+          $email: user.email, // PostHog person property for email
+          $name: user.name || user.email, // PostHog person property for name
+          email: user.email, // Custom property
+          name: user.name, // Custom property
+          role: user.role,
+          id: user.id, // Store the actual ID as a property
+        })
+        
+        hasIdentifiedRef.current = user.email
+        console.log('PostHog: User identified successfully')
+      }
+    } else if (!user && hasIdentifiedRef.current) {
+      // User logged out, reset PostHog
+      console.log('PostHog: User logged out, resetting')
+      posthog.reset()
+      hasIdentifiedRef.current = null
     }
   }, [posthog, user])
 
