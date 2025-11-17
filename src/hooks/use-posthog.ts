@@ -20,8 +20,6 @@ export function usePostHogAnalytics() {
     if (user && user.email) {
       // Only re-identify if the email has changed or not yet identified
       if (hasIdentifiedRef.current !== user.email) {
-        console.log('PostHog: Identifying user with email:', user.email)
-        
         // Reset PostHog to clear any previous identity
         posthog.reset()
         
@@ -36,11 +34,9 @@ export function usePostHogAnalytics() {
         })
         
         hasIdentifiedRef.current = user.email
-        console.log('PostHog: User identified successfully')
       }
     } else if (!user && hasIdentifiedRef.current) {
       // User logged out, reset PostHog
-      console.log('PostHog: User logged out, resetting')
       posthog.reset()
       hasIdentifiedRef.current = null
     }
