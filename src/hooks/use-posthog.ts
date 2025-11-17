@@ -15,9 +15,12 @@ export function usePostHogAnalytics() {
   // Identify user when they log in
   useEffect(() => {
     if (posthog && user) {
-      posthog.identify(user.id, {
-        email: user.email,
-        name: user.name,
+      // Use email as the distinct_id to show email in PostHog activity
+      posthog.identify(user.email || user.id, {
+        $email: user.email, // PostHog person property for email
+        $name: user.name || user.email, // PostHog person property for name
+        email: user.email, // Custom property
+        name: user.name, // Custom property
         role: user.role,
       })
     }
