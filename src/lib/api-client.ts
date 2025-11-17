@@ -67,8 +67,24 @@ export async function apiRequest<TResponse = unknown, TBody = unknown>(
     
     let errorMessage = `${res.status} ${res.statusText}`;
     try {
-      const errJson = (await res.json()) as { message?: string };
-      if (errJson?.message) errorMessage = errJson.message;
+      const errJson = (await res.json()) as { 
+        message?: string; 
+        error?: {
+          issues?: Array<{ message: string; path?: string[] }>;
+          name?: string;
+        };
+      };
+      
+      // Check for Zod validation errors first
+      if (errJson?.error?.issues && errJson.error.issues.length > 0) {
+        // Extract all validation error messages
+        const validationErrors = errJson.error.issues
+          .map((issue) => issue.message)
+          .join(", ");
+        errorMessage = validationErrors;
+      } else if (errJson?.message) {
+        errorMessage = errJson.message;
+      }
     } catch {}
     throw new Error(errorMessage);
   }
