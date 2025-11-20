@@ -213,7 +213,7 @@ export default function HighCourtOrdersSearch() {
       >
         <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-100">
           <AlertDescription className="font-medium">
-            Only for Delhi High Court - Beta
+            Only for Delhi High Court - Beta Testing Version
           </AlertDescription>
         </Alert>
 

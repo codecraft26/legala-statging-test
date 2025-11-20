@@ -6,7 +6,7 @@ import HighCourtOrdersSearch from "../../components/HighCourtOrdersSearch";
 
 export default function HighCourtOrdersPage() {
   return (
-    <ResearchShell title="High Court Research - Orders (Delhi)">
+    <ResearchShell title="High Court Research - Orders (Delhi) - Beta Testing Version">
       <HighCourtOrdersSearch />
     </ResearchShell>
   );

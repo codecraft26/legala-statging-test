@@ -63,7 +63,7 @@ export default function ResearchLayout({
             href="/research/highcourt/orders"
             className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
           >
-            Orders (Delhi HC - Beta)
+            Orders (Delhi HC - Beta Testing Version)
           </Link>
         </div>
       );
