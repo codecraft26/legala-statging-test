@@ -1,13 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useHCDelhiJudgements } from "@/hooks/use-research";
-import type { HCDelhiJudgementRequest } from "@/lib/research-client";
+import type {
+  HCDelhiJudgement,
+  HCDelhiJudgementRequest,
+} from "@/lib/research-client";
+import { getCookie } from "@/lib/utils";
+import {
+  useCreateAssistantChat,
+  useUploadAssistantFiles,
+} from "@/hooks/use-assistant";
+import { useToast } from "@/components/ui/toast";
 
 export default function HighCourtOrdersSearch() {
   const [form, setForm] = useState({
@@ -19,6 +29,16 @@ export default function HighCourtOrdersSearch() {
   const [searchParams, setSearchParams] =
     useState<HCDelhiJudgementRequest | null>(null);
   const query = useHCDelhiJudgements(searchParams);
+  const router = useRouter();
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null);
+  const uploadMutation = useUploadAssistantFiles();
+  const createChatMutation = useCreateAssistantChat();
+  const [chattingCaseKey, setChattingCaseKey] = useState<string | null>(null);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    setWorkspaceId(getCookie("workspaceId"));
+  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,6 +53,89 @@ export default function HighCourtOrdersSearch() {
   };
 
   const results = query.data?.judgements ?? [];
+
+  const isGlobalChatting = useMemo(
+    () => uploadMutation.isPending || createChatMutation.isPending,
+    [uploadMutation.isPending, createChatMutation.isPending]
+  );
+
+  const getRowKey = (item: HCDelhiJudgement) =>
+    `${item.case_no || item.s_no}-${item.judgement_date || ""}`;
+
+  const handleChatWithAI = async (item: HCDelhiJudgement) => {
+    if (!workspaceId) {
+      showToast("Select a workspace before chatting with AI.", "error");
+      return;
+    }
+
+    const rowKey = getRowKey(item);
+    try {
+      setChattingCaseKey(rowKey);
+      const proxyResponse = await fetch("/api/proxy-txt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url: item.txt_link }),
+      });
+
+      if (!proxyResponse.ok) {
+        const errorJson = await proxyResponse.json().catch(() => null);
+        throw new Error(
+          errorJson?.error ||
+            "Unable to download judgment text file. Please try again."
+        );
+      }
+
+      // Read the remote TXT contents so we can persist a fresh file in the workspace
+      const payload = (await proxyResponse.json()) as { text?: string };
+      const normalizedText =
+        payload?.text || "No content found in judgment TXT.";
+
+      const sanitizedName =
+        (item.case_no || item.neutral_citation || "delhi-hc-order")
+          .replace(/[^\w.-]+/g, "_")
+          .slice(0, 80);
+      const file = new File([normalizedText], `${sanitizedName}.txt`, {
+        type: "text/plain",
+      });
+
+      const uploaded = await uploadMutation.mutateAsync({
+        files: [file],
+        workspaceId,
+      });
+      const uploadedFileId = uploaded?.[0]?.fileId;
+      if (!uploadedFileId) {
+        throw new Error("File upload failed.");
+      }
+
+      const chatPayload = {
+        name: item.case_no
+          ? `Delhi HC – ${item.case_no}`
+          : `Delhi HC Order (${item.petitioner ?? "Case"})`,
+        type: "general" as const,
+        workspaceId,
+        fileIds: [uploadedFileId],
+      };
+
+      const created = await createChatMutation.mutateAsync(chatPayload);
+      const chatId = created?.data?.id;
+      if (!chatId) {
+        throw new Error("Unable to create AI chat.");
+      }
+
+      showToast("Chat ready! Redirecting…", "success");
+      router.push(`/ai-assistant/${chatId}`);
+    } catch (error) {
+      console.error(error);
+      showToast(
+        error instanceof Error ? error.message : "Unable to open AI chat.",
+        "error"
+      );
+    } finally {
+      setChattingCaseKey(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -155,6 +258,9 @@ export default function HighCourtOrdersSearch() {
                     <th className="px-3 py-2 text-left font-semibold">
                       Links
                     </th>
+                    <th className="px-3 py-2 text-left font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
@@ -195,6 +301,21 @@ export default function HighCourtOrdersSearch() {
                           TXT
                         </a>
                       </td>
+                          <td className="px-3 py-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleChatWithAI(item)}
+                              disabled={
+                                chattingCaseKey === getRowKey(item) ||
+                                isGlobalChatting
+                              }
+                            >
+                              {chattingCaseKey === getRowKey(item)
+                                ? "Opening…"
+                                : "Chat with AI"}
+                            </Button>
+                          </td>
                     </tr>
                   ))}
                 </tbody>
