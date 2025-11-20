@@ -59,6 +59,12 @@ export default function ResearchLayout({
           >
             Search by Filing Number
           </Link>
+          <Link
+            href="/research/highcourt/orders"
+            className="block w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
+          >
+            Orders (Delhi HC - Beta)
+          </Link>
         </div>
       );
     }

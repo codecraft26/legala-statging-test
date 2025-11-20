@@ -9,6 +9,11 @@ import {
   DistrictCourtAPI,
   ResearchAPI,
 } from "@/lib/research-api";
+import {
+  fetchHCDelhiJudgements,
+  HCDelhiJudgementRequest,
+  HCDelhiJudgementResponse,
+} from "@/lib/research-client";
 
 export const researchKeys = {
   all: ["research"] as const,
@@ -181,6 +186,31 @@ export function useHighCourts() {
     queryFn: () => HighCourtAPI.getCourts(),
     staleTime: 30 * 60 * 1000, // Cache for 30 minutes
     gcTime: 60 * 60 * 1000, // Keep in cache for 1 hour
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useHCDelhiJudgements(
+  params: HCDelhiJudgementRequest | null
+) {
+  return useQuery<HCDelhiJudgementResponse>({
+    queryKey: [
+      "hc-delhi-judgements",
+      params?.party_name,
+      params?.from_date,
+      params?.to_date,
+      params?.year,
+    ],
+    enabled: !!(params && params.party_name?.trim().length),
+    queryFn: () =>
+      fetchHCDelhiJudgements({
+        party_name: params!.party_name.trim(),
+        from_date: params?.from_date ?? "",
+        to_date: params?.to_date ?? "",
+        year: params?.year ?? 0,
+      }),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
