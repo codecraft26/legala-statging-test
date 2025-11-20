@@ -32,17 +32,19 @@ const modelConfig = {
   }
 } as const;
 
+
 type ModelType = keyof typeof modelConfig;
 
 interface UseChatLogicProps {
   workspaceId: string;
   currentChat?: AssistantChat | null;
   onChatCreated?: (chat: AssistantChat) => void;
+  forceModel?: ModelType;
 }
 
-export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseChatLogicProps) {
+export function useChatLogic({ workspaceId, currentChat, onChatCreated, forceModel }: UseChatLogicProps) {
   const [inputMessage, setInputMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState<ModelType>("general");
+  const [selectedModel, setSelectedModel] = useState<ModelType>(() => forceModel ?? "general");
   const [uploadedFiles, setUploadedFiles] = useState<AssistantFile[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +100,12 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
   // Helper: count associated files
   const associatedCount = (chatDetail?.data?.files?.length || 0) + uploadedFiles.filter(u => !chatDetail?.data?.files?.some(f => f.file.fileId === u.fileId)).length;
 
+  useEffect(() => {
+    if (forceModel) {
+      setSelectedModel(forceModel);
+    }
+  }, [forceModel]);
+
   // Load existing conversations when chat changes
   useEffect(() => {
     if (existingConversations) {
@@ -138,6 +146,7 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
 
   // Refetch conversations when currentChat changes and update selected model
   useEffect(() => {
+    if (forceModel) return;
     if (currentChat?.id) {
       refetchConversations();
       
@@ -178,6 +187,10 @@ export function useChatLogic({ workspaceId, currentChat, onChatCreated }: UseCha
 
   // Change model type (PATCH /assistant/chat?id=...)
   const handleChangeModel = async (value: ModelType) => {
+    if (forceModel) {
+      setSelectedModel(forceModel);
+      return;
+    }
     setSelectedModel(value);
     if (currentChat?.id && workspaceId) {
       try {

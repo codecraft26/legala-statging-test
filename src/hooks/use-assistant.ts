@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Api } from "@/lib/api-client";
 
@@ -521,4 +522,82 @@ export function useStreamAssistantResponse() {
   return {
     streamResponse: streamResponseFn
   };
+}
+
+interface ChatLookupResult {
+  chat: AssistantChat | null;
+  fileId: string | null;
+}
+
+export function useFindChatByFileName(workspaceId?: string | null) {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (fileName: string): Promise<ChatLookupResult> => {
+      if (!workspaceId || !fileName) return { chat: null, fileId: null };
+
+      try {
+        const files = await queryClient.ensureQueryData<AssistantFile[]>({
+          queryKey: assistantKeys.files(workspaceId),
+          queryFn: async () => {
+            return await Api.get<AssistantFile[]>(
+              `/assistant/file?workspaceId=${encodeURIComponent(workspaceId)}`
+            );
+          },
+        });
+
+        const matchedFile = files?.find((file) => file.name === fileName);
+        const matchedFileId = matchedFile?.fileId ?? null;
+
+        const chatsResponse = await queryClient.ensureQueryData<{
+          success: boolean;
+          data: AssistantChat[];
+        }>({
+          queryKey: assistantKeys.chats(workspaceId),
+          queryFn: async () => {
+            return await Api.get<{
+              success: boolean;
+              data: AssistantChat[];
+            }>(`/assistant/chat?workspaceId=${encodeURIComponent(workspaceId)}`);
+          },
+        });
+
+        for (const chat of chatsResponse?.data ?? []) {
+          try {
+            const detail = await queryClient.ensureQueryData<{
+              data?: {
+                files?: ChatFileAttachment[];
+              };
+            }>({
+              queryKey: ["assistant", "chat", "detail", chat.id],
+              queryFn: async () => {
+                return await Api.get(
+                  `/assistant/chat/detail?id=${encodeURIComponent(chat.id)}`
+                );
+              },
+            });
+
+            const hasFile =
+              detail?.data?.files?.some(
+                (fileAttachment) =>
+                  fileAttachment.file?.fileId &&
+                  fileAttachment.file.fileId === matchedFileId
+              ) ?? false;
+
+            if (matchedFileId && hasFile) {
+              return { chat, fileId: matchedFileId };
+            }
+          } catch (error) {
+            console.error("Failed to fetch chat detail", error);
+          }
+        }
+
+        return { chat: null, fileId: matchedFileId };
+      } catch (error) {
+        console.error("Failed to lookup chat by file name", error);
+        return { chat: null, fileId: null };
+      }
+    },
+    [workspaceId, queryClient]
+  );
 }

@@ -50,6 +50,9 @@ interface ChatInputProps {
   onStopProcessing: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
   onToggleFileUpload: () => void;
+  allowModelSwitching?: boolean;
+  allowFileUpload?: boolean;
+  forceModel?: ModelType;
 }
 
 export function ChatInput({
@@ -65,35 +68,50 @@ export function ChatInput({
   onSendMessage,
   onStopProcessing,
   onKeyPress,
-  onToggleFileUpload
+  onToggleFileUpload,
+  allowModelSwitching = true,
+  allowFileUpload = true,
+  forceModel,
 }: ChatInputProps) {
+  const canSwitchModel = allowModelSwitching && !forceModel;
+  const showUploadButton = allowFileUpload !== false;
+
   return (
     <div className="flex-shrink-0 p-4 border-t relative">
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onToggleFileUpload}
-          title="Upload documents"
-          data-upload-button
-        >
-          <Paperclip className="w-4 h-4" />
-        </Button>
+        {showUploadButton && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggleFileUpload}
+            title="Upload documents"
+            data-upload-button
+          >
+            <Paperclip className="w-4 h-4" />
+          </Button>
+        )}
         
         {/* Editable model selector to allow changing chat type */}
-        <Select value={selectedModel} onValueChange={onModelChange}>
-          <SelectTrigger className="w-32">
-            {React.createElement(modelConfig[selectedModel].icon, { className: "w-4 h-4" })}
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(modelConfig).map(([key, config]) => (
-              <SelectItem key={key} value={key}>
-                <span>{config.label}</span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {canSwitchModel ? (
+          <Select value={selectedModel} onValueChange={onModelChange}>
+            <SelectTrigger className="w-32">
+              {React.createElement(modelConfig[selectedModel].icon, { className: "w-4 h-4" })}
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(modelConfig).map(([key, config]) => (
+                <SelectItem key={key} value={key}>
+                  <span>{config.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="w-32 flex items-center gap-1 rounded-md border px-2 py-1 text-xs text-muted-foreground bg-muted/50">
+            {React.createElement(modelConfig[selectedModel].icon, { className: "w-3.5 h-3.5" })}
+            <span>{modelConfig[selectedModel].label}</span>
+          </div>
+        )}
         
         <Input
           value={inputMessage}
