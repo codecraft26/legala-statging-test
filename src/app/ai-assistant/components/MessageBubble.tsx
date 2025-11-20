@@ -10,7 +10,7 @@ import { ExtractionModal } from "./ExtractionModal";
 import { Badge } from "@/components/ui/badge";
 import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
 import { type Conversation, type AssistantChat } from "@/hooks/use-assistant";
-import { isExtractionResponse, parseExtractionData, tableDataToCSV, downloadCSV } from "@/lib/extraction-utils";
+import { parseExtractionData, tableDataToCSV, downloadCSV } from "@/lib/extraction-utils";
 
 interface MessageBubbleProps {
   conversation: Conversation;
@@ -194,9 +194,31 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
     }
   }, [conversation.content]);
 
+  const messageType = conversation.type ?? (currentChat?.type ?? "general");
+  const isExtractMessage = messageType === "extract";
+
+  // Parse extraction data only for extract messages
+  const tableData = useMemo(
+    () => (isExtractMessage ? parseExtractionData(cleanContent) : null),
+    [isExtractMessage, cleanContent]
+  );
+  
+  const isValidTableData = useMemo(() => {
+    return (
+      !!tableData &&
+      Array.isArray(tableData.columns) &&
+      Array.isArray(tableData.rows)
+    );
+  }, [tableData]);
+
+  const shouldRenderAsExtraction =
+    conversation.role === "assistant" &&
+    isValidTableData &&
+    isExtractMessage;
+
   const dedupeConsecutiveLines = useCallback((text: string): string => {
     // Skip deduplication for extraction data as it might have legitimate repetitions
-    if (conversation.type === "extract" || currentChat?.type === "extract") {
+    if (isExtractMessage) {
       return text;
     }
     const lines = text.split('\n');
@@ -210,34 +232,21 @@ function MessageBubbleComponent({ conversation, currentChat }: MessageBubbleProp
       result.push(line);
     }
     return result.join('\n');
-  }, [conversation.type, currentChat?.type]);
+  }, [conversation.type, shouldRenderAsExtraction]);
 
   const displayContent = useMemo(() => dedupeConsecutiveLines(cleanContent), [cleanContent, dedupeConsecutiveLines]);
 
-  // Check if this is an extraction response and parse it
-  const isExtraction = isExtractionResponse(cleanContent);
-  const tableData = isExtraction ? parseExtractionData(cleanContent) : null;
-  
-  // Ensure tableData is valid before rendering
-  const isValidTableData = tableData && tableData.columns && tableData.rows && 
-                          Array.isArray(tableData.columns) && Array.isArray(tableData.rows);
-
   // Suppress placeholder bullets in extract chats when no table parsed
   if (
-    (currentChat?.type === "extract" || conversation.type === "extract") &&
-    !isExtraction &&
+    isExtractMessage &&
+    !shouldRenderAsExtraction &&
     isPlaceholderExtractList(cleanContent.trim())
   ) {
     return null;
   }
 
-  // Show extraction tables only for messages with type 'extract' (do not force using chat type)
-  if (
-    conversation.role === "assistant" &&
-    isExtraction &&
-    isValidTableData &&
-    (conversation.type === "extract" || currentChat?.type === "extract")
-  ) {
+  // Show extraction tables when the assistant response contains valid extraction data
+  if (shouldRenderAsExtraction) {
     return (
       <div className="flex gap-3 justify-start">
         <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">

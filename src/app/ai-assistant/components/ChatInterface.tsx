@@ -17,9 +17,20 @@ interface ChatInterfaceProps {
   currentChat?: AssistantChat | null;
   onChatCreated?: (chat: AssistantChat) => void;
   onCloseSession?: () => void;
+  forceModel?: "general" | "summary" | "extract";
+  allowModelSwitching?: boolean;
+  allowFileUpload?: boolean;
 }
 
-export function ChatInterface({ workspaceId, currentChat, onChatCreated, onCloseSession }: ChatInterfaceProps) {
+export function ChatInterface({
+  workspaceId,
+  currentChat,
+  onChatCreated,
+  onCloseSession,
+  forceModel,
+  allowModelSwitching = true,
+  allowFileUpload = true,
+}: ChatInterfaceProps) {
   const {
     // State
     inputMessage,
@@ -49,7 +60,7 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
     setShowFileUpload,
     handleToggleChatFileRequired,
     togglingChatFileId,
-  } = useChatLogic({ workspaceId, currentChat, onChatCreated });
+  } = useChatLogic({ workspaceId, currentChat, onChatCreated, forceModel });
 
 
   return (
@@ -137,6 +148,9 @@ export function ChatInterface({ workspaceId, currentChat, onChatCreated, onClose
           onStopProcessing={handleStopProcessing}
           onKeyPress={handleKeyPress}
           onToggleFileUpload={() => setShowFileUpload(!showFileUpload)}
+          allowModelSwitching={allowModelSwitching && !forceModel}
+          allowFileUpload={allowFileUpload}
+          forceModel={forceModel}
         />
 
         {/* File Upload Modal */}
